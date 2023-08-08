@@ -5,6 +5,7 @@
     let canvas;
 
     onMount( () => {
+        // const world = new World();
         const game = new Game(canvas);
         game.init();
 
@@ -28,7 +29,7 @@
         min-height: 100vh;
         overflow: hidden;
 
-        background-color: black;
+        /*background-color: black;*/
     }
 </style>
 
