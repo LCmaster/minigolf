@@ -5,24 +5,46 @@ class WorldRenderer {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10);
+    directionalLight.castShadow = true;
+    this.scene.add(directionalLight);
   }
 
   createRedBox() {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: "red" });
+    const material = new THREE.MeshStandardMaterial({ color: "red" });
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
     this.scene.add(mesh);
 
     return mesh;
   }
 
   createFloor() {
-    const geometry = new THREE.BoxGeometry(50, 0.5, 50);
-    const material = new THREE.MeshBasicMaterial({ color: "yellowgreen" });
-    const mesh = new THREE.Mesh(geometry, material);
-    this.scene.add(mesh);
+    const group = new THREE.Group();
 
-    return mesh;
+    for (let i = 0; i < 10; i++) {
+      for (let j = 0; j < 10; j++) {
+        const geometry = new THREE.BoxGeometry(1, 0.5, 1);
+        const material = new THREE.MeshStandardMaterial({
+          color: (i + j) % 2 ? "yellowgreen" : "seagreen",
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.receiveShadow = true;
+        mesh.position.x = -5 + i;
+        mesh.position.z = -5 + j;
+        group.add(mesh);
+      }
+    }
+
+    this.scene.add(group);
+
+    return group;
   }
 
   render() {
