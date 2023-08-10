@@ -40,7 +40,6 @@ class World {
   }
 
   hitPlayerBall(player) {
-    console.log(player);
     player.rigidBody.applyImpulse({ x: 0.0, y: 5.0, z: 0.0 }, true);
   }
 

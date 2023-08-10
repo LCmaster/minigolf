@@ -36,8 +36,8 @@ class WorldRenderer {
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.receiveShadow = true;
-        mesh.position.x = -5 + i;
-        mesh.position.z = -5 + j;
+        mesh.position.x = -5 + 0.5 + i;
+        mesh.position.z = -5 + 0.5 + j;
         group.add(mesh);
       }
     }

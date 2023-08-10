@@ -15,11 +15,11 @@ class Game {
 
     this.scene = new THREE.Scene();
 
-    this.camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 100);
     this.scene.add(this.camera);
-    this.camera.position.x = 5;
-    this.camera.position.y = 5;
-    this.camera.position.z = -5;
+    this.camera.position.x = 10;
+    this.camera.position.y = 10;
+    this.camera.position.z = -10;
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({
