@@ -8,6 +8,8 @@ import WorldSimulator from "$lib/physics.js";
 class Game {
   constructor(canvas) {
     this.timer = new Timer();
+    this.raycaster = new THREE.Raycaster();
+
     let WIDTH = window.innerWidth;
     let HEIGHT = window.innerHeight;
 
@@ -29,8 +31,8 @@ class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const onResize = (ev) => {
-      let WIDTH = window.innerWidth;
-      let HEIGHT = window.innerHeight;
+      WIDTH = window.innerWidth;
+      HEIGHT = window.innerHeight;
 
       this.camera.aspect = WIDTH / HEIGHT;
       this.camera.updateProjectionMatrix();
@@ -41,6 +43,32 @@ class Game {
 
     window.addEventListener("focus", onResize, false);
     window.addEventListener("resize", onResize, false);
+
+    this.pointer = new THREE.Vector2();
+    window.addEventListener(
+      "click",
+      (ev) => {
+        //Convert pointer screen position from screen space to clip space
+        this.pointer.x = (ev.clientX / WIDTH) * 2 - 1;
+        this.pointer.y = -(ev.clientY / HEIGHT) * 2 + 1;
+
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+        const intersects = this.raycaster.intersectObjects(
+          this.world.objects
+            .filter((obj) => obj.type === "Player")
+            .map((obj) => obj.mesh)
+        );
+
+        this.world.objects
+          .filter(
+            (obj) =>
+              intersects.filter((hitTest) => hitTest.object === obj.mesh)
+                .length > 0
+          )
+          .forEach((obj) => this.world.hitPlayerBall(obj));
+      },
+      false
+    );
   }
 
   async init() {

@@ -23,8 +23,12 @@ class World {
     mesh.position.y = position.y;
     mesh.position.z = position.z;
 
-    this.objects.push({ mesh: floorMesh, rigidBody: floorBody });
-    this.objects.push({ mesh: mesh, rigidBody: body });
+    this.objects.push({
+      type: "Terrain",
+      mesh: floorMesh,
+      rigidBody: floorBody,
+    });
+    this.objects.push({ type: "Player", mesh: mesh, rigidBody: body });
   }
 
   loadLevel(levelName) {
@@ -33,6 +37,11 @@ class World {
 
   spawnPlayer() {
     //TODO: Implement this method
+  }
+
+  hitPlayerBall(player) {
+    console.log(player);
+    player.rigidBody.applyImpulse({ x: 0.0, y: 5.0, z: 0.0 }, true);
   }
 
   update(deltaTime) {
