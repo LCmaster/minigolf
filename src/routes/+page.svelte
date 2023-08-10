@@ -1,36 +1,24 @@
 <script>
-    import Game from '../lib/game.js';
-    import {onMount} from "svelte";
+  import { onMount } from "svelte";
+  import Game from "$lib/game.js";
 
-    let canvas;
+  let canvas;
+  let game;
 
-    onMount( () => {
-        // const world = new World();
-        const game = new Game(canvas);
-        game.init();
+  onMount(() => {
+    game = new Game(canvas);
+    game.init().then(() => game.start());
 
-        window.addEventListener("resize", game.onResize);
-        function gameLoop() {
-            requestAnimationFrame(gameLoop);
-
-            game.update();
-            game.render();
-        }
-        gameLoop();
-
-        game.dispose();
-    });
-
+    return () => game.dispose();
+  });
 </script>
 
+<canvas class="webgl" bind:this={canvas} />
+
 <style>
-    .webgl {
-        width: 100vw;
-        min-height: 100vh;
-        overflow: hidden;
-
-        /*background-color: black;*/
-    }
+  .webgl {
+    width: 100vw;
+    min-height: 100vh;
+    overflow: hidden;
+  }
 </style>
-
-<canvas class="webgl" bind:this={canvas}></canvas>
