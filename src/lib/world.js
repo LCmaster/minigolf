@@ -23,11 +23,15 @@ class World {
     mesh.position.y = position.y;
     mesh.position.z = position.z;
 
+    const targetMesh = this.renderer.createTarget();
+    const targetBody = this.simulator.createTarget();
+
     this.objects.set("Terrain", {
       mesh: floorMesh,
       rigidBody: floorBody,
     });
     this.objects.set("Player", { mesh: mesh, rigidBody: body });
+    this.objects.set("Target", { mesh: targetMesh, rigidBody: targetBody });
   }
 
   loadLevel(levelName) {
@@ -39,7 +43,6 @@ class World {
   }
 
   hitPlayerBall(player, direction) {
-    console.log(direction);
     player.rigidBody.applyImpulse(
       { x: direction.x, y: 0.0, z: direction.z },
       true
@@ -57,14 +60,21 @@ class World {
       mesh.position.y = position.y;
       mesh.position.z = position.z;
     });
+
+    if (
+      this.objects.size > 0 &&
+      this.simulator.didPlayerCompleteCurrentLevel(
+        this.objects.get("Player").rigidBody,
+        this.objects.get("Target").rigidBody
+      )
+    ) {
+      console.log("Yayyyy!!!");
+    }
   }
   render(deltaTime) {
     this.renderer.render();
   }
 
-  updateRendererDimensions() {
-    this.renderer.updateRendererDimensions();
-  }
   dispose() {
     //TODO: Implement this method
   }

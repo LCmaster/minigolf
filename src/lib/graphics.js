@@ -15,6 +15,16 @@ class WorldRenderer {
     this.scene.add(directionalLight);
   }
 
+  createTarget() {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshStandardMaterial({ color: "blue" });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    this.scene.add(mesh);
+
+    return mesh;
+  }
+
   createRedBox() {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
     const material = new THREE.MeshStandardMaterial({ color: "red" });

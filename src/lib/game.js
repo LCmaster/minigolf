@@ -101,7 +101,7 @@ class Game {
 
         const intersects = this.raycaster.intersectObjects(objectsToTest);
 
-        if (intersects[0].object === player) {
+        if (intersects.length > 0 && intersects[0].object === player) {
           this.playerSelected = true;
           this.controls.enabled = false;
         }
