@@ -44,28 +44,97 @@ class Game {
     window.addEventListener("focus", onResize, false);
     window.addEventListener("resize", onResize, false);
 
-    this.pointer = new THREE.Vector2();
+    this.pointer = {
+      isDown: false,
+      position: new THREE.Vector2(),
+    };
+
+    this.playerSelected = false;
+    this.hitPoint = new THREE.Vector3();
+
     window.addEventListener(
-      "click",
+      "mousemove",
       (ev) => {
         //Convert pointer screen position from screen space to clip space
-        this.pointer.x = (ev.clientX / WIDTH) * 2 - 1;
-        this.pointer.y = -(ev.clientY / HEIGHT) * 2 + 1;
+        this.pointer.position.x = (ev.clientX / WIDTH) * 2 - 1;
+        this.pointer.position.y = -(ev.clientY / HEIGHT) * 2 + 1;
 
-        this.raycaster.setFromCamera(this.pointer, this.camera);
-        const intersects = this.raycaster.intersectObjects(
-          this.world.objects
-            .filter((obj) => obj.type === "Player")
-            .map((obj) => obj.mesh)
-        );
+        if (this.pointer.isDown) {
+          if (this.playerSelected) {
+            console.log("Apply force to player!");
+            this.raycaster.setFromCamera(this.pointer.position, this.camera);
+            const objectsToTest = [
+              this.world.objects.get("Player").mesh,
+              this.world.objects.get("Terrain").mesh,
+            ];
 
-        this.world.objects
-          .filter(
-            (obj) =>
-              intersects.filter((hitTest) => hitTest.object === obj.mesh)
-                .length > 0
-          )
-          .forEach((obj) => this.world.hitPlayerBall(obj));
+            const intersects = this.raycaster.intersectObject(
+              this.world.objects.get("Terrain").mesh
+            );
+
+            if (intersects.length) {
+              const playerPosition = this.world.objects
+                .get("Player")
+                .mesh.position.clone();
+
+              this.hitPoint = intersects[0].point.clone();
+              this.hitPoint.y = playerPosition.y;
+            }
+          } else {
+            console.log("Rotate camera!");
+          }
+        }
+      },
+      false
+    );
+    window.addEventListener(
+      "mousedown",
+      (ev) => {
+        this.pointer.isDown = true;
+
+        this.raycaster.setFromCamera(this.pointer.position, this.camera);
+        const objectsToTest = [
+          this.world.objects.get("Player").mesh,
+          this.world.objects.get("Terrain").mesh,
+        ];
+
+        const intersects = this.raycaster.intersectObjects(objectsToTest);
+
+        if (
+          intersects.filter(
+            (hit) => hit.object === this.world.objects.get("Player").mesh
+          ).length > 0
+        ) {
+          this.playerSelected = true;
+        }
+      },
+      false
+    );
+    window.addEventListener(
+      "mouseup",
+      (ev) => {
+        if (this.pointer.isDown && this.playerSelected) {
+          const playerPosition = this.world.objects
+            .get("Player")
+            .mesh.position.clone();
+
+          const hitDirection = new THREE.Vector3();
+          hitDirection.subVectors(playerPosition, this.hitPoint).normalize;
+          const hitForce = Math.min(
+            this.hitPoint.distanceTo(playerPosition),
+            5
+          );
+
+          this.world.hitPlayerBall(
+            this.world.objects.get("Player"),
+            hitDirection.multiplyScalar(hitForce)
+          );
+
+          this.hitPoint = new THREE.Vector3();
+        }
+
+        this.pointer.isDown = false;
+        this.playerSelected = false;
       },
       false
     );
@@ -89,6 +158,7 @@ class Game {
 
     this.world.loadStarterLevel();
     this.world.loadLevel("intro");
+
     const gameLoop = () => {
       requestAnimationFrame(gameLoop);
 

@@ -3,7 +3,7 @@ class World {
     this.renderer = renderer;
     this.simulator = simulator;
 
-    this.objects = [];
+    this.objects = new Map([]);
   }
 
   loadStarterLevel() {
@@ -23,12 +23,11 @@ class World {
     mesh.position.y = position.y;
     mesh.position.z = position.z;
 
-    this.objects.push({
-      type: "Terrain",
+    this.objects.set("Terrain", {
       mesh: floorMesh,
       rigidBody: floorBody,
     });
-    this.objects.push({ type: "Player", mesh: mesh, rigidBody: body });
+    this.objects.set("Player", { mesh: mesh, rigidBody: body });
   }
 
   loadLevel(levelName) {
@@ -39,21 +38,25 @@ class World {
     //TODO: Implement this method
   }
 
-  hitPlayerBall(player) {
-    player.rigidBody.applyImpulse({ x: 0.0, y: 5.0, z: 0.0 }, true);
+  hitPlayerBall(player, direction) {
+    console.log(direction);
+    player.rigidBody.applyImpulse(
+      { x: direction.x, y: 0.0, z: direction.z },
+      true
+    );
   }
 
   update(deltaTime) {
     this.simulator.update();
 
-    for (const object of this.objects) {
-      const { mesh, rigidBody } = object;
+    this.objects.forEach((obj) => {
+      const { mesh, rigidBody } = obj;
 
       const position = rigidBody.translation();
       mesh.position.x = position.x;
       mesh.position.y = position.y;
       mesh.position.z = position.z;
-    }
+    });
   }
   render(deltaTime) {
     this.renderer.render();
