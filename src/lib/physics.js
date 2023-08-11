@@ -36,10 +36,7 @@ class WorldSimulator {
     const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
 
     const colliderDesc = this.RAPIER.ColliderDesc.ball(0.75).setRestitution(1);
-    const collider = this.worldSimulator.createCollider(
-      colliderDesc,
-      rigidBody
-    );
+    this.worldSimulator.createCollider(colliderDesc, rigidBody);
 
     return rigidBody;
   }
@@ -49,10 +46,7 @@ class WorldSimulator {
     const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
 
     const colliderDesc = this.RAPIER.ColliderDesc.cuboid(50, 0.5, 50);
-    const collider = this.worldSimulator.createCollider(
-      colliderDesc,
-      rigidBody
-    );
+    this.worldSimulator.createCollider(colliderDesc, rigidBody);
 
     return rigidBody;
   }

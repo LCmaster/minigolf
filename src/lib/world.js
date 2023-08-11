@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 class World {
   constructor(renderer, simulator) {
     this.renderer = renderer;
@@ -68,7 +70,9 @@ class World {
         this.objects.get("Target").rigidBody
       )
     ) {
-      console.log("Yayyyy!!!");
+      this.objects.get("Target").mesh.material.color = new THREE.Color(
+        "magenta"
+      );
     }
   }
   render(deltaTime) {
