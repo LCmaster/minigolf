@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import Timer from "$lib/timer.js";
 import World from "$lib/world.js";
@@ -41,11 +42,18 @@ class Game {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     };
 
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enablePan = false;
+    this.controls.enableZoom = false;
+    this.controls.minPolarAngle = Math.PI * 0.25;
+    this.controls.maxPolarAngle = Math.PI * 0.25;
+
     window.addEventListener("focus", onResize, false);
     window.addEventListener("resize", onResize, false);
 
     this.pointer = {
       isDown: false,
+      origin: new THREE.Vector2(),
       position: new THREE.Vector2(),
     };
 
@@ -61,12 +69,7 @@ class Game {
 
         if (this.pointer.isDown) {
           if (this.playerSelected) {
-            console.log("Apply force to player!");
             this.raycaster.setFromCamera(this.pointer.position, this.camera);
-            const objectsToTest = [
-              this.world.objects.get("Player").mesh,
-              this.world.objects.get("Terrain").mesh,
-            ];
 
             const intersects = this.raycaster.intersectObject(
               this.world.objects.get("Terrain").mesh
@@ -80,8 +83,6 @@ class Game {
               this.hitPoint = intersects[0].point.clone();
               this.hitPoint.y = playerPosition.y;
             }
-          } else {
-            console.log("Rotate camera!");
           }
         }
       },
@@ -91,21 +92,18 @@ class Game {
       "mousedown",
       (ev) => {
         this.pointer.isDown = true;
+        this.pointer.origin = this.pointer.position.clone();
 
         this.raycaster.setFromCamera(this.pointer.position, this.camera);
-        const objectsToTest = [
-          this.world.objects.get("Player").mesh,
-          this.world.objects.get("Terrain").mesh,
-        ];
+        const player = this.world.objects.get("Player").mesh;
+        const terrain = this.world.objects.get("Terrain").mesh;
+        const objectsToTest = [player, terrain];
 
         const intersects = this.raycaster.intersectObjects(objectsToTest);
 
-        if (
-          intersects.filter(
-            (hit) => hit.object === this.world.objects.get("Player").mesh
-          ).length > 0
-        ) {
+        if (intersects[0].object === player) {
           this.playerSelected = true;
+          this.controls.enabled = false;
         }
       },
       false
@@ -131,10 +129,13 @@ class Game {
           );
 
           this.hitPoint = new THREE.Vector3();
+          this.controls.enabled = true;
         }
 
         this.pointer.isDown = false;
         this.playerSelected = false;
+        this.terrainSelected = false;
+        this.pointer.origin = new THREE.Vector2();
       },
       false
     );
@@ -165,6 +166,7 @@ class Game {
       this.timer.tick();
       const deltaTime = this.timer.deltaTime;
 
+      this.controls.update();
       this.world.update(deltaTime);
       this.world.render(deltaTime);
     };
