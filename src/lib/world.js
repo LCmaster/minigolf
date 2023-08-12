@@ -37,7 +37,11 @@ class World {
   }
 
   loadLevel(levelName) {
-    //TODO: Implement this method
+    this.renderer.loadModel(`Level_${levelName}.glb`, (gltf) => {
+      const model = gltf.scene;
+      this.objects.set("Level", { mesh: model, rigidBody: null });
+      this.renderer.scene.add(model);
+    });
   }
 
   spawnPlayer() {
@@ -57,6 +61,8 @@ class World {
     this.objects.forEach((obj) => {
       const { mesh, rigidBody } = obj;
 
+      if (!rigidBody) return;
+
       const position = rigidBody.translation();
       mesh.position.x = position.x;
       mesh.position.y = position.y;
@@ -70,9 +76,12 @@ class World {
         this.objects.get("Target").rigidBody
       )
     ) {
-      this.objects.get("Target").mesh.material.color = new THREE.Color(
-        "magenta"
-      );
+      this.objects.get("Player").rigidBody.sleep();
+      this.objects.get("Player").rigidBody.resetForces(false);
+      this.objects.get("Player").rigidBody.resetTorques(false);
+      this.objects
+        .get("Player")
+        .rigidBody.setTranslation({ x: 0, y: 5, z: 0 }, true);
     }
   }
   render(deltaTime) {
@@ -80,7 +89,16 @@ class World {
   }
 
   dispose() {
-    //TODO: Implement this method
+    for (const { key, value } in this.objects) {
+      this.simulator.removeRigidBody(value.rigidBody);
+      this.renderer.remove(value.mesh);
+      value.rigidBody = null;
+      value.mesh = null;
+
+      this.objects.delete(key);
+    }
+    this.renderer.dispose();
+    this.simulator.dispose();
   }
 }
 

@@ -1,4 +1,4 @@
-class WorldSimulator {
+class PhysicsEngine {
   constructor(instance) {
     this.RAPIER = instance;
     this.worldSimulator = new this.RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
@@ -27,7 +27,7 @@ class WorldSimulator {
     return rigidBody;
   }
 
-  createBoxBody() {
+  createPlayerBody() {
     const rigidBodyDesc = this.RAPIER.RigidBodyDesc.dynamic().setTranslation(
       0.0,
       5.0,
@@ -58,9 +58,19 @@ class WorldSimulator {
     );
   }
 
+  removeRigidBody(body) {
+    this.worldSimulator.removeRigidBody(body);
+  }
+
   update() {
     this.worldSimulator.step();
   }
+
+  dispose() {
+    this.worldSimulator = null;
+  }
 }
 
-export default WorldSimulator;
+export default async function initPhysicsEngine() {
+  return new PhysicsEngine(await import("@dimforge/rapier3d"));
+}

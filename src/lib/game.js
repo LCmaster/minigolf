@@ -1,87 +1,55 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-import Timer from "$lib/timer.js";
-import World from "$lib/world.js";
-import WorldRenderer from "$lib/graphics.js";
-import WorldSimulator from "$lib/physics.js";
-
 class Game {
-  constructor(canvas) {
-    this.timer = new Timer();
-    this.raycaster = new THREE.Raycaster();
+  constructor(audio, assets, renderer, simulator) {
+    this._audio = audio;
+    this._assets = assets;
+    this._renderer = renderer;
+    this._simulator = simulator;
 
-    let WIDTH = window.innerWidth;
-    let HEIGHT = window.innerHeight;
+    this._timer = new THREE.Clock();
 
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 100);
-    this.scene.add(this.camera);
-    this.camera.position.x = 10;
-    this.camera.position.y = 10;
-    this.camera.position.z = -10;
-    this.camera.lookAt(0, 0, 0);
-
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: canvas,
-      antialias: true,
-    });
-    this.renderer.setSize(WIDTH, HEIGHT);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-    const onResize = (ev) => {
-      WIDTH = window.innerWidth;
-      HEIGHT = window.innerHeight;
-
-      this.camera.aspect = WIDTH / HEIGHT;
-      this.camera.updateProjectionMatrix();
-
-      this.renderer.setSize(WIDTH, HEIGHT);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    };
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new OrbitControls(
+      this._renderer.camera,
+      this._renderer.renderer.domElement
+    );
     this.controls.enablePan = false;
     this.controls.enableZoom = false;
     this.controls.minPolarAngle = Math.PI * 0.25;
-    this.controls.maxPolarAngle = Math.PI * 0.25;
+    this.controls.maxPolarAngle = Math.PI * 0.25 * 1.25;
+    this.controls.maxDistance = 10;
+    this.controls.minDistance = 10;
 
-    window.addEventListener("focus", onResize, false);
-    window.addEventListener("resize", onResize, false);
+    this.stage = null;
+    this.player = null;
 
-    this.pointer = {
-      isDown: false,
-      origin: new THREE.Vector2(),
-      position: new THREE.Vector2(),
+    this._timer.start();
+
+    this._pointer = {
+      pressed: false,
+      origin: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
     };
-
     this.playerSelected = false;
-    this.hitPoint = new THREE.Vector3();
+    this.hitPoint = { x: 0, y: 0, z: 0 };
 
     window.addEventListener(
       "mousemove",
       (ev) => {
         //Convert pointer screen position from screen space to clip space
-        this.pointer.position.x = (ev.clientX / WIDTH) * 2 - 1;
-        this.pointer.position.y = -(ev.clientY / HEIGHT) * 2 + 1;
+        this._pointer.current.x = (ev.clientX / window.innerWidth) * 2 - 1;
+        this._pointer.current.y = -(ev.clientY / window.innerHeight) * 2 + 1;
 
-        if (this.pointer.isDown) {
-          if (this.playerSelected) {
-            this.raycaster.setFromCamera(this.pointer.position, this.camera);
-
-            const intersects = this.raycaster.intersectObject(
-              this.world.objects.get("Terrain").mesh
-            );
-
-            if (intersects.length) {
-              const playerPosition = this.world.objects
-                .get("Player")
-                .mesh.position.clone();
-
-              this.hitPoint = intersects[0].point.clone();
-              this.hitPoint.y = playerPosition.y;
+        if (this._pointer.pressed && this.playerSelected) {
+          const intersections = this._renderer.castRayFromCameraToPointer(
+            this._pointer.current
+          );
+          for (let i = 0; i < intersections.length; i++) {
+            if (intersections[i].object === this.player.gfx.plane) {
+              this.hitPoint.x = intersections[0].point.x;
+              this.hitPoint.y = intersections[0].point.y;
+              this.hitPoint.z = intersections[0].point.z;
             }
           }
         }
@@ -91,19 +59,19 @@ class Game {
     window.addEventListener(
       "mousedown",
       (ev) => {
-        this.pointer.isDown = true;
-        this.pointer.origin = this.pointer.position.clone();
+        this._pointer.pressed = true;
+        this._pointer.origin.x = this._pointer.current.x;
+        this._pointer.origin.y = this._pointer.current.y;
 
-        this.raycaster.setFromCamera(this.pointer.position, this.camera);
-        const player = this.world.objects.get("Player").mesh;
-        const terrain = this.world.objects.get("Terrain").mesh;
-        const objectsToTest = [player, terrain];
+        const intersections = this._renderer.castRayFromCameraToPointer(
+          this._pointer.current
+        );
 
-        const intersects = this.raycaster.intersectObjects(objectsToTest);
-
-        if (intersects.length > 0 && intersects[0].object === player) {
-          this.playerSelected = true;
-          this.controls.enabled = false;
+        for (let i = 0; i < intersections.length; i++) {
+          if (intersections[i].object === this.player.gfx.ball) {
+            this.playerSelected = true;
+            this.controls.enabled = false;
+          }
         }
       },
       false
@@ -111,70 +79,93 @@ class Game {
     window.addEventListener(
       "mouseup",
       (ev) => {
-        if (this.pointer.isDown && this.playerSelected) {
-          const playerPosition = this.world.objects
-            .get("Player")
-            .mesh.position.clone();
+        if (this._pointer.pressed && this.playerSelected) {
+          const playerPosition = this.player.gfx.ball.position.clone();
+          const hitDirection = new THREE.Vector3(
+            playerPosition.x - this.hitPoint.x,
+            playerPosition.y - this.hitPoint.y,
+            playerPosition.z - this.hitPoint.z
+          );
 
-          const hitDirection = new THREE.Vector3();
-          hitDirection.subVectors(playerPosition, this.hitPoint).normalize;
           const hitForce = Math.min(
-            this.hitPoint.distanceTo(playerPosition),
+            new THREE.Vector3(
+              this.hitPoint.x,
+              this.hitPoint.y,
+              this.hitPoint.z
+            ).distanceTo(
+              new THREE.Vector3(
+                playerPosition.x,
+                playerPosition.y,
+                playerPosition.z
+              )
+            ),
             5
           );
 
-          this.world.hitPlayerBall(
-            this.world.objects.get("Player"),
-            hitDirection.multiplyScalar(hitForce)
+          const force = hitDirection.normalize().multiplyScalar(hitForce);
+
+          this.player.rigidBody.applyImpulse(
+            { x: force.x, y: 0.0, z: force.z },
+            true
           );
-
-          this.hitPoint = new THREE.Vector3();
-          this.controls.enabled = true;
         }
+        this.hitPoint = { x: 0, y: 0, z: 0 };
 
-        this.pointer.isDown = false;
+        this._pointer.origin = { x: 0, y: 0 };
+        this._pointer.pressed = false;
+
         this.playerSelected = false;
-        this.terrainSelected = false;
-        this.pointer.origin = new THREE.Vector2();
+        this.controls.enabled = true;
       },
       false
     );
   }
 
-  async init() {
-    const worldSimulator = new WorldSimulator(
-      await import("@dimforge/rapier3d")
-    );
-    const worldRenderer = new WorldRenderer(
-      this.scene,
-      this.camera,
-      this.renderer
-    );
-
-    this.world = new World(worldRenderer, worldSimulator);
+  loadMainMenuStage() {
+    //TODO: implement this method
   }
 
-  start() {
-    this.timer.start();
+  loadStage(stage) {
+    //TODO: implement this method
+    console.log("Load Stage ", stage);
 
-    this.world.loadStarterLevel();
-    this.world.loadLevel("intro");
-
-    const gameLoop = () => {
-      requestAnimationFrame(gameLoop);
-
-      this.timer.tick();
-      const deltaTime = this.timer.deltaTime;
-
-      this.controls.update();
-      this.world.update(deltaTime);
-      this.world.render(deltaTime);
+    this.stage = {
+      rigidBody: this._simulator.createFloor(),
+      mesh: this._renderer.createFloor(),
     };
-    gameLoop();
+
+    const playerMeshGroup = this._renderer.createPlayer();
+    this.player = {
+      gfx: {
+        group: playerMeshGroup[0],
+        ball: playerMeshGroup[1],
+        plane: playerMeshGroup[2],
+      },
+      rigidBody: this._simulator.createPlayerBody(),
+    };
+    this.player.gfx.group.position.y += 1;
   }
 
-  dispose() {
-    console.log("On Dispose");
+  update() {
+    const elapsed = this._timer.getElapsedTime();
+    const deltaTime = this._timer.getDelta();
+
+    this._simulator.update();
+
+    if (this.stage && this.player) {
+      const playerPosition = this.player.rigidBody.translation();
+      this.player.gfx.group.position.x = playerPosition.x;
+      this.player.gfx.group.position.y = playerPosition.y;
+      this.player.gfx.group.position.z = playerPosition.z;
+    }
+
+    this._renderer.render();
+
+    if (this.player) {
+      this.controls.target = this.player.gfx.group.position;
+    }
+
+    this.controls.update();
   }
 }
 
