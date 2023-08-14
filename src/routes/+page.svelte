@@ -1,24 +1,30 @@
 <script>
+  import MainMenu from "../components/MainMenu.svelte";
+
   import { onMount } from "svelte";
 
-  import initAssetManager from "$lib/assets.js";
-  import initAudioEngine from "$lib/audio.js";
-  import initRenderingEngine from "$lib/graphics.js";
-  import initPhysicsEngine from "$lib/physics.js";
-  import Game from "$lib/game.js";
-  import MainMenu from "../components/MainMenu.svelte";
+  import {
+    initAssetManager,
+    initAudioEngine,
+    initRenderingEngine,
+    initPhysicsEngine,
+    Game,
+  } from "$lib";
 
   let canvas;
   let game;
 
   onMount(() => {
-    Promise.all([
-      initAudioEngine(),
-      initAssetManager(),
-      initPhysicsEngine(),
-      initRenderingEngine(canvas),
-    ]).then(([audio, assets, simulator, renderer]) => {
-      game = new Game(audio, assets, renderer, simulator);
+    import("lil-gui").then((lil) => {
+      let gui = null; //new lil.GUI();
+      Promise.all([
+        initAudioEngine(gui),
+        initAssetManager(gui),
+        initPhysicsEngine(gui),
+        initRenderingEngine(gui, canvas),
+      ]).then(([audio, assets, simulator, renderer]) => {
+        game = new Game(gui, audio, assets, renderer, simulator);
+      });
     });
   });
 
@@ -27,7 +33,6 @@
       requestAnimationFrame(gameloop);
       if (!game) return;
 
-      // console.log(game);
       game.update();
     };
     gameloop();
@@ -36,6 +41,9 @@
 
 <div>
   <canvas class="webgl" bind:this={canvas} />
+  <div class="hud">
+    <div class="hud-debug" />
+  </div>
   {#if game}
     <MainMenu {game} />
   {/if}

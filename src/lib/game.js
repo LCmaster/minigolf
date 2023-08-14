@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 class Game {
-  constructor(audio, assets, renderer, simulator) {
+  constructor(gui, audio, assets, renderer, simulator) {
     this._audio = audio;
     this._assets = assets;
     this._renderer = renderer;
@@ -16,10 +16,10 @@ class Game {
     );
     this.controls.enablePan = false;
     this.controls.enableZoom = false;
-    this.controls.minPolarAngle = Math.PI * 0.25;
-    this.controls.maxPolarAngle = Math.PI * 0.25 * 1.25;
-    this.controls.maxDistance = 10;
-    this.controls.minDistance = 10;
+    this.controls.minPolarAngle = Math.PI * 0.1;
+    this.controls.maxPolarAngle = Math.PI * 0.25 * 1.5;
+    this.controls.maxDistance = 30;
+    this.controls.minDistance = 30;
 
     this.stage = null;
     this.player = null;
@@ -126,14 +126,6 @@ class Game {
   }
 
   loadStage(stage) {
-    //TODO: implement this method
-    console.log("Load Stage ", stage);
-
-    this.stage = {
-      rigidBody: this._simulator.createFloor(),
-      mesh: this._renderer.createFloor(),
-    };
-
     const playerMeshGroup = this._renderer.createPlayer();
     this.player = {
       gfx: {
@@ -144,6 +136,113 @@ class Game {
       rigidBody: this._simulator.createPlayerBody(),
     };
     this.player.gfx.group.position.y += 1;
+
+    this._assets.loadStageModel(stage, (gltf) => {
+      const model = gltf.scene;
+
+      const colliders = [];
+      let targetSensor = null;
+      let spawnPosition = null;
+      model.traverse((object) => {
+        if (object.isMesh) {
+          object.receiveShadow = true;
+
+          const poleMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+          });
+          const flagMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+          });
+          const wallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x993333,
+          });
+          const courseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x99ccff,
+          });
+          const terrainMaterial = new THREE.MeshStandardMaterial({
+            color: "seagreen",
+          });
+
+          if (object.name.startsWith("Wall_")) {
+            object.material = wallMaterial;
+          } else if (object.name.startsWith("Pole")) {
+            object.material = poleMaterial;
+          } else if (object.name.startsWith("Flag")) {
+            object.material = flagMaterial;
+            object.material.side = THREE.DoubleSide;
+          } else if (object.name.startsWith("Course")) {
+            object.material = courseMaterial;
+          } else if (object.name.startsWith("Ground")) {
+            object.material = terrainMaterial;
+          } else if (object.name.startsWith("Collider")) {
+            colliders.push(object);
+
+            this._simulator.createBoxCollider(
+              {
+                x: object.position.x,
+                y: object.position.y,
+                z: object.position.z,
+              },
+              {
+                w: object.quaternion.w,
+                x: object.quaternion.x,
+                y: object.quaternion.y,
+                z: object.quaternion.z,
+              },
+              {
+                x: object.scale.x,
+                y: object.scale.y,
+                z: object.scale.z,
+              }
+            );
+          } else if (object.name === "Start") {
+            spawnPosition = {
+              x: object.position.x,
+              y: object.position.y + 1,
+              z: object.position.z,
+            };
+            colliders.push(object);
+          } else if (object.name === "Target") {
+            targetSensor = this._simulator.createBoxSensor(
+              {
+                x: object.position.x,
+                y: object.position.y,
+                z: object.position.z,
+              },
+              {
+                w: object.quaternion.w,
+                x: object.quaternion.x,
+                y: object.quaternion.y,
+                z: object.quaternion.z,
+              },
+              {
+                x: object.scale.x,
+                y: object.scale.y,
+                z: object.scale.z,
+              }
+            );
+            colliders.push(object);
+          }
+        }
+      });
+
+      colliders.forEach((collider) => {
+        if (collider.parent !== null) {
+          collider.parent.remove(collider);
+        }
+      });
+
+      this.player.rigidBody.setTranslation(spawnPosition, true);
+
+      this._renderer.addToScene(model);
+      this._simulator.createFloor();
+
+      this.stage = {
+        name: stage,
+        spawnPosition: spawnPosition,
+        target: targetSensor,
+      };
+    });
   }
 
   update() {
@@ -152,7 +251,21 @@ class Game {
 
     this._simulator.update();
 
-    if (this.stage && this.player) {
+    if (this.stage?.target && this.player) {
+      if (
+        this._simulator.didPlayerWin(this.player.rigidBody, this.stage.target)
+      ) {
+        console.log("YAAAYYYYYYYY!!!");
+        this.player.rigidBody.setTranslation({
+          x: this.stage.spawnPosition.x,
+          y: this.stage.spawnPosition.y,
+          z: this.stage.spawnPosition.z,
+        });
+        this.player.rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        this.player.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        this.player.rigidBody.resetForces(true);
+        this.player.rigidBody.resetTorques(true);
+      }
       const playerPosition = this.player.rigidBody.translation();
       this.player.gfx.group.position.x = playerPosition.x;
       this.player.gfx.group.position.y = playerPosition.y;

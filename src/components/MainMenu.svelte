@@ -1,6 +1,6 @@
 <script>
   export let game;
-  game.loadStage("Intro");
+  game.loadStage("MainMenu.glb");
 </script>
 
 <div class="game-menu">

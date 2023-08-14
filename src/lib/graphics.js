@@ -1,8 +1,7 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 class RenderingEngine {
-  constructor(canvas) {
+  constructor(gui, canvas) {
     let WIDTH = window.innerWidth;
     let HEIGHT = window.innerHeight;
 
@@ -15,9 +14,9 @@ class RenderingEngine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 100);
-    this.camera.position.x = 10;
+    this.camera.position.x = 0;
     this.camera.position.y = 7.5;
-    this.camera.position.z = -10;
+    this.camera.position.z = 50;
     this.camera.lookAt(0, 0, 0);
 
     this.scene = new THREE.Scene();
@@ -27,10 +26,17 @@ class RenderingEngine {
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
     directionalLight.position.set(10, 10, 10);
     directionalLight.castShadow = true;
     this.scene.add(directionalLight);
+
+    // const gfxFolder = gui.addFolder("Graphics");
+    // const ambientLightFolder = gfxFolder.addFolder("Ambient Light");
+    // ambientLightFolder.add(ambientLight, "intensity").min(0).max(5);
+    // const directionalLightFolder = gfxFolder.addFolder("Directional Light");
+    // directionalLightFolder.add(directionalLight, "intensity").min(0).max(5);
+    // directionalLightFolder.add(directionalLight, "castShadow");
 
     this.raycaster = new THREE.Raycaster();
 
@@ -57,10 +63,14 @@ class RenderingEngine {
     return this.raycaster.intersectObject(this.scene);
   }
 
+  addToScene(model) {
+    this.scene.add(model);
+  }
+
   createPlayer() {
     const playerGroup = new THREE.Group();
 
-    const ballGeometry = new THREE.SphereGeometry(1, 32, 32);
+    const ballGeometry = new THREE.SphereGeometry(0.45, 32, 32);
     const ballMaterial = new THREE.MeshStandardMaterial({ color: "red" });
     const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
     ballMesh.castShadow = true;
@@ -101,28 +111,6 @@ class RenderingEngine {
     return mesh;
   }
 
-  createFloor() {
-    const group = new THREE.Group();
-
-    for (let i = 0; i < 50; i++) {
-      for (let j = 0; j < 50; j++) {
-        const geometry = new THREE.BoxGeometry(1, 0.5, 1);
-        const material = new THREE.MeshStandardMaterial({
-          color: (i + j) % 2 ? "yellowgreen" : "seagreen",
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.receiveShadow = true;
-        mesh.position.x = -25 + 0.5 + i;
-        mesh.position.z = -25 + 0.5 + j;
-        group.add(mesh);
-      }
-    }
-
-    this.scene.add(group);
-
-    return group;
-  }
-
   remove(mesh) {
     this.scene.remove(mesh);
   }
@@ -136,6 +124,6 @@ class RenderingEngine {
   }
 }
 
-export default async function initRenderingEngine(canvas) {
-  return new RenderingEngine(canvas);
+export default async function initRenderingEngine(gui, canvas) {
+  return new RenderingEngine(gui, canvas);
 }
