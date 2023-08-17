@@ -33,10 +33,6 @@ class Game {
     };
     this.playerSelected = false;
     this.hitPoint = new THREE.Vector3();
-    // this.hitBall = new THREE.Mesh(
-    //   new THREE.SphereGeometry(0.15, 8, 8),
-    //   new THREE.MeshBasicMaterial({ color: "purple" })
-    // );
 
     this.arrowIndicator = null;
 
@@ -44,9 +40,11 @@ class Game {
       const model = gltf.scene;
       model.traverse((obj) => {
         if (obj.isMesh) {
-          obj.material = new THREE.MeshBasicMaterial({
-            color: "white",
-          });
+          const arrowMaterial = new THREE.MeshBasicMaterial();
+          arrowMaterial.color = new THREE.Color(0xffffff);
+          arrowMaterial.depthTest = false;
+          obj.material = arrowMaterial;
+          obj.renderOrder = 999999;
         }
       });
 
@@ -69,15 +67,10 @@ class Game {
               this.hitPoint = intersections[i].point.clone();
 
               this.arrowIndicator.position.set(...this.hitPoint);
-              // this.hitBall.position.set(...this.hitPoint);
 
               const distance = this.hitPoint.distanceTo(
                 this.player.gfx.group.position
               );
-              const hitDirection = this.hitPoint
-                .clone()
-                .sub(this.player.gfx.group.position)
-                .normalize();
 
               const hitForce = Math.min(distance, 5);
 
@@ -117,7 +110,6 @@ class Game {
             this.playerSelected = true;
             this.controls.enabled = false;
 
-            // this._renderer.scene.add(this.hitBall);
             this._renderer.scene.add(this.arrowIndicator);
           }
         }
@@ -127,10 +119,7 @@ class Game {
     window.addEventListener(
       "mouseup",
       (ev) => {
-        // this._renderer.scene.remove(this.hitBall);
         this._renderer.scene.remove(this.arrowIndicator);
-
-        // this.hitBall.position.setScalar(0);
         this.arrowIndicator.position.setScalar(0);
 
         if (this._pointer.pressed && this.playerSelected) {
