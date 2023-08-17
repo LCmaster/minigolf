@@ -85,11 +85,10 @@ class PhysicsEngine {
   }
 
   didPlayerWin(player, target) {
-    // return this.worldSimulator.intersectionPair(
-    //   player.collider(0),
-    //   target.collider(0)
-    // );
-    return false;
+    return this.worldSimulator.intersectionPair(
+      player.collider(0),
+      target.collider(0)
+    );
   }
 
   removeRigidBody(body) {

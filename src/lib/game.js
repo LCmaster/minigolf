@@ -2,7 +2,16 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 class Game {
-  constructor(gui, audio, assets, renderer, simulator) {
+  constructor(
+    gui,
+    audio,
+    assets,
+    renderer,
+    simulator,
+    onStroke,
+    onSuccess,
+    onFailure
+  ) {
     this._audio = audio;
     this._assets = assets;
     this._renderer = renderer;
@@ -88,6 +97,16 @@ class Game {
                 hitForce - 0.75
               );
               this.arrowIndicator.lookAt(lookAtTarget);
+
+              let newArrowIndicatorPosition = new THREE.Vector3();
+              newArrowIndicatorPosition
+                .subVectors(
+                  this.arrowIndicator.position,
+                  this.player.gfx.group.position
+                )
+                .clampLength(0.75, 5)
+                .add(this.player.gfx.group.position);
+              this.arrowIndicator.position.set(...newArrowIndicatorPosition);
             }
           }
         }
@@ -284,6 +303,10 @@ class Game {
         target: targetSensor,
       };
     });
+
+    this._assets
+      .loadCubeMap("/skybox/")
+      .then((cubeMap) => (this._renderer.scene.background = cubeMap));
   }
 
   update() {

@@ -14,6 +14,12 @@ class AssetManager {
     this._gltfLoader.load(url, onLoad, onProgress, onError);
   }
 
+  async loadCubeMap(url) {
+    return this._cubeTextureLoader
+      .setPath(url)
+      .load(["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]);
+  }
+
   async loadPlayerModel(url) {}
 }
 
