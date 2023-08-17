@@ -32,7 +32,26 @@ class Game {
       current: { x: 0, y: 0 },
     };
     this.playerSelected = false;
-    this.hitPoint = { x: 0, y: 0, z: 0 };
+    this.hitPoint = new THREE.Vector3();
+    // this.hitBall = new THREE.Mesh(
+    //   new THREE.SphereGeometry(0.15, 8, 8),
+    //   new THREE.MeshBasicMaterial({ color: "purple" })
+    // );
+
+    this.arrowIndicator = null;
+
+    this._assets.loadGltfModel("ForceArrow.glb", (gltf) => {
+      const model = gltf.scene;
+      model.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.material = new THREE.MeshBasicMaterial({
+            color: "white",
+          });
+        }
+      });
+
+      this.arrowIndicator = model;
+    });
 
     window.addEventListener(
       "mousemove",
@@ -47,9 +66,35 @@ class Game {
           );
           for (let i = 0; i < intersections.length; i++) {
             if (intersections[i].object === this.player.gfx.plane) {
-              this.hitPoint.x = intersections[0].point.x;
-              this.hitPoint.y = intersections[0].point.y;
-              this.hitPoint.z = intersections[0].point.z;
+              this.hitPoint = intersections[i].point.clone();
+
+              this.arrowIndicator.position.set(...this.hitPoint);
+              // this.hitBall.position.set(...this.hitPoint);
+
+              const distance = this.hitPoint.distanceTo(
+                this.player.gfx.group.position
+              );
+              const hitDirection = this.hitPoint
+                .clone()
+                .sub(this.player.gfx.group.position)
+                .normalize();
+
+              const hitForce = Math.min(distance, 5);
+
+              let lookAtTarget = new THREE.Vector3();
+              lookAtTarget
+                .subVectors(
+                  this.arrowIndicator.position,
+                  this.player.gfx.group.position
+                )
+                .add(this.arrowIndicator.position);
+
+              this.arrowIndicator.scale.set(
+                hitForce - 0.75,
+                1,
+                hitForce - 0.75
+              );
+              this.arrowIndicator.lookAt(lookAtTarget);
             }
           }
         }
@@ -71,6 +116,9 @@ class Game {
           if (intersections[i].object === this.player.gfx.ball) {
             this.playerSelected = true;
             this.controls.enabled = false;
+
+            // this._renderer.scene.add(this.hitBall);
+            this._renderer.scene.add(this.arrowIndicator);
           }
         }
       },
@@ -79,37 +127,31 @@ class Game {
     window.addEventListener(
       "mouseup",
       (ev) => {
+        // this._renderer.scene.remove(this.hitBall);
+        this._renderer.scene.remove(this.arrowIndicator);
+
+        // this.hitBall.position.setScalar(0);
+        this.arrowIndicator.position.setScalar(0);
+
         if (this._pointer.pressed && this.playerSelected) {
-          const playerPosition = this.player.gfx.ball.position.clone();
-          const hitDirection = new THREE.Vector3(
-            playerPosition.x - this.hitPoint.x,
-            playerPosition.y - this.hitPoint.y,
-            playerPosition.z - this.hitPoint.z
+          const distance = this.hitPoint.distanceTo(
+            this.player.gfx.group.position
           );
 
-          const hitForce = Math.min(
-            new THREE.Vector3(
-              this.hitPoint.x,
-              this.hitPoint.y,
-              this.hitPoint.z
-            ).distanceTo(
-              new THREE.Vector3(
-                playerPosition.x,
-                playerPosition.y,
-                playerPosition.z
-              )
-            ),
-            5
-          );
+          const hitForce = Math.min(distance, 5);
 
-          const force = hitDirection.normalize().multiplyScalar(hitForce);
-
+          const hitDirection = new THREE.Vector3();
+          hitDirection
+            .subVectors(this.hitPoint, this.player.gfx.group.position)
+            .normalize()
+            .multiplyScalar(hitForce)
+            .negate();
           this.player.rigidBody.applyImpulse(
-            { x: force.x, y: 0.0, z: force.z },
+            { x: hitDirection.x, y: 0.0, z: hitDirection.z },
             true
           );
         }
-        this.hitPoint = { x: 0, y: 0, z: 0 };
+        this.hitPoint = new THREE.Vector3();
 
         this._pointer.origin = { x: 0, y: 0 };
         this._pointer.pressed = false;
@@ -135,12 +177,11 @@ class Game {
       },
       rigidBody: this._simulator.createPlayerBody(),
     };
-    this.player.gfx.group.position.y += 1;
 
-    this._assets.loadStageModel(stage, (gltf) => {
+    this._assets.loadGltfModel(stage, (gltf) => {
       const model = gltf.scene;
 
-      const colliders = [];
+      const meshToRemoveFromScene = [];
       let targetSensor = null;
       let spawnPosition = null;
       model.traverse((object) => {
@@ -172,12 +213,10 @@ class Game {
             object.material.side = THREE.DoubleSide;
           } else if (object.name.startsWith("Course")) {
             object.material = courseMaterial;
-          } else if (object.name.startsWith("Ground")) {
-            object.material = terrainMaterial;
-          } else if (object.name.startsWith("Collider")) {
-            colliders.push(object);
 
-            this._simulator.createBoxCollider(
+            this._simulator.createTrimeshCollider(
+              object.geometry.attributes.position.array,
+              object.geometry.index.array,
               {
                 x: object.position.x,
                 y: object.position.y,
@@ -195,46 +234,59 @@ class Game {
                 z: object.scale.z,
               }
             );
+          } else if (object.name.startsWith("Ground")) {
+            object.material = terrainMaterial;
+          } else if (
+            object.name.startsWith("Collider") ||
+            object.name === "Target"
+          ) {
+            meshToRemoveFromScene.push(object);
+
+            const boxBody = this._simulator.createBox(
+              {
+                x: object.position.x,
+                y: object.position.y,
+                z: object.position.z,
+              },
+              {
+                w: object.quaternion.w,
+                x: object.quaternion.x,
+                y: object.quaternion.y,
+                z: object.quaternion.z,
+              },
+              {
+                x: object.scale.x,
+                y: object.scale.y,
+                z: object.scale.z,
+              },
+              object.name === "Target"
+            );
+
+            if (object.name === "Target") {
+              targetSensor = boxBody;
+            }
           } else if (object.name === "Start") {
             spawnPosition = {
               x: object.position.x,
               y: object.position.y + 1,
               z: object.position.z,
             };
-            colliders.push(object);
-          } else if (object.name === "Target") {
-            targetSensor = this._simulator.createBoxSensor(
-              {
-                x: object.position.x,
-                y: object.position.y,
-                z: object.position.z,
-              },
-              {
-                w: object.quaternion.w,
-                x: object.quaternion.x,
-                y: object.quaternion.y,
-                z: object.quaternion.z,
-              },
-              {
-                x: object.scale.x,
-                y: object.scale.y,
-                z: object.scale.z,
-              }
-            );
-            colliders.push(object);
+            meshToRemoveFromScene.push(object);
           }
         }
       });
 
-      colliders.forEach((collider) => {
-        if (collider.parent !== null) {
-          collider.parent.remove(collider);
+      meshToRemoveFromScene.forEach((obj) => {
+        if (obj.parent !== null) {
+          obj.parent.remove(obj);
         }
       });
 
       this.player.rigidBody.setTranslation(spawnPosition, true);
 
       this._renderer.addToScene(model);
+
+      //Floor
       this._simulator.createFloor();
 
       this.stage = {
@@ -251,8 +303,9 @@ class Game {
 
     this._simulator.update();
 
-    if (this.stage?.target && this.player) {
+    if (this.player) {
       if (
+        this.stage?.target &&
         this._simulator.didPlayerWin(this.player.rigidBody, this.stage.target)
       ) {
         console.log("YAAAYYYYYYYY!!!");
@@ -266,10 +319,11 @@ class Game {
         this.player.rigidBody.resetForces(true);
         this.player.rigidBody.resetTorques(true);
       }
-      const playerPosition = this.player.rigidBody.translation();
-      this.player.gfx.group.position.x = playerPosition.x;
-      this.player.gfx.group.position.y = playerPosition.y;
-      this.player.gfx.group.position.z = playerPosition.z;
+
+      const { x, y, z } = this.player.rigidBody.translation();
+      this.player.gfx.group.position.x = x;
+      this.player.gfx.group.position.y = y;
+      this.player.gfx.group.position.z = z;
     }
 
     this._renderer.render();

@@ -1,23 +1,17 @@
+// import Ammo from "ammojs3";
+
 class PhysicsEngine {
   constructor(gui, instance) {
     this.RAPIER = instance;
     this.worldSimulator = new this.RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
   }
 
-  createRigidBodyFromBuffer(buffer) {}
+  createTrimeshCollider(vertexBuffer, indexBuffer, position, rotation, scale) {
+    const rigidBody = this.createRigidBody(false, position);
 
-  createBoxCollider(position, rotation, scale) {
-    const rigidBodyDesc = this.RAPIER.RigidBodyDesc.fixed().setTranslation(
-      position.x,
-      position.y,
-      position.z
-    );
-    const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
-
-    const colliderDesc = this.RAPIER.ColliderDesc.cuboid(
-      scale.x,
-      scale.y,
-      scale.z
+    const colliderDesc = this.RAPIER.ColliderDesc.trimesh(
+      vertexBuffer,
+      indexBuffer
     ).setRotation({
       w: rotation.w,
       x: rotation.x,
@@ -28,66 +22,74 @@ class PhysicsEngine {
 
     return rigidBody;
   }
-  createBoxSensor(position, rotation, scale) {
-    const rigidBodyDesc = this.RAPIER.RigidBodyDesc.fixed().setTranslation(
-      position.x,
-      position.y,
-      position.z
-    );
-    const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
-
-    const sensorDesc = this.RAPIER.ColliderDesc.cuboid(
-      scale.x,
-      scale.y,
-      scale.z
-    )
-      .setSensor(true)
-      .setRotation({
-        w: rotation.w,
-        x: rotation.x,
-        y: rotation.y,
-        z: rotation.z,
-      });
-    this.worldSimulator.createCollider(sensorDesc, rigidBody);
-
-    return rigidBody;
-  }
 
   createPlayerBody() {
-    const rigidBodyDesc = this.RAPIER.RigidBodyDesc.dynamic();
-    // .setLinearDamping(0.85)
-    // .setAngularDamping(0.85);
-    const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
+    const collider = this.createCollider("ball", false, 0.5, {
+      w: 1,
+      x: 0,
+      y: 0,
+      z: 0,
+    }).setRestitution(0.7);
+    const rigidBody = this.createRigidBody(true, { x: 0, y: 10, z: 10 });
+    rigidBody.setLinearDamping(0.5);
+    rigidBody.setAngularDamping(0.5);
 
-    const colliderDesc = this.RAPIER.ColliderDesc.ball(0.5).setRestitution(0.7);
-    this.worldSimulator.createCollider(colliderDesc, rigidBody);
+    this.worldSimulator.createCollider(collider, rigidBody);
 
     return rigidBody;
   }
 
   createFloor() {
-    const rigidBodyDesc = this.RAPIER.RigidBodyDesc.fixed().setTranslation(
-      0,
-      -0.01,
-      0
+    return this.createBox(
+      { x: 0, y: -0.01, z: 0 },
+      { w: 1, x: 0, y: 0, z: 0 },
+      { x: 1000, y: 0.01, z: 1000 },
+      false
     );
-    const rigidBody = this.worldSimulator.createRigidBody(rigidBodyDesc);
+    // .setRestitution(0.25);
+  }
 
-    const colliderDesc = this.RAPIER.ColliderDesc.cuboid(
-      1000,
-      0.01,
-      1000
-    ).setRestitution(0.25);
-    this.worldSimulator.createCollider(colliderDesc, rigidBody);
+  createBox(position, rotation, scale, isSensor) {
+    const rigidBody = this.createRigidBody(false, position);
+    this.worldSimulator.createCollider(
+      this.createCollider("box", isSensor, scale, rotation),
+      rigidBody
+    );
 
     return rigidBody;
   }
 
-  didPlayerWin(player, target) {
-    return this.worldSimulator.intersectionPair(
-      player.collider(0),
-      target.collider(0)
+  createRigidBody(isDynamic, position) {
+    return this.worldSimulator.createRigidBody(
+      (isDynamic
+        ? this.RAPIER.RigidBodyDesc.dynamic()
+        : this.RAPIER.RigidBodyDesc.fixed()
+      ).setTranslation(position.x, position.y, position.z)
     );
+  }
+
+  createCollider(type, isSensor, scale, rotation) {
+    const collider =
+      type === "ball"
+        ? this.RAPIER.ColliderDesc.ball(scale)
+        : this.RAPIER.ColliderDesc.cuboid(scale.x, scale.y, scale.z);
+    collider.setSensor(isSensor);
+    collider.setRotation({
+      w: rotation.w,
+      x: rotation.x,
+      y: rotation.y,
+      z: rotation.z,
+    });
+
+    return collider;
+  }
+
+  didPlayerWin(player, target) {
+    // return this.worldSimulator.intersectionPair(
+    //   player.collider(0),
+    //   target.collider(0)
+    // );
+    return false;
   }
 
   removeRigidBody(body) {

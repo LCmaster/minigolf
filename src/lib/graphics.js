@@ -75,7 +75,7 @@ class RenderingEngine {
     const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
     ballMesh.castShadow = true;
 
-    const ballPlaneGeometry = new THREE.CircleGeometry(7.5, 32);
+    const ballPlaneGeometry = new THREE.CircleGeometry(25, 32);
     const ballPlaneMaterial = new THREE.MeshBasicMaterial();
     ballPlaneMaterial.transparent = true;
     ballPlaneMaterial.opacity = 0;
