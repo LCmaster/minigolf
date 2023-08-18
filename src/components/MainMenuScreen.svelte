@@ -4,9 +4,9 @@
 </script>
 
 <div class="game-menu">
-  <!-- <p>Game Menu</p>
-  <div class="options">
-    <button on:click={() => game.loadStage("Stage_001")}>Start</button>
+  <!-- <div class="options">
+    <button on:click={() => game.loadStage("Stage_001")}>Quick Game</button>
+    <button on:click={() => game.loadStage("Stage_001")}>Long Game</button>
   </div> -->
 </div>
 

@@ -29,10 +29,12 @@ class PhysicsEngine {
       x: 0,
       y: 0,
       z: 0,
-    }).setRestitution(0.7);
+    })
+      .setMass(0.5)
+      .setRestitution(0.9);
     const rigidBody = this.createRigidBody(true, { x: 0, y: 10, z: 10 });
-    rigidBody.setLinearDamping(0.5);
-    rigidBody.setAngularDamping(0.5);
+    rigidBody.setLinearDamping(0.25);
+    rigidBody.setAngularDamping(0.25);
 
     this.worldSimulator.createCollider(collider, rigidBody);
 

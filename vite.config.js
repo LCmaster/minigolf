@@ -1,7 +1,14 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import wasm from 'vite-plugin-wasm';
-import { defineConfig } from 'vite';
+import { sveltekit } from "@sveltejs/kit/vite";
+import wasm from "vite-plugin-wasm";
+import { defineConfig } from "vite";
 
 export default defineConfig({
-	plugins: [wasm(), sveltekit()]
+  plugins: [
+    topLevelAwait({
+      promiseExportName: "__tla",
+      promiseImportName: (i) => `__tla_${i}`,
+    }),
+    wasm(),
+    sveltekit(),
+  ],
 });
