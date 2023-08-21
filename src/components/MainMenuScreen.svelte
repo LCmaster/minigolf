@@ -1,13 +1,14 @@
 <script>
   export let game;
-  game.loadStage("MainMenu.glb");
+  game.loadMainMenuStage();
 </script>
 
 <div class="game-menu">
-  <!-- <div class="options">
-    <button on:click={() => game.loadStage("Stage_001")}>Quick Game</button>
-    <button on:click={() => game.loadStage("Stage_001")}>Long Game</button>
-  </div> -->
+  <h2 class="title">Mini Golf Mania</h2>
+  <div class="options">
+    <button on:click={() => {}}>Quick Game (09 holes)</button>
+    <button on:click={() => {}}>Long Game (18 holes)</button>
+  </div>
 </div>
 
 <style>
@@ -16,5 +17,11 @@
     top: 50vh;
     left: 50vw;
     transform: translateX(-50%) translateY(-50%);
+  }
+
+  .game-menu .options {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
   }
 </style>

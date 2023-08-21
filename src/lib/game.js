@@ -29,16 +29,16 @@ class Game {
     this._successEventHandler = onSuccess;
     this._failureEventHandler = onFailure;
 
-    this.controls = new OrbitControls(
-      this._renderer.camera,
-      this._renderer.renderer.domElement
-    );
-    this.controls.enablePan = false;
-    this.controls.enableZoom = false;
-    this.controls.minPolarAngle = Math.PI * 0.1;
-    this.controls.maxPolarAngle = Math.PI * 0.25 * 1.5;
-    this.controls.maxDistance = 30;
-    this.controls.minDistance = 30;
+    // this.controls = new OrbitControls(
+    //   this._renderer.camera,
+    //   this._renderer.renderer.domElement
+    // );
+    // this.controls.enablePan = false;
+    // this.controls.enableZoom = false;
+    // this.controls.minPolarAngle = Math.PI * 0.1;
+    // this.controls.maxPolarAngle = Math.PI * 0.25 * 1.5;
+    // this.controls.maxDistance = 30;
+    // this.controls.minDistance = 30;
 
     this.stage = null;
     this.player = null;
@@ -137,7 +137,7 @@ class Game {
         for (let i = 0; i < intersections.length; i++) {
           if (intersections[i].object === this.player.gfx.ball) {
             this.playerSelected = true;
-            this.controls.enabled = false;
+            // this.controls.enabled = false;
 
             this._renderer.scene.add(this.arrowIndicator);
           }
@@ -191,7 +191,25 @@ class Game {
   }
 
   loadMainMenuStage() {
-    //TODO: implement this method
+    this._assets.loadGltfModel("MainMenuScreen.gltf", (gltf) => {
+      const model = gltf.scene;
+
+      model.traverse((child) => {
+        if (child.isMesh) {
+          if (child.name !== "Ground") {
+            child.castShadow = true;
+          }
+          if (child.name === "Ground" || child.name === "Hole") {
+            child.receiveShadow = true;
+          }
+        }
+      });
+      this._renderer.addToScene(model);
+      this._renderer.camera.position.set(3, 10, 5);
+      this._renderer.camera.lookAt(new THREE.Vector3(0, 0, -2));
+      this._renderer.camera.fov = 64;
+      this._renderer.camera.updateProjectionMatrix();
+    });
   }
 
   loadStage(stage) {
@@ -357,12 +375,12 @@ class Game {
         this.player.gfx.group.position.y = y;
         this.player.gfx.group.position.z = z;
 
-        this.controls.target = this.player.gfx.group.position;
+        // this.controls.target = this.player.gfx.group.position;
       }
     }
 
     this._renderer.render();
-    this.controls.update();
+    // this.controls.update();
   }
 }
 

@@ -27,8 +27,17 @@ class RenderingEngine {
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(10, 10, 10);
+    directionalLight.position.set(15, 15, 15);
+    directionalLight.lookAt(new THREE.Vector3());
     directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.camera.near = 1;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -25;
+    directionalLight.shadow.camera.right = 25;
+    directionalLight.shadow.camera.top = 25;
+    directionalLight.shadow.camera.bottom = -25;
     this.scene.add(directionalLight);
 
     // const gfxFolder = gui.addFolder("Graphics");
