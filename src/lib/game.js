@@ -190,6 +190,14 @@ class Game {
     this._state = PAUSED;
   }
 
+  enablePhysics() {
+    //TODO: Implement this method
+  }
+
+  disablePhysics() {
+    //TODO: Implement this method
+  }
+
   loadMainMenuStage() {
     this._assets.loadGltfModel("MainMenuScreen.gltf", (gltf) => {
       const model = gltf.scene;
