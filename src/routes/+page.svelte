@@ -1,7 +1,7 @@
 <script>
   import { T } from "@threlte/core";
   import { Canvas } from "@threlte/core";
-  import { World } from "@threlte/rapier";
+  import { Debug, World } from "@threlte/rapier";
   import InGameScene from "../components/InGameScene.svelte";
   import InGameScreen from "../components/InGameScreen.svelte";
   import MainMenuScene from "../components/MainMenuScene.svelte";
@@ -15,6 +15,7 @@
 <div class="w-screen h-screen">
   <Canvas>
     <World>
+      <!-- <Debug /> -->
       <T.AmbientLight color="#ffffff" intensity={1} />
       {#if screen === "main-menu"}
         <MainMenuScene />
