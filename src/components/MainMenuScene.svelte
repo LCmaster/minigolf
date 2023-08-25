@@ -1,6 +1,8 @@
 <script>
   import { T } from "@threlte/core";
   import { useGltf } from "@threlte/extras";
+
+  const gltf = useGltf("/MainMenuScreen.gltf");
 </script>
 
 <T.PerspectiveCamera
@@ -17,6 +19,15 @@
   position={[10, 10, 10]}
   castShadow
 />
-{#await useGltf("/MainMenuScreen.gltf") then gltf}
-  <T is={gltf.scene} />
-{/await}
+{#if $gltf}
+  {#each Object.values($gltf.scene.children) as child}
+    <T
+      is={child}
+      castshadow={child.name !== "Ground"}
+      receiveShadow={child.name === "Ground" || child.name === "Hole"}
+      geometry={child.geometry}
+      material={child.material}
+      position={[...child.position]}
+    />
+  {/each}
+{/if}
