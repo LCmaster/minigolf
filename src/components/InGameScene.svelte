@@ -5,9 +5,12 @@
   import { OrbitControls } from "@threlte/extras";
   import * as THREE from "three";
   import { onMount } from "svelte";
+  import RAPIER from "@dimforge/rapier3d-compat";
+  import Player from "./Player.svelte";
+  import Stage from "./Stage.svelte";
 
   export let stage = "001";
-  const gltf = useGltf(`Stage_${stage}.glb`);
+  // const gltf = useGltf(`Stage_${stage}.glb`);
 
   let camera;
 
@@ -23,7 +26,7 @@
   const flagMaterial = new THREE.MeshStandardMaterial({
     color: 0xff0000,
   });
-  const terrainMaterial = new THREE.MeshStandardMaterial({
+  const groundMaterial = new THREE.MeshStandardMaterial({
     color: "seagreen",
   });
 
@@ -175,70 +178,27 @@
   on:mouseup={handleMouseUp}
 />
 
-{#if $gltf}
-  <T.DirectionalLight
-    color="#ffffff"
-    intensity={2}
-    position={[10, 10, 10]}
-    castShadow
-  />
+<T.DirectionalLight
+  color="#ffffff"
+  intensity={2}
+  position={[10, 10, 10]}
+  castShadow
+/>
+<T.Group bind:ref={inGameScene}>
+  <Stage name={"Stage_001.glb"} {courseMaterial} {groundMaterial} />
+  <Player position={[0, 5, 0]} />
+</T.Group>
 
-  <T.Group bind:ref={inGameScene}>
-    <RigidBody type="fixed">
-      <AutoColliders shape={"trimesh"}>
-        <T.Mesh
-          geometry={$gltf.nodes.Course.geometry}
-          material={courseMaterial}
-          position={[...$gltf.nodes.Course.position]}
-        />
-      </AutoColliders>
-      <AutoColliders shape={"trimesh"}>
-        <T.Mesh
-          geometry={$gltf.nodes.Walls.geometry}
-          material={wallMaterial}
-          position={[...$gltf.nodes.Walls.position]}
-        />
-      </AutoColliders>
-    </RigidBody>
-    <T.Mesh
-      geometry={$gltf.nodes.Pole.geometry}
-      material={poleMaterial}
-      position={[...$gltf.nodes.Pole.position]}
-    />
-    <T.Mesh
-      geometry={$gltf.nodes.Flag.geometry}
-      material={flagMaterial}
-      position={[...$gltf.nodes.Flag.position]}
-    />
-    <T.Mesh
-      geometry={$gltf.nodes.Ground.geometry}
-      material={terrainMaterial}
-      position={[...$gltf.nodes.Ground.position]}
-    />
-
-    <RigidBody type="dynamic" bind:rigidBody={playerRigidBody}>
-      <AutoColliders shape={"ball"}>
-        <T.Mesh
-          bind:ref={playerMesh}
-          position={[...$gltf.nodes.Start.position]}
-        >
-          <T.IcosahedronGeometry args={[0.45, 2]} />
-          <T.MeshStandardMaterial flatShading color={"red"} />
-        </T.Mesh>
-      </AutoColliders>
-    </RigidBody>
-    <T.Mesh bind:ref={forceSelectionPlane} rotation.x={-Math.PI * 0.5}>
-      <T.CircleGeometry args={[25, 32]} />
-      <T.MeshBasicMaterial transparent opacity={0} />
-    </T.Mesh>
-  </T.Group>
-  <T.PerspectiveCamera
+<!-- <T.PerspectiveCamera
     makeDefault
     bind:ref={camera}
     fov={45}
-    position={[0, 25, 25]}
+    position={[
+      $gltf.nodes.Start.position.x,
+      $gltf.nodes.Start.position.y + 20,
+      $gltf.nodes.Start.position.z + 30,
+    ]}
     target={[...$gltf.nodes.Start.position]}
   >
-    <OrbitControls autoRotate enableDamping />
-  </T.PerspectiveCamera>
-{/if}
+    <OrbitControls enableDamping />
+  </T.PerspectiveCamera> -->
