@@ -6,6 +6,7 @@
   import CameraControls from "./CameraControls.svelte";
   import PlayerSelector from "./PlayerSelector.svelte";
   import ArrowIndicator from "./ArrowIndicator.svelte";
+  import { OrbitControls } from "@threlte/extras";
 
   let camera: PerspectiveCamera;
 
@@ -29,29 +30,6 @@
   let showIndicator: boolean = false;
   let playerPosition: Array<number> = position;
   let hitpointPosition: Array<number>;
-
-  //   $: if (body) {
-  //     let worldPosition = new Vector3();
-
-  //     mesh.getWorldPosition(worldPosition);
-  //     let hitPoint = worldPosition.clone();
-  //     hitPoint.z += 5;
-
-  //     const distance = hitPoint.distanceTo(worldPosition);
-  //     const hitForce = Math.min(distance, 5);
-  //     const hitDirection = new Vector3();
-
-  //     hitDirection
-  //       .subVectors(hitPoint, worldPosition)
-  //       .normalize()
-  //       .multiplyScalar(hitForce * 1.5)
-  //       .negate()
-  //       .setY(0);
-
-  //     // setTimeout(() => {
-  //     //   body.applyImpulse(hitDirection, true);
-  //     // }, 5000);
-  //   }
 
   function handleHitPointSelected(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
@@ -80,7 +58,7 @@
     }
   }
 
-  useFrame((_, delta: number) => {
+  useFrame(() => {
     if (!body) return;
 
     if (body.isMoving()) {
@@ -125,6 +103,15 @@
     color={"white"}
   />
 {/if}
-<T.PerspectiveCamera makeDefault bind:ref={camera}>
-  <CameraControls bind:object={mesh} />
+<T.PerspectiveCamera makeDefault bind:ref={camera} fov={60}>
+  <OrbitControls
+    enableDamping
+    minDistance={25}
+    maxDistance={30}
+    enablePan={false}
+    enableZoom={false}
+    minPolarAngle={Math.PI * 0.05}
+    maxPolarAngle={Math.PI * 0.3}
+    target={playerPosition}
+  />
 </T.PerspectiveCamera>
