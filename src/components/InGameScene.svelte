@@ -156,5 +156,5 @@
 />
 <T.Group bind:ref={inGameScene}>
   <Stage name={"Stage_001.glb"} {courseMaterial} {groundMaterial} />
-  <Player position={[0, 10, 0]} />
+  <Player position={[0, 5, 0]} />
 </T.Group>

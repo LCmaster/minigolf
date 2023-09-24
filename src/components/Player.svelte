@@ -56,7 +56,6 @@
   function handleHitPointSelected(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
       if (!showIndicator) showIndicator = true;
-      console.log("show indicator");
       hitpointPosition = [...hitpoint];
     } else {
       if (showIndicator) showIndicator = false;
@@ -66,6 +65,18 @@
   function handleHitPointApplied(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
       if (showIndicator) showIndicator = false;
+
+      let worldPosition = new Vector3();
+      mesh.getWorldPosition(worldPosition);
+
+      let forceVector = new Vector3();
+      forceVector
+        .subVectors(hitpoint, worldPosition)
+        .multiplyScalar(1.5)
+        .negate()
+        .setY(0);
+
+      body.applyImpulse(forceVector, true);
     }
   }
 

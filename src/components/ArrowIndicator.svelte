@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Group, MeshBasicMaterial, Vector3 } from "three";
+  import { MeshBasicMaterial, Vector3 } from "three";
   import { T, forwardEventHandlers, useFrame } from "@threlte/core";
   import { useGltf } from "@threlte/extras";
 
@@ -8,22 +8,8 @@
   export let hitpoint: Array<number>;
   export let playerPosition: Array<number>;
 
-  let arrowPosition = new Vector3(hitpoint[0], hitpoint[1], hitpoint[2]);
-
-  function computeArrowDirection() {
-    let lookAtTarget = new Vector3();
-    // arrowIndicator.scale.set(hitForce - 0.75, 1, hitForce - 0.75);
-    // arrowIndicator.lookAt(lookAtTarget);
-    // let newArrowIndicatorPosition = new THREE.Vector3();
-    // newArrowIndicatorPosition
-    //   .subVectors(arrowIndicator.position, worldPosition)
-    //   .clampLength(0.75, 5)
-    //   .add(worldPosition);
-    // arrowIndicator.position.set(...newArrowIndicatorPosition);
-  }
-
   const component = forwardEventHandlers();
-  export let ref: any;
+  let ref: any;
 
   useFrame(() => {
     if (!ref) return;
@@ -45,7 +31,6 @@
       scaleVector
         .subVectors(indicatorPositionVector, playerPositionVector)
         .length() - 0.75;
-    console.log(scale);
     ref.scale.set(scale, scale, scale);
   });
 </script>
