@@ -1,14 +1,14 @@
 <script lang="ts">
   import { PerspectiveCamera, Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
+  import { OrbitControls } from "@threlte/extras";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
-  import CameraControls from "./CameraControls.svelte";
   import PlayerSelector from "./PlayerSelector.svelte";
   import ArrowIndicator from "./ArrowIndicator.svelte";
-  import { OrbitControls } from "@threlte/extras";
 
   let camera: PerspectiveCamera;
+  let cameraControls: any;
 
   // === WORLD PROPERTIES === //
   export let position: Array<number> = [0, 0, 0];
@@ -92,6 +92,7 @@
     {camera}
     {size}
     position={playerPosition}
+    on:selected={(ev) => (cameraControls.enabled = !ev.detail)}
     on:hitPointSelected={(ev) => handleHitPointSelected(ev.detail)}
     on:hitPointApplied={(ev) => handleHitPointApplied(ev.detail)}
   />
@@ -105,7 +106,9 @@
 {/if}
 <T.PerspectiveCamera makeDefault bind:ref={camera} fov={60}>
   <OrbitControls
+    bind:ref={cameraControls}
     enableDamping
+    dampingFactor={0.25}
     minDistance={25}
     maxDistance={30}
     enablePan={false}

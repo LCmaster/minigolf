@@ -19,9 +19,7 @@
 </script>
 
 <T is={ref} {...$$restProps} bind:this={$component}>
-  {#await useGltf(name)}
-    <slot name="fallback" />
-  {:then gltf}
+  {#await useGltf(name) then gltf}
     <T.Group>
       <RigidBody type="fixed">
         <AutoColliders shape={"trimesh"} {friction} {restitution}>
@@ -39,9 +37,5 @@
         </AutoColliders>
       </RigidBody>
     </T.Group>
-  {:catch error}
-    <slot name="error" {error} />
   {/await}
-
-  <slot {ref} />
 </T>

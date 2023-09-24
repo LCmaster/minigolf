@@ -34,6 +34,6 @@
       }}
     />
   {:else if screen === "in-game"}
-    <InGameScreen {stage} />
+    <!-- <InGameScreen {stage} /> -->
   {/if}
 </div>

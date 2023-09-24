@@ -43,6 +43,7 @@
     for (let i = 0; i < intersections.length; i++) {
       if (intersections[i].object === selectionSphere) {
         selected = true;
+        dispatch("selected", true);
       }
     }
   }
@@ -69,8 +70,9 @@
 
   function handleMouseUp(ev) {
     if (selected) {
-      selected = false;
       dispatch("hitPointApplied", hitpoint);
+      dispatch("selected", false);
+      selected = false;
     }
   }
 </script>
