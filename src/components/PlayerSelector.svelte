@@ -29,6 +29,8 @@
     position[2]
   );
 
+  let hitpoint = new Vector3();
+
   const dispatch = createEventDispatcher();
 
   function handleMouseDown(ev) {
@@ -53,36 +55,22 @@
       raycaster.setFromCamera(new Vector2(pointerX, pointerY), camera);
       const intersections = raycaster.intersectObject(ref);
 
+      hitpoint = new Vector3();
       for (let i = 0; i < intersections.length; i++) {
         if (intersections[i].object === selectionPlane) {
-          let intersectionPoint = intersections[i].point.clone();
-          const force = new Vector3();
-          force.subVectors(worldPosition, intersectionPoint);
-
-          dispatch("setForce", force);
+          hitpoint = intersections[i].point.clone();
+          // force.subVectors(worldPosition, intersectionPoint);
         }
       }
+
+      dispatch("hitPointSelected", hitpoint);
     }
   }
 
   function handleMouseUp(ev) {
     if (selected) {
       selected = false;
-      const pointerX = (ev.clientX / window.innerWidth) * 2 - 1;
-      const pointerY = -(ev.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(new Vector2(pointerX, pointerY), camera);
-      const intersections = raycaster.intersectObject(ref);
-
-      let apply = false;
-
-      for (let i = 0; i < intersections.length; i++) {
-        if (intersections[i].object === selectionPlane) {
-          apply = true;
-        }
-      }
-
-      dispatch(apply ? "apply" : "cancel", null);
+      dispatch("hitPointApplied", hitpoint);
     }
   }
 </script>

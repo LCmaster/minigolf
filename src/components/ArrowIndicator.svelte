@@ -1,32 +1,64 @@
 <script lang="ts">
-  import { T, forwardEventHandlers } from "@threlte/core";
-  import { useGltf } from "@threlte/extras";
   import { Group, MeshBasicMaterial, Vector3 } from "three";
+  import { T, forwardEventHandlers, useFrame } from "@threlte/core";
+  import { useGltf } from "@threlte/extras";
 
   // === GRAPHICAL PROPERTIES === //
   export let color: string;
-  export let position: Vector3;
-  export let rotation: Vector3;
+  export let hitpoint: Array<number>;
+  export let playerPosition: Array<number>;
+
+  let arrowPosition = new Vector3(hitpoint[0], hitpoint[1], hitpoint[2]);
+
+  function computeArrowDirection() {
+    let lookAtTarget = new Vector3();
+    // arrowIndicator.scale.set(hitForce - 0.75, 1, hitForce - 0.75);
+    // arrowIndicator.lookAt(lookAtTarget);
+    // let newArrowIndicatorPosition = new THREE.Vector3();
+    // newArrowIndicatorPosition
+    //   .subVectors(arrowIndicator.position, worldPosition)
+    //   .clampLength(0.75, 5)
+    //   .add(worldPosition);
+    // arrowIndicator.position.set(...newArrowIndicatorPosition);
+  }
 
   const component = forwardEventHandlers();
-  export const ref = new Group();
+  export let ref: any;
+
+  useFrame(() => {
+    if (!ref) return;
+    ref.lookAt(playerPosition[0], playerPosition[1], playerPosition[2]);
+    ref.rotation.y += Math.PI;
+
+    let scaleVector = new Vector3();
+    let indicatorPositionVector = new Vector3(
+      hitpoint[0],
+      hitpoint[1],
+      hitpoint[2]
+    );
+    let playerPositionVector = new Vector3(
+      playerPosition[0],
+      playerPosition[1],
+      playerPosition[2]
+    );
+    let scale =
+      scaleVector
+        .subVectors(indicatorPositionVector, playerPositionVector)
+        .length() - 0.75;
+    console.log(scale);
+    ref.scale.set(scale, scale, scale);
+  });
 </script>
 
-<T is={ref} {...$$restProps} bind:this={$component}>
-  {#await useGltf("/ForceArrow.glb")}
-    <slot name="fallback" />
-  {:then gltf}
-    <T.Group>
-      <T.Mesh
-        depthTest={false}
-        renderOrder={9999}
-        geometry={gltf.nodes.Arrow.geometry}
-        material={new MeshBasicMaterial({ color })}
-      />
-    </T.Group>
-  {:catch error}
-    <slot name="error" {error} />
+<T.Group position={hitpoint} bind:ref {...$$restProps} bind:this={$component}>
+  {#await useGltf("/ForceArrow.glb") then gltf}
+    <T.Mesh
+      geometry={gltf.nodes.Arrow.geometry}
+      material={new MeshBasicMaterial({
+        color,
+        depthTest: false,
+        renderOrder: 9999,
+      })}
+    />
   {/await}
-
-  <slot {ref} />
-</T>
+</T.Group>
