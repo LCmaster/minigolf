@@ -1,12 +1,6 @@
 <script>
   import { createEventDispatcher, onDestroy } from "svelte";
-  import {
-    Camera,
-    Vector2,
-    Vector3,
-    Quaternion,
-    PerspectiveCamera,
-  } from "three";
+  import { Vector2, Vector3, Quaternion } from "three";
   import { useThrelte, useParent, useFrame } from "@threlte/core";
 
   export let object;

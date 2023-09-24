@@ -1,16 +1,9 @@
 <script>
-  import { T, useFrame, useThrelte } from "@threlte/core";
+  import { T, useFrame } from "@threlte/core";
   import { useGltf } from "@threlte/extras";
-  import { Collider, RigidBody, AutoColliders } from "@threlte/rapier";
-  import { OrbitControls } from "@threlte/extras";
   import * as THREE from "three";
-  import { onMount } from "svelte";
-  import RAPIER from "@dimforge/rapier3d-compat";
   import Player from "./Player.svelte";
   import Stage from "./Stage.svelte";
-
-  export let stage = "001";
-  // const gltf = useGltf(`Stage_${stage}.glb`);
 
   let camera;
 
@@ -52,21 +45,6 @@
 
   let arrowIndicator;
   let hitPoint = new THREE.Vector3();
-
-  useGltf("/ForceArrow.glb").then((gltf) => {
-    const model = gltf.scene;
-    model.traverse((obj) => {
-      if (obj.isMesh) {
-        const arrowMaterial = new THREE.MeshBasicMaterial();
-        arrowMaterial.color = new THREE.Color(0xffffff);
-        arrowMaterial.depthTest = false;
-        obj.material = arrowMaterial;
-        obj.renderOrder = 999999;
-      }
-    });
-
-    arrowIndicator = model;
-  });
 
   const handleMouseMove = (ev) => {
     //Convert pointer screen position from screen space to clip space
@@ -158,8 +136,6 @@
     pointer.origin.set(0, 0);
     pointer.isPressed = false;
     playerSelected = false;
-    // this.controls.enabled = true;
-    // this._strokeEventHandler();
   };
 
   useFrame(() => {
@@ -172,12 +148,6 @@
   });
 </script>
 
-<svelte:window
-  on:mousemove={handleMouseMove}
-  on:mousedown={handleMouseDown}
-  on:mouseup={handleMouseUp}
-/>
-
 <T.DirectionalLight
   color="#ffffff"
   intensity={2}
@@ -186,19 +156,5 @@
 />
 <T.Group bind:ref={inGameScene}>
   <Stage name={"Stage_001.glb"} {courseMaterial} {groundMaterial} />
-  <Player position={[0, 5, 0]} />
+  <Player position={[0, 10, 0]} />
 </T.Group>
-
-<!-- <T.PerspectiveCamera
-    makeDefault
-    bind:ref={camera}
-    fov={45}
-    position={[
-      $gltf.nodes.Start.position.x,
-      $gltf.nodes.Start.position.y + 20,
-      $gltf.nodes.Start.position.z + 30,
-    ]}
-    target={[...$gltf.nodes.Start.position]}
-  >
-    <OrbitControls enableDamping />
-  </T.PerspectiveCamera> -->

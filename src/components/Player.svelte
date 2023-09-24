@@ -1,9 +1,19 @@
 <script lang="ts">
-  import { Group, Mesh, Vector3 } from "three";
+  import {
+    Group,
+    Mesh,
+    PerspectiveCamera,
+    Raycaster,
+    Vector2,
+    Vector3,
+  } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
   import CameraControls from "./CameraControls.svelte";
+  import PlayerSelector from "./PlayerSelector.svelte";
+
+  let camera: PerspectiveCamera;
 
   // === WORLD PROPERTIES === //
   export let position: Array<number> = [0, 0, 0];
@@ -16,17 +26,140 @@
   export let friction: number = 2;
   export let restitution: number = 0.5;
 
+  // === PLAYER === //
   let body: any;
-  let mesh: Mesh;
+  let mesh: any;
 
-  let currentPosition: Array<number>;
+  let pulse = false;
+  let playerPosition = position;
+
+  // === SELECTION MESHES === //
+  let selectable = false;
+  let selected = false;
   let selectionGroup: Group;
+  let selectionSphere: Mesh;
+  let selectionPlane: Mesh;
 
-  useFrame(() => {
-    if (!body?.isSleeping()) {
+  let selectionSphereScale = 1.0;
+  let selectionSphereOpacity = 0.0;
+
+  //   $: if (body) {
+  //     let worldPosition = new Vector3();
+
+  //     mesh.getWorldPosition(worldPosition);
+  //     let hitPoint = worldPosition.clone();
+  //     hitPoint.z += 5;
+
+  //     const distance = hitPoint.distanceTo(worldPosition);
+  //     const hitForce = Math.min(distance, 5);
+  //     const hitDirection = new Vector3();
+
+  //     hitDirection
+  //       .subVectors(hitPoint, worldPosition)
+  //       .normalize()
+  //       .multiplyScalar(hitForce * 1.5)
+  //       .negate()
+  //       .setY(0);
+
+  //     // setTimeout(() => {
+  //     //   body.applyImpulse(hitDirection, true);
+  //     // }, 5000);
+  //   }
+
+  let pointer = {
+    isPressed: false,
+    origin: new Vector2(),
+    current: new Vector2(),
+  };
+
+  function handleMouseDown(ev) {
+    pointer.isPressed = true;
+    pointer.origin.x = pointer.current.x;
+    pointer.origin.y = pointer.current.y;
+
+    let raycaster = new Raycaster();
+    raycaster.setFromCamera(
+      new Vector2(pointer.current.x, pointer.current.y),
+      camera
+    );
+    const intersections = raycaster.intersectObject(selectionGroup);
+
+    for (let i = 0; i < intersections.length; i++) {
+      if (intersections[i].object === selectionSphere) {
+        selected = true;
+
+        console.log("PLAYER SELECTED");
+
+        // let worldPosition = new THREE.Vector3();
+
+        // playerMesh.getWorldPosition(worldPosition);
+        // arrowIndicator.position.set(...worldPosition);
+        // inGameScene.add(arrowIndicator);
+      }
+    }
+  }
+
+  function handleMouseMove(ev) {
+    //Convert pointer screen position from screen space to clip space
+    pointer.current.x = (ev.clientX / window.innerWidth) * 2 - 1;
+    pointer.current.y = -(ev.clientY / window.innerHeight) * 2 + 1;
+
+    // if (pointer.isPressed && playerSelected) {
+    //   raycaster.setFromCamera(
+    //     new THREE.Vector2(pointer.current.x, pointer.current.y),
+    //     camera
+    //   );
+    //   const intersections = raycaster.intersectObject(inGameScene);
+
+    //   for (let i = 0; i < intersections.length; i++) {
+    //     if (intersections[i].object === forceSelectionPlane) {
+    //       hitPoint = intersections[i].point.clone();
+
+    //       arrowIndicator.position.set(...hitPoint);
+
+    //       let worldPosition = new THREE.Vector3();
+
+    //       playerMesh.getWorldPosition(worldPosition);
+
+    //       const distance = hitPoint.distanceTo(worldPosition);
+
+    //       const hitForce = Math.min(distance, 5);
+
+    //       let lookAtTarget = new THREE.Vector3();
+    //       lookAtTarget
+    //         .subVectors(arrowIndicator.position, worldPosition)
+    //         .add(arrowIndicator.position);
+
+    //       arrowIndicator.scale.set(hitForce - 0.75, 1, hitForce - 0.75);
+    //       arrowIndicator.lookAt(lookAtTarget);
+
+    //       let newArrowIndicatorPosition = new THREE.Vector3();
+    //       newArrowIndicatorPosition
+    //         .subVectors(arrowIndicator.position, worldPosition)
+    //         .clampLength(0.75, 5)
+    //         .add(worldPosition);
+    //       arrowIndicator.position.set(...newArrowIndicatorPosition);
+    //     }
+    //   }
+    // }
+  }
+
+  function handleMouseUp(ev) {}
+
+  let direction = 1;
+  let timestamp = 0.0;
+
+  useFrame((ctx, delta: number) => {
+    if (!body) return;
+
+    if (body.isMoving()) {
+      if (selectable) selectable = false;
+
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
-      currentPosition = [...worldPosition];
+      playerPosition = [...worldPosition];
+    } else {
+      if (!selectable) selectable = true;
     }
   });
 </script>
@@ -45,16 +178,16 @@
   </AutoColliders>
 </RigidBody>
 
-<T.Group bind:position={currentPosition} bind:ref={selectionGroup}>
-  <T.Mesh>
-    <T.SphereGeometry args={[size + 0.75, 32, 16]} />
-    <T.MeshBasicMaterial transparent opacity={0.25} color={"white"} />
-  </T.Mesh>
-  <T.Mesh rotation.x={-Math.PI * 0.5}>
-    <T.RingGeometry args={[size + 0.75, 5 + size + 0.75, 32]} />
-    <T.MeshBasicMaterial transparent opacity={0.0} color={"white"} />
-  </T.Mesh>
-</T.Group>
-<T.PerspectiveCamera makeDefault>
+{#if selectable}
+  <PlayerSelector
+    {camera}
+    {size}
+    position={playerPosition}
+    on:setForce={(ev) => console.log(...ev.detail)}
+    on:cancel={(ev) => console.log("Stroke Cancelled")}
+    on:apply={(ev) => console.log("Stroke Applyed")}
+  />
+{/if}
+<T.PerspectiveCamera makeDefault bind:ref={camera}>
   <CameraControls bind:object={mesh} />
 </T.PerspectiveCamera>
