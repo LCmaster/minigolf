@@ -6,6 +6,7 @@
 
   import PlayerSelector from "./PlayerSelector.svelte";
   import ArrowIndicator from "./ArrowIndicator.svelte";
+  import { createEventDispatcher } from "svelte";
 
   let camera: PerspectiveCamera;
   let cameraControls: any;
@@ -31,6 +32,9 @@
   let playerPosition: Array<number> = position;
   let hitpointPosition: Array<number>;
 
+  // === EVENTS === //
+  const dispatch = createEventDispatcher();
+
   function handleHitPointSelected(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
       if (!showIndicator) showIndicator = true;
@@ -53,6 +57,8 @@
         .multiplyScalar(1.5)
         .negate()
         .setY(0);
+
+      dispatch("hit", [...forceVector]);
 
       body.applyImpulse(forceVector, true);
     }
@@ -110,7 +116,7 @@
   makeDefault
   bind:ref={camera}
   fov={60}
-  position={[playerPosition[0], playerPosition[1] + 25, playerPosition[2] + 25]}
+  position={[position[0], position[1] + 25, position[2] + 25]}
 >
   <OrbitControls
     bind:ref={cameraControls}
