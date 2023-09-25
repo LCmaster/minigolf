@@ -15,7 +15,7 @@
 <div class="w-screen h-screen">
   <Canvas>
     <World gravity={[0, -15, 0]}>
-      <!-- <Debug /> -->
+      <Debug />
       <T.AmbientLight color="#ffffff" intensity={1} />
       {#if screen === "main-menu"}
         <MainMenuScene />

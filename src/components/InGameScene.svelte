@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import * as THREE from "three";
   import { T } from "@threlte/core";
 
@@ -11,6 +11,8 @@
   const groundMaterial = new THREE.MeshStandardMaterial({
     color: "seagreen",
   });
+
+  let spawn: Array<number>;
 </script>
 
 <T.DirectionalLight
@@ -20,6 +22,14 @@
   castShadow
 />
 <T.Group>
-  <Stage name={"Stage_001.glb"} {courseMaterial} {groundMaterial} />
-  <Player position={[0, 5, 0]} />
+  <Stage
+    name={"Stage_001.glb"}
+    {courseMaterial}
+    {groundMaterial}
+    bind:spawn
+    on:completed={() => console.log("Level Completed!")}
+  />
+  {#if spawn}
+    <Player position={spawn} />
+  {/if}
 </T.Group>

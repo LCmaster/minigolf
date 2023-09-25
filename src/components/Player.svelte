@@ -2,7 +2,7 @@
   import { PerspectiveCamera, Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
   import { OrbitControls } from "@threlte/extras";
-  import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
   import PlayerSelector from "./PlayerSelector.svelte";
   import ArrowIndicator from "./ArrowIndicator.svelte";
@@ -73,19 +73,21 @@
   });
 </script>
 
-<RigidBody
-  type="dynamic"
-  linearDamping={0.3}
-  angularDamping={0.3}
-  bind:rigidBody={body}
->
-  <AutoColliders shape={"ball"} {friction} {restitution}>
-    <T.Mesh bind:ref={mesh} {position}>
-      <T.IcosahedronGeometry args={[size, 3]} />
-      <T.MeshStandardMaterial flatShading {color} />
-    </T.Mesh>
-  </AutoColliders>
-</RigidBody>
+<CollisionGroups groups={[1]}>
+  <RigidBody
+    type="dynamic"
+    linearDamping={0.3}
+    angularDamping={0.3}
+    bind:rigidBody={body}
+  >
+    <AutoColliders shape={"ball"} {friction} {restitution}>
+      <T.Mesh bind:ref={mesh} {position}>
+        <T.IcosahedronGeometry args={[size, 3]} />
+        <T.MeshStandardMaterial flatShading {color} />
+      </T.Mesh>
+    </AutoColliders>
+  </RigidBody>
+</CollisionGroups>
 
 {#if selectable}
   <PlayerSelector
@@ -104,7 +106,12 @@
     color={"white"}
   />
 {/if}
-<T.PerspectiveCamera makeDefault bind:ref={camera} fov={60}>
+<T.PerspectiveCamera
+  makeDefault
+  bind:ref={camera}
+  fov={60}
+  position={[playerPosition[0], playerPosition[1] + 25, playerPosition[2] + 25]}
+>
   <OrbitControls
     bind:ref={cameraControls}
     enableDamping
