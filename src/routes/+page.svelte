@@ -9,8 +9,8 @@
 
   import Stage from "../components/Stage.svelte";
   import Player from "../components/Player.svelte";
+  import { hits, stage, completed } from "../lib/game.js";
 
-  let stage = "Stage_001.glb";
   let type = "quick";
   let screen = "main-menu";
 
@@ -21,10 +21,8 @@
     color: "seagreen",
   });
 
+  let size = 0.45;
   let spawn: Array<number>;
-  let stageCompleted = false;
-
-  let hits = 0;
 </script>
 
 <div class="w-screen h-screen">
@@ -43,17 +41,19 @@
         />
         <T.Group>
           <Stage
-            name={stage}
+            name={$stage}
             {courseMaterial}
             {groundMaterial}
             bind:spawn
-            on:completed={() => (stageCompleted = true)}
+            on:loaded={() => ($completed = false)}
+            on:completed={() => ($completed = true)}
           />
           {#if spawn}
-            {#if !stageCompleted}
+            {#if !$completed}
               <Player
-                position={[spawn[0], spawn[1] + 0.45, spawn[2]]}
-                on:hit={() => hits++}
+                {size}
+                position={[spawn[0], spawn[1] + size, spawn[2]]}
+                on:hit={() => $hits++}
               />
             {/if}
           {/if}
@@ -65,7 +65,7 @@
   {#if screen === "main-menu"}
     <MainMenuScreen
       on:startGame={(ev) => {
-        stage = "Stage_001.glb";
+        $stage = "/Stage_001.glb";
         type = ev.detail;
         screen = "in-game";
       }}
@@ -74,19 +74,28 @@
     <!-- <InGameScreen {stage} /> -->
     <div class="fixed top-4 right-4">
       <h3>Hits</h3>
-      <p>{hits}</p>
+      <p>{$hits}</p>
     </div>
-    {#if stageCompleted}
+    {#if $completed}
       <div class="fixed top-0 left-0 w-screen h-screen p-8">
         <div class="h-full flex flex-col justify-center items-center">
           <div class="p-6 rounded-xl bg-white/50">
             <h2 class="font-bold text-6xl">Stage Complete</h2>
             <button
               on:click={() => {
-                stageCompleted = false;
-                stage = "Stage_001.glb";
-                hits = 0;
+                $completed = false;
+                $hits = 0;
               }}>Reset</button
+            >
+            <button
+              on:click={() => {
+                $completed = false;
+                $stage =
+                  $stage === "/Stage_001.glb"
+                    ? "/Stage_002.glb"
+                    : "/Stage_001.glb";
+                $hits = 0;
+              }}>Next</button
             >
           </div>
         </div>

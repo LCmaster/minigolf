@@ -18,7 +18,7 @@
 
   // === PHYSICAL PROPERTIES === //
   export let friction: number = 0.75;
-  export let restitution: number = 0.25;
+  export let restitution: number = 0.75;
 
   const component = forwardEventHandlers();
   export const ref = new Group();
@@ -27,9 +27,10 @@
   let target: Array<number>;
 
   const dispatch = createEventDispatcher();
+  $: gltf = useGltf(name);
 
-  const gltf = useGltf(name);
   $: if ($gltf) {
+    dispatch("loaded");
     spawn = [...$gltf.nodes.Start.position];
     target = [...$gltf.nodes.Target.position];
   }

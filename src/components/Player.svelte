@@ -54,7 +54,7 @@
       let forceVector = new Vector3();
       forceVector
         .subVectors(hitpoint, worldPosition)
-        .multiplyScalar(1.5)
+        .multiplyScalar(7.5)
         .negate()
         .setY(0);
 
@@ -82,11 +82,11 @@
 <CollisionGroups groups={[1]}>
   <RigidBody
     type="dynamic"
-    linearDamping={0.3}
-    angularDamping={0.3}
+    linearDamping={0.35}
+    angularDamping={0.35}
     bind:rigidBody={body}
   >
-    <AutoColliders shape={"ball"} {friction} {restitution}>
+    <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
       <T.Mesh bind:ref={mesh} {position}>
         <T.IcosahedronGeometry args={[size, 3]} />
         <T.MeshStandardMaterial flatShading {color} />
