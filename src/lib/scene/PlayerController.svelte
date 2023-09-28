@@ -1,20 +1,23 @@
-<script lang="ts">
-  import { Group, Mesh, Raycaster, Vector2, Vector3 } from "three";
+<script>
   import { T } from "@threlte/core";
   import { createEventDispatcher, getContext } from "svelte";
-  import ArrowIndicator from "./ArrowIndicator.svelte";
-  import { camera, controls, playerPosition } from "../lib/scene";
+  import { Group, Raycaster, Vector2, Vector3 } from "three";
 
-  export let size: number = 0.45;
+  import { useStage } from "../useStage";
+  import ArrowIndicator from "./ArrowIndicator.svelte";
+
+  export let size = 0.45;
+
+  const { camera, controls, playerPosition } = useStage();
 
   let ref = new Group();
 
-  let opacity: number = 0.35;
-  let selectionSphere: Mesh;
-  let selectionPlane: Mesh;
+  let opacity = 0.35;
+  let selectionSphere;
+  let selectionPlane;
 
-  const raycaster: Raycaster = new Raycaster();
-  let selected: boolean = false;
+  const raycaster = new Raycaster();
+  let selected = false;
 
   let point = new Vector3();
 

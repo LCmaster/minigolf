@@ -1,13 +1,25 @@
-<script lang="ts">
+<script>
   import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { OrbitControls, useGltf } from "@threlte/extras";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
   import { createEventDispatcher, setContext } from "svelte";
-  import { camera, controls, spawn, playerPosition } from "../lib/scene";
   import Player from "./Player.svelte";
+  import { writable } from "svelte/store";
 
-  export let file: string;
+  export let scene;
+
+  const camera = writable(null);
+  const controls = writable(null);
+  const spawn = writable([...scene.nodes.Start.position]);
+  const playerPosition = writable([...scene.nodes.Start.position]);
+
+  setContext("minigolf/game/stage/context", {
+    camera,
+    controls,
+    spawn,
+    playerPosition,
+  });
 
   // === GRAPHICAL PROPERTIES === //
   const courseMaterial = new MeshStandardMaterial({
@@ -18,26 +30,20 @@
   });
 
   // === PHYSICAL PROPERTIES === //
-  export let friction: number = 0.75;
-  export let restitution: number = 0.75;
+  export let friction = 0.75;
+  export let restitution = 0.75;
 
   // === EVENTS === //
   const dispatch = createEventDispatcher();
-
   const component = forwardEventHandlers();
-
-  const gltf = useGltf(file);
-  $: if ($gltf) {
-    $spawn = [...$gltf.nodes.Start.position];
-  }
 </script>
 
-{#if $gltf}
+{#if scene}
   <T.PerspectiveCamera
     makeDefault
     bind:ref={$camera}
     on:create={({ ref }) => {
-      ref.position.set(0, 15, 30);
+      ref.position.set(0, 15, 25);
     }}
   >
     {#if $playerPosition}
@@ -60,15 +66,15 @@
     <RigidBody type="fixed">
       <AutoColliders shape={"trimesh"} {friction} {restitution}>
         <T.Mesh
-          geometry={$gltf.nodes.Course.geometry}
-          material={courseMaterial ?? $gltf.nodes.Course.material}
+          geometry={scene.nodes.Course.geometry}
+          material={courseMaterial ?? scene.nodes.Course.material}
         />
       </AutoColliders>
 
       <AutoColliders shape={"cuboid"}>
         <T.Mesh
-          geometry={$gltf.nodes.Ground.geometry}
-          material={groundMaterial ?? $gltf.nodes.Ground.material}
+          geometry={scene.nodes.Ground.geometry}
+          material={groundMaterial ?? scene.nodes.Ground.material}
         />
       </AutoColliders>
 
@@ -78,7 +84,7 @@
           shape={"cuboid"}
           on:sensorenter={() => dispatch("completed")}
         >
-          <T.Mesh position={[...$gltf.nodes.Target.position]}>
+          <T.Mesh position={[...scene.nodes.Target.position]}>
             <T.BoxGeometry args={[2.5, 0.01, 2.5]} />
             <T.MeshBasicMaterial transparent opacity={0.0} />
           </T.Mesh>

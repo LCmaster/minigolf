@@ -1,32 +1,33 @@
-<script lang="ts">
+<script>
   import { Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
   import { createEventDispatcher } from "svelte";
   import PlayerController from "./PlayerController.svelte";
+  import { useStage } from "../useStage";
 
-  import { spawn, playerPosition } from "../lib/scene";
+  const { spawn, playerPosition } = useStage();
 
   // === GRAPHICAL PROPERTIES === //
-  export let size: number = 0.45;
-  export let color: string = "#FF0000";
+  export let size = 0.45;
+  export let color = "#FF0000";
 
   // === PHYSICAL PROPERTIES === //
-  export let friction: number = 2;
-  export let restitution: number = 0.5;
+  export let friction = 2;
+  export let restitution = 0.5;
 
   // === PLAYER === //
-  let body: any;
-  let mesh: any;
+  let body;
+  let mesh;
 
   // === SELECTION === //
-  let selectable: boolean = false;
+  let selectable = false;
 
   // === EVENTS === //
   const dispatch = createEventDispatcher();
 
-  function onApplyHit(hitpoint: Vector3) {
+  function onApplyHit(hitpoint) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
