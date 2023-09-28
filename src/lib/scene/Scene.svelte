@@ -12,10 +12,16 @@
   import { useGltf } from "@threlte/extras";
 
   const game = useGame();
+  let world;
+
+  function onStageCompleted() {
+    console.log("Stage Completed");
+    $game.status = completed;
+  }
 </script>
 
 <Canvas>
-  <World gravity={[0, -15, 0]}>
+  <World bind:this={world} gravity={[0, -15, 0]}>
     <!-- <Debug /> -->
     <T.AmbientLight color="#ffffff" intensity={1} />
     {#if $game}
@@ -26,7 +32,7 @@
         castShadow
       />
       {#await useGltf($game.stages[$game.current].file) then scene}
-        <Stage {scene} />
+        <Stage {scene} on:completed={onStageCompleted} />
       {/await}
     {:else}
       <MenuScene />

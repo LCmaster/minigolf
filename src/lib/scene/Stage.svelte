@@ -9,12 +9,14 @@
 
   export let scene;
 
+  const status = writable("playing");
   const camera = writable(null);
   const controls = writable(null);
   const spawn = writable([...scene.nodes.Start.position]);
   const playerPosition = writable([...scene.nodes.Start.position]);
 
   setContext("minigolf/game/stage/context", {
+    status,
     camera,
     controls,
     spawn,
@@ -82,7 +84,10 @@
         <AutoColliders
           sensor
           shape={"cuboid"}
-          on:sensorenter={() => dispatch("completed")}
+          on:sensorenter={() => {
+            $status = "completed";
+            dispatch("completed");
+          }}
         >
           <T.Mesh position={[...scene.nodes.Target.position]}>
             <T.BoxGeometry args={[2.5, 0.01, 2.5]} />

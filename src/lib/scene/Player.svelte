@@ -7,7 +7,7 @@
   import PlayerController from "./PlayerController.svelte";
   import { useStage } from "../useStage";
 
-  const { spawn, playerPosition } = useStage();
+  const { status, spawn, playerPosition } = useStage();
 
   // === GRAPHICAL PROPERTIES === //
   export let size = 0.45;
@@ -57,6 +57,10 @@
       if (!selectable) selectable = !selectable;
     }
   });
+
+  $: if (body && $status !== "playing") {
+    body.setEnabled(false);
+  }
 </script>
 
 <CollisionGroups groups={[1]}>
