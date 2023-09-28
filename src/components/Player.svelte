@@ -1,18 +1,16 @@
 <script lang="ts">
-  import { PerspectiveCamera, Vector3 } from "three";
+  import { Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
-  import { OrbitControls } from "@threlte/extras";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
-  import PlayerSelector from "./PlayerSelector.svelte";
-  import ArrowIndicator from "./ArrowIndicator.svelte";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, getContext } from "svelte";
+  import { writable } from "svelte/store";
 
-  let camera: PerspectiveCamera;
-  let cameraControls: any;
+  export let camera;
+  export let controls;
 
   // === WORLD PROPERTIES === //
-  export let position: Array<number> = [0, 0, 0];
+  let position = writable([0, 0, 0]);
 
   // === GRAPHICAL PROPERTIES === //
   export let size: number = 0.45;
@@ -28,8 +26,6 @@
 
   // === SELECTION === //
   let selectable: boolean = false;
-  let showIndicator: boolean = false;
-  let playerPosition: Array<number> = position;
   let hitpointPosition: Array<number>;
 
   // === EVENTS === //
@@ -37,17 +33,12 @@
 
   function handleHitPointSelected(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-      if (!showIndicator) showIndicator = true;
       hitpointPosition = [...hitpoint];
-    } else {
-      if (showIndicator) showIndicator = false;
     }
   }
 
   function handleHitPointApplied(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-      if (showIndicator) showIndicator = false;
-
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
 
@@ -66,15 +57,14 @@
 
   useFrame(() => {
     if (!body) return;
-
     if (body.isMoving()) {
-      if (selectable) selectable = false;
+      if (selectable) selectable = !selectable;
 
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
-      playerPosition = [...worldPosition];
+      position = [...worldPosition];
     } else {
-      if (!selectable) selectable = true;
+      if (!selectable) selectable = !selectable;
     }
   });
 </script>
@@ -87,7 +77,10 @@
     bind:rigidBody={body}
   >
     <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
-      <T.Mesh bind:ref={mesh} {position}>
+      <T.Mesh
+        bind:ref={mesh}
+        position={[position[0], position[1] + size + 0.01, position[2]]}
+      >
         <T.IcosahedronGeometry args={[size, 3]} />
         <T.MeshStandardMaterial flatShading {color} />
       </T.Mesh>
@@ -96,38 +89,14 @@
 </CollisionGroups>
 
 {#if selectable}
-  <PlayerSelector
-    {camera}
+  <slot>
+    <!-- <PlayerController
     {size}
-    position={playerPosition}
-    on:selected={(ev) => (cameraControls.enabled = !ev.detail)}
+    {camera}
+    {controls}
+    {position}
     on:hitPointSelected={(ev) => handleHitPointSelected(ev.detail)}
     on:hitPointApplied={(ev) => handleHitPointApplied(ev.detail)}
-  />
+  /> -->
+  </slot>
 {/if}
-{#if showIndicator}
-  <ArrowIndicator
-    hitpoint={hitpointPosition}
-    {playerPosition}
-    color={"white"}
-  />
-{/if}
-<T.PerspectiveCamera
-  makeDefault
-  bind:ref={camera}
-  fov={60}
-  position={[position[0], position[1] + 25, position[2] + 25]}
->
-  <OrbitControls
-    bind:ref={cameraControls}
-    enableDamping
-    dampingFactor={0.25}
-    minDistance={25}
-    maxDistance={30}
-    enablePan={false}
-    enableZoom={false}
-    minPolarAngle={Math.PI * 0.05}
-    maxPolarAngle={Math.PI * 0.3}
-    target={playerPosition}
-  />
-</T.PerspectiveCamera>

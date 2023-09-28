@@ -1,5 +1,17 @@
 import { writable } from "svelte/store";
 
-export const hits = writable(0);
-export const stage = writable("/Stage_001.glb");
-export const completed = writable(false);
+export function startGame(type) {
+  const stages = [
+    { name: "Stage 1", file: "/Stage_001.glb" },
+    { name: "Stage 2", file: "/Stage_002.glb" },
+  ];
+
+  let current = 0;
+  let status = "playing";
+
+  return writable({
+    stages,
+    current,
+    status,
+  });
+}

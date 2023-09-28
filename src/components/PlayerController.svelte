@@ -9,8 +9,10 @@
   } from "three";
   import { T } from "@threlte/core";
   import { createEventDispatcher } from "svelte";
+  import ArrowIndicator from "./ArrowIndicator.svelte";
 
   export let camera: PerspectiveCamera;
+  export let controls: any;
 
   export let ref: Group = new Group();
   export let position: Array<number> = [0, 0, 0];
@@ -20,20 +22,17 @@
   let selectionSphere: Mesh;
   let selectionPlane: Mesh;
 
-  let raycaster: Raycaster = new Raycaster();
+  const raycaster: Raycaster = new Raycaster();
   let selected: boolean = false;
 
-  let worldPosition: Vector3 = new Vector3(
-    position[0],
-    position[1],
-    position[2]
-  );
-
   let hitpoint = new Vector3();
+
+  let showIndicator = false;
 
   const dispatch = createEventDispatcher();
 
   function handleMouseDown(ev) {
+    if (!camera && !controls) return;
     const pointerX = (ev.clientX / window.innerWidth) * 2 - 1;
     const pointerY = -(ev.clientY / window.innerHeight) * 2 + 1;
 
@@ -42,6 +41,8 @@
 
     for (let i = 0; i < intersections.length; i++) {
       if (intersections[i].object === selectionSphere) {
+        console.log("HIT!");
+        controls.enabled = false;
         selected = true;
         dispatch("selected", true);
       }
@@ -49,6 +50,8 @@
   }
 
   function handleMouseMove(ev) {
+    if (!camera && !controls) return;
+
     if (selected) {
       const pointerX = (ev.clientX / window.innerWidth) * 2 - 1;
       const pointerY = -(ev.clientY / window.innerHeight) * 2 + 1;
@@ -57,10 +60,11 @@
       const intersections = raycaster.intersectObject(ref);
 
       hitpoint = new Vector3();
+      showIndicator = false;
       for (let i = 0; i < intersections.length; i++) {
         if (intersections[i].object === selectionPlane) {
+          showIndicator = true;
           hitpoint = intersections[i].point.clone();
-          // force.subVectors(worldPosition, intersectionPoint);
         }
       }
 
@@ -69,9 +73,14 @@
   }
 
   function handleMouseUp(ev) {
+    if (!camera && !controls) return;
+
     if (selected) {
       dispatch("hitPointApplied", hitpoint);
       dispatch("selected", false);
+
+      controls.enabled = true;
+      showIndicator = false;
       selected = false;
     }
   }
@@ -96,4 +105,13 @@
     <T.RingGeometry args={[size + 0.75, 5 + size + 0.75, 32]} />
     <T.MeshBasicMaterial transparent opacity={0.0} color={"white"} />
   </T.Mesh>
+  {#if showIndicator}
+    <slot>
+      <!-- <ArrowIndicator
+        hitpoint={[...hitpoint]}
+        playerPosition={position}
+        color={"white"}
+      /> -->
+    </slot>
+  {/if}
 </T.Group>
