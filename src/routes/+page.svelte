@@ -8,12 +8,8 @@
 
   import Stage from "../components/Stage.svelte";
   import { startGame } from "../lib/game.js";
-  import Player from "../components/Player.svelte";
-  import PlayerController from "../components/PlayerController.svelte";
-  import ArrowIndicator from "../components/ArrowIndicator.svelte";
 
-  let game;
-  let size = 0.45;
+  let game = null;
 </script>
 
 <div class="w-screen h-screen">
@@ -21,20 +17,14 @@
     <World gravity={[0, -15, 0]}>
       <!-- <Debug /> -->
       <T.AmbientLight color="#ffffff" intensity={1} />
-      {#if game}
+      {#if $game}
         <T.DirectionalLight
           color="#ffffff"
           intensity={2}
           position={[10, 10, 10]}
           castShadow
         />
-        <Stage {...$game.stages[$game.current]}>
-          <Player>
-            <PlayerController>
-              <ArrowIndicator />
-            </PlayerController>
-          </Player>
-        </Stage>
+        <Stage file={$game.stages[$game.current].file} />
       {:else}
         <MainMenuScene />
       {/if}

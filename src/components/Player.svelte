@@ -3,14 +3,10 @@
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
-  import { createEventDispatcher, getContext } from "svelte";
-  import { writable } from "svelte/store";
+  import { createEventDispatcher } from "svelte";
+  import PlayerController from "./PlayerController.svelte";
 
-  export let camera;
-  export let controls;
-
-  // === WORLD PROPERTIES === //
-  let position = writable([0, 0, 0]);
+  import { spawn, playerPosition } from "../lib/scene";
 
   // === GRAPHICAL PROPERTIES === //
   export let size: number = 0.45;
@@ -26,18 +22,11 @@
 
   // === SELECTION === //
   let selectable: boolean = false;
-  let hitpointPosition: Array<number>;
 
   // === EVENTS === //
   const dispatch = createEventDispatcher();
 
-  function handleHitPointSelected(hitpoint: Vector3) {
-    if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-      hitpointPosition = [...hitpoint];
-    }
-  }
-
-  function handleHitPointApplied(hitpoint: Vector3) {
+  function onApplyHit(hitpoint: Vector3) {
     if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
@@ -62,7 +51,7 @@
 
       let worldPosition = new Vector3();
       mesh.getWorldPosition(worldPosition);
-      position = [...worldPosition];
+      $playerPosition = [...worldPosition];
     } else {
       if (!selectable) selectable = !selectable;
     }
@@ -79,7 +68,7 @@
     <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
       <T.Mesh
         bind:ref={mesh}
-        position={[position[0], position[1] + size + 0.01, position[2]]}
+        position={[$spawn[0], $spawn[1] + size + 0.01, $spawn[2]]}
       >
         <T.IcosahedronGeometry args={[size, 3]} />
         <T.MeshStandardMaterial flatShading {color} />
@@ -90,13 +79,6 @@
 
 {#if selectable}
   <slot>
-    <!-- <PlayerController
-    {size}
-    {camera}
-    {controls}
-    {position}
-    on:hitPointSelected={(ev) => handleHitPointSelected(ev.detail)}
-    on:hitPointApplied={(ev) => handleHitPointApplied(ev.detail)}
-  /> -->
+    <PlayerController {size} on:apply={(ev) => onApplyHit(ev.detail)} />
   </slot>
 {/if}

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { Group, Material, MeshStandardMaterial } from "three";
+  import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { OrbitControls, useGltf } from "@threlte/extras";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
   import { createEventDispatcher, setContext } from "svelte";
+  import { camera, controls, spawn, playerPosition } from "../lib/scene";
   import Player from "./Player.svelte";
 
-  export let name: string;
   export let file: string;
 
   // === GRAPHICAL PROPERTIES === //
@@ -25,37 +25,38 @@
   const dispatch = createEventDispatcher();
 
   const component = forwardEventHandlers();
-  export const ref = new Group();
 
-  let camera;
-  let controls;
-
-  let player;
-  let playerPosition = [0, 0, 0];
-  $: gltf = useGltf(file);
+  const gltf = useGltf(file);
   $: if ($gltf) {
-    playerPosition = [...$gltf.nodes.Start.position];
-    dispatch("loaded");
+    $spawn = [...$gltf.nodes.Start.position];
   }
 </script>
 
 {#if $gltf}
-  <T.PerspectiveCamera makeDefault bind:ref={camera} position={[0, 30, 30]}>
-    <OrbitControls
-      bind:ref={controls}
-      enableDamping
-      dampingFactor={0.75}
-      minDistance={25}
-      maxDistance={30}
-      enablePan={false}
-      enableZoom={false}
-      minPolarAngle={Math.PI * 0.05}
-      maxPolarAngle={Math.PI * 0.3}
-      target={playerPosition}
-    />
+  <T.PerspectiveCamera
+    makeDefault
+    bind:ref={$camera}
+    on:create={({ ref }) => {
+      ref.position.set(0, 15, 30);
+    }}
+  >
+    {#if $playerPosition}
+      <OrbitControls
+        bind:ref={$controls}
+        enableDamping
+        dampingFactor={0.75}
+        minDistance={25}
+        maxDistance={30}
+        enablePan={false}
+        enableZoom={false}
+        minPolarAngle={Math.PI * 0.05}
+        maxPolarAngle={Math.PI * 0.3}
+        target={$playerPosition}
+      />
+    {/if}
   </T.PerspectiveCamera>
 
-  <T is={ref} {...$$restProps} bind:this={$component}>
+  <T.Group {...$$restProps} bind:this={$component}>
     <RigidBody type="fixed">
       <AutoColliders shape={"trimesh"} {friction} {restitution}>
         <T.Mesh
@@ -84,8 +85,6 @@
         </AutoColliders>
       </CollisionGroups>
     </RigidBody>
-    <slot>
-      <!-- <Player bind:this={player} size={0.45} bind:camera bind:controls /> -->
-    </slot>
-  </T>
+    <Player size={0.45} />
+  </T.Group>
 {/if}
