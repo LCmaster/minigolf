@@ -5,7 +5,7 @@
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
   import { createEventDispatcher, setContext } from "svelte";
   import Player from "./Player.svelte";
-  import { writable } from "svelte/store";
+  import { writable, get } from "svelte/store";
 
   export let scene;
 
@@ -13,7 +13,8 @@
   const camera = writable(null);
   const controls = writable(null);
   const spawn = writable([...scene.nodes.Start.position]);
-  const playerPosition = writable([...scene.nodes.Start.position]);
+  const playerPosition = writable([$spawn[0], $spawn[1] + 0.45, $spawn[2]]);
+  const lastPlayerPosition = writable(get(playerPosition));
 
   setContext("minigolf/game/stage/context", {
     status,
@@ -21,6 +22,7 @@
     controls,
     spawn,
     playerPosition,
+    lastPlayerPosition,
   });
 
   // === GRAPHICAL PROPERTIES === //
@@ -38,6 +40,8 @@
   // === EVENTS === //
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
+
+  let player;
 </script>
 
 {#if scene}
@@ -80,6 +84,21 @@
         />
       </AutoColliders>
 
+      <CollisionGroups groups={[2]}>
+        <AutoColliders
+          sensor
+          shape={"cuboid"}
+          on:sensorenter={() => {
+            player.spawnToLastPosition();
+          }}
+        >
+          <T.Mesh
+            geometry={scene.nodes.Ground.geometry}
+            material={groundMaterial ?? scene.nodes.Ground.material}
+          />
+        </AutoColliders>
+      </CollisionGroups>
+
       <CollisionGroups groups={[1]}>
         <AutoColliders
           sensor
@@ -96,6 +115,6 @@
         </AutoColliders>
       </CollisionGroups>
     </RigidBody>
-    <Player size={0.45} />
+    <Player bind:this={player} size={0.45} position={get(playerPosition)} />
   </T.Group>
 {/if}
