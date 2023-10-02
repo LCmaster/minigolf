@@ -1,14 +1,13 @@
 <script>
   import { T } from "@threlte/core";
-  import { createEventDispatcher, getContext } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import { Group, Raycaster, Vector2, Vector3 } from "three";
-
-  import { useStage } from "../useStage";
   import ArrowIndicator from "./ArrowIndicator.svelte";
 
   export let size = 0.45;
 
-  const { camera, controls, playerPosition } = useStage();
+  export let camera;
+  export let position;
 
   let ref = new Group();
 
@@ -26,17 +25,16 @@
   const dispatch = createEventDispatcher();
 
   function handleMouseDown(ev) {
-    if (!$camera && !$controls) return;
+    if (!camera) return;
 
     const pointerX = (ev.clientX / window.innerWidth) * 2 - 1;
     const pointerY = -(ev.clientY / window.innerHeight) * 2 + 1;
 
-    raycaster.setFromCamera(new Vector2(pointerX, pointerY), $camera);
+    raycaster.setFromCamera(new Vector2(pointerX, pointerY), camera);
     const intersections = raycaster.intersectObject(ref);
 
     for (let i = 0; i < intersections.length; i++) {
       if (intersections[i].object === selectionSphere) {
-        $controls.enabled = false;
         selected = true;
         dispatch("selected", true);
       }
@@ -44,13 +42,13 @@
   }
 
   function handleMouseMove(ev) {
-    if (!$camera && !$controls) return;
+    if (!camera) return;
 
     if (selected) {
       const pointerX = (ev.clientX / window.innerWidth) * 2 - 1;
       const pointerY = -(ev.clientY / window.innerHeight) * 2 + 1;
 
-      raycaster.setFromCamera(new Vector2(pointerX, pointerY), $camera);
+      raycaster.setFromCamera(new Vector2(pointerX, pointerY), camera);
       const intersections = raycaster.intersectObject(ref);
 
       point = new Vector3();
@@ -65,14 +63,12 @@
   }
 
   function handleMouseUp(ev) {
-    if (!$camera && !$controls) return;
+    if (!camera) return;
 
     if (selected) {
-      dispatch("apply", point);
-
-      $controls.enabled = true;
-      showIndicator = false;
       selected = false;
+      showIndicator = false;
+      dispatch("apply", point);
     }
   }
 </script>
@@ -83,7 +79,7 @@
   on:mouseup={handleMouseUp}
 />
 
-<T.Group bind:ref position={$playerPosition}>
+<T.Group bind:ref {position}>
   <T.Mesh bind:ref={selectionSphere}>
     <T.SphereGeometry args={[size + 0.75, 32, 16]} />
     <T.MeshBasicMaterial
@@ -98,11 +94,7 @@
   </T.Mesh>
 </T.Group>
 {#if showIndicator}
-  <slot position={[...point]} target={$playerPosition}>
-    <ArrowIndicator
-      position={[...point]}
-      target={$playerPosition}
-      color={"white"}
-    />
+  <slot position={[...point]} target={position}>
+    <ArrowIndicator position={[...point]} target={position} color={"white"} />
   </slot>
 {/if}

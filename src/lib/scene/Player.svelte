@@ -4,11 +4,6 @@
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
   import { createEventDispatcher } from "svelte";
-  import PlayerController from "./PlayerController.svelte";
-  import { useStage } from "../useStage";
-  import { get } from "svelte/store";
-
-  const { status, playerPosition, lastPlayerPosition } = useStage();
 
   export let position;
 
@@ -24,69 +19,59 @@
   let body;
   let mesh;
   export let ref = new Group();
-
-  // === SELECTION === //
-  let selectable = false;
+  let positionVector = new Vector3(position[0], position[1], position[2]);
 
   // === EVENTS === //
   const dispatch = createEventDispatcher();
 
-  let worldPosition = new Vector3();
+  export function hit(hitpoint) {
+    let forceVector = new Vector3();
+    forceVector
+      .subVectors(hitpoint, positionVector)
+      .multiplyScalar(7.5)
+      .negate()
+      .setY(0);
 
-  function onApplyHit(hitpoint) {
-    if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-      let forceVector = new Vector3();
-      forceVector
-        .subVectors(
-          hitpoint,
-          new Vector3(
-            $playerPosition[0],
-            $playerPosition[1],
-            $playerPosition[2]
-          )
-        )
-        .multiplyScalar(7.5)
-        .negate()
-        .setY(0);
-
-      dispatch("hit", [...forceVector]);
-
-      body.applyImpulse(forceVector, true);
-    }
+    body.applyImpulse(forceVector, true);
   }
 
-  export function respawn() {}
-
-  export function spawnToLastPosition() {
-    console.log($lastPlayerPosition, $playerPosition);
-    const pos = get(lastPlayerPosition);
-
+  export function moveTo(pos) {
     // CHANGE PLAYER'S ROOT GROUP POSITION
     ref.position.set(pos[0], pos[1], pos[2]);
-    // RESET RIGID BODY POSITION
+    // RESET RIGID BODY POSITION AND SPEED/VELOCITY
     body.resetForces(true);
     body.resetTorques(true);
     body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     body.setTranslation({ x: pos[0], y: pos[1], z: pos[2] }, true);
     body.setRotation({ w: 1.0, x: 0.0, y: 0.0, z: 0.0 }, true);
+  }
 
-    $playerPosition = $lastPlayerPosition;
+  let state = "resting";
+
+  function updatePosition() {
+    position[0] = positionVector.x;
+    position[1] = positionVector.y;
+    position[2] = positionVector.z;
   }
 
   useFrame(() => {
     if (!body) return;
 
-    mesh.getWorldPosition(worldPosition);
-    let { x, y, z } = worldPosition;
+    mesh.getWorldPosition(positionVector);
+
     if (body.isMoving()) {
-      if (selectable) selectable = !selectable;
-      $playerPosition = [x, y, z];
-    } else {
-      if (!selectable) {
-        selectable = !selectable;
-        $lastPlayerPosition = [x, y, z];
-      }
+      if (state !== "moving") state = "moving";
+
+      updatePosition();
+      dispatch("moved", position);
+    }
+
+    if (!body.isMoving() && state === "moving") {
+      state = "resting";
+
+      updatePosition();
+      dispatch("stopped", position);
     }
   });
 </script>
@@ -108,12 +93,3 @@
     </RigidBody>
   </CollisionGroups>
 </T>
-{#if selectable}
-  <slot>
-    <PlayerController
-      position={$playerPosition}
-      {size}
-      on:apply={(ev) => onApplyHit(ev.detail)}
-    />
-  </slot>
-{/if}

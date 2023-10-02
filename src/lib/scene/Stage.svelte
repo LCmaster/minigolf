@@ -1,29 +1,26 @@
 <script>
   import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
-  import { OrbitControls, useGltf } from "@threlte/extras";
+  import { OrbitControls } from "@threlte/extras";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
-  import { createEventDispatcher, setContext } from "svelte";
+  import { createEventDispatcher } from "svelte";
+  import { writable } from "svelte/store";
   import Player from "./Player.svelte";
-  import { writable, get } from "svelte/store";
+
+  import PlayerController from "./PlayerController.svelte";
 
   export let scene;
 
   const status = writable("playing");
-  const camera = writable(null);
-  const controls = writable(null);
-  const spawn = writable([...scene.nodes.Start.position]);
-  const playerPosition = writable([$spawn[0], $spawn[1] + 0.45, $spawn[2]]);
-  const lastPlayerPosition = writable(get(playerPosition));
+  let camera;
+  let controls;
 
-  setContext("minigolf/game/stage/context", {
-    status,
-    camera,
-    controls,
-    spawn,
-    playerPosition,
-    lastPlayerPosition,
-  });
+  const spawn = [...scene.nodes.Start.position];
+  spawn[1] += 0.45;
+
+  let playerPosition = spawn;
+  let lastPlayerPosition;
+  let canSelectPlayer = true;
 
   // === GRAPHICAL PROPERTIES === //
   const courseMaterial = new MeshStandardMaterial({
@@ -47,25 +44,23 @@
 {#if scene}
   <T.PerspectiveCamera
     makeDefault
-    bind:ref={$camera}
+    bind:ref={camera}
     on:create={({ ref }) => {
       ref.position.set(0, 15, 25);
     }}
   >
-    {#if $playerPosition}
-      <OrbitControls
-        bind:ref={$controls}
-        enableDamping
-        dampingFactor={0.75}
-        minDistance={25}
-        maxDistance={30}
-        enablePan={false}
-        enableZoom={false}
-        minPolarAngle={Math.PI * 0.05}
-        maxPolarAngle={Math.PI * 0.3}
-        target={$playerPosition}
-      />
-    {/if}
+    <OrbitControls
+      bind:ref={controls}
+      enableDamping
+      dampingFactor={0.75}
+      minDistance={25}
+      maxDistance={30}
+      enablePan={false}
+      enableZoom={false}
+      minPolarAngle={Math.PI * 0.05}
+      maxPolarAngle={Math.PI * 0.3}
+      bind:target={playerPosition}
+    />
   </T.PerspectiveCamera>
 
   <T.Group {...$$restProps} bind:this={$component}>
@@ -89,7 +84,9 @@
           sensor
           shape={"cuboid"}
           on:sensorenter={() => {
-            player.spawnToLastPosition();
+            player.moveTo(
+              lastPlayerPosition ?? [spawn[0], spawn[1] + 0.45, spawn[2]]
+            );
           }}
         >
           <T.Mesh
@@ -115,6 +112,37 @@
         </AutoColliders>
       </CollisionGroups>
     </RigidBody>
-    <Player bind:this={player} size={0.45} position={get(playerPosition)} />
+    <Player
+      bind:this={player}
+      size={0.45}
+      position={lastPlayerPosition ?? spawn}
+      on:moved={(ev) => {
+        let position = ev.detail;
+        playerPosition = position;
+        canSelectPlayer = false;
+      }}
+      on:stopped={(ev) => {
+        let position = ev.detail;
+        console.log("Stopped Moving", position);
+        lastPlayerPosition = position;
+        canSelectPlayer = true;
+      }}
+    />
+
+    {#if player && canSelectPlayer}
+      <PlayerController
+        position={lastPlayerPosition ?? [spawn[0], spawn[1] + 0.45, spawn[2]]}
+        size={0.45}
+        {camera}
+        on:selected={() => (controls.enabled = false)}
+        on:apply={(ev) => {
+          const hitpoint = ev.detail;
+          if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
+            player.hit(hitpoint);
+          }
+          controls.enabled = true;
+        }}
+      />
+    {/if}
   </T.Group>
 {/if}
