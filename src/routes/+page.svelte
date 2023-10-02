@@ -5,6 +5,9 @@
   import GameScreen from "../lib/screen/GameScreen.svelte";
   import { setContext } from "svelte";
 
+  let hits = 0;
+  let completed = false;
+
   let game = writable(null);
   setContext("minigolf/game/context", game);
 
@@ -26,6 +29,6 @@
 </script>
 
 <div class="w-screen h-screen">
-  <Scene />
-  <GameScreen on:startGame={(ev) => startGame(ev.detail)} />
+  <Scene on:hit={() => hits++} on:completed={() => (completed = true)} />
+  <GameScreen {hits} {completed} on:startGame={(ev) => startGame(ev.detail)} />
 </div>

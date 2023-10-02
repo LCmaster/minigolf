@@ -1,6 +1,4 @@
 <script>
-  import { writable } from "svelte/store";
-
   import { T } from "@threlte/core";
   import { Canvas } from "@threlte/core";
   import { Debug, World } from "@threlte/rapier";
@@ -13,11 +11,6 @@
 
   const game = useGame();
   let world;
-
-  function onStageCompleted() {
-    console.log("Stage Completed");
-    $game.status = completed;
-  }
 </script>
 
 <Canvas>
@@ -32,7 +25,7 @@
         castShadow
       />
       {#await useGltf($game.stages[$game.current].file) then scene}
-        <Stage {scene} on:completed={onStageCompleted} />
+        <Stage {scene} on:completed on:hit />
       {/await}
     {:else}
       <MenuScene />

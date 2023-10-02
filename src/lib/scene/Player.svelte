@@ -6,23 +6,19 @@
   import { createEventDispatcher } from "svelte";
 
   export let position;
-
-  // === GRAPHICAL PROPERTIES === //
   export let size = 0.45;
   export let color = "#FF0000";
-
-  // === PHYSICAL PROPERTIES === //
   export let friction = 2;
   export let restitution = 0.5;
+  export let ref = new Group();
 
-  // === PLAYER === //
+  const dispatch = createEventDispatcher();
+
   let body;
   let mesh;
-  export let ref = new Group();
+  let enabled = true;
+  let state = "resting";
   let positionVector = new Vector3(position[0], position[1], position[2]);
-
-  // === EVENTS === //
-  const dispatch = createEventDispatcher();
 
   export function hit(hitpoint) {
     let forceVector = new Vector3();
@@ -36,18 +32,23 @@
   }
 
   export function moveTo(pos) {
-    // CHANGE PLAYER'S ROOT GROUP POSITION
     ref.position.set(pos[0], pos[1], pos[2]);
-    // RESET RIGID BODY POSITION AND SPEED/VELOCITY
+    positionVector.set(pos[0], pos[1], pos[2]);
+
     body.resetForces(true);
     body.resetTorques(true);
     body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     body.setTranslation({ x: pos[0], y: pos[1], z: pos[2] }, true);
     body.setRotation({ w: 1.0, x: 0.0, y: 0.0, z: 0.0 }, true);
+
+    updatePosition();
   }
 
-  let state = "resting";
+  export function setEnabled(value) {
+    enabled = value;
+    body.setEnabled(value);
+  }
 
   function updatePosition() {
     position[0] = positionVector.x;
@@ -56,21 +57,20 @@
   }
 
   useFrame(() => {
-    if (!body) return;
+    if (!body && !enabled) return;
 
-    mesh.getWorldPosition(positionVector);
+    if (state === "moving") {
+      mesh.getWorldPosition(positionVector);
+      updatePosition();
+    }
 
     if (body.isMoving()) {
       if (state !== "moving") state = "moving";
-
-      updatePosition();
       dispatch("moved", position);
     }
 
     if (!body.isMoving() && state === "moving") {
       state = "resting";
-
-      updatePosition();
       dispatch("stopped", position);
     }
   });

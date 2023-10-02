@@ -1,28 +1,30 @@
 <script>
+  import { createEventDispatcher } from "svelte";
+
   import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { OrbitControls } from "@threlte/extras";
   import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
-  import { createEventDispatcher } from "svelte";
-  import { writable } from "svelte/store";
-  import Player from "./Player.svelte";
 
+  import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
 
   export let scene;
 
-  const status = writable("playing");
+  export let friction = 0.75;
+  export let restitution = 0.75;
+
   let camera;
   let controls;
 
   const spawn = [...scene.nodes.Start.position];
   spawn[1] += 0.45;
 
-  let playerPosition = spawn;
+  let player;
   let lastPlayerPosition;
+  let playerPosition = spawn;
   let canSelectPlayer = true;
 
-  // === GRAPHICAL PROPERTIES === //
   const courseMaterial = new MeshStandardMaterial({
     color: 0x99ccff,
   });
@@ -30,15 +32,8 @@
     color: "seagreen",
   });
 
-  // === PHYSICAL PROPERTIES === //
-  export let friction = 0.75;
-  export let restitution = 0.75;
-
-  // === EVENTS === //
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
-
-  let player;
 </script>
 
 {#if scene}
@@ -101,7 +96,7 @@
           sensor
           shape={"cuboid"}
           on:sensorenter={() => {
-            $status = "completed";
+            player.setEnabled(false);
             dispatch("completed");
           }}
         >
@@ -123,7 +118,6 @@
       }}
       on:stopped={(ev) => {
         let position = ev.detail;
-        console.log("Stopped Moving", position);
         lastPlayerPosition = position;
         canSelectPlayer = true;
       }}
@@ -131,7 +125,7 @@
 
     {#if player && canSelectPlayer}
       <PlayerController
-        position={lastPlayerPosition ?? [spawn[0], spawn[1] + 0.45, spawn[2]]}
+        position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
         size={0.45}
         {camera}
         on:selected={() => (controls.enabled = false)}
@@ -139,6 +133,7 @@
           const hitpoint = ev.detail;
           if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
             player.hit(hitpoint);
+            dispatch("hit");
           }
           controls.enabled = true;
         }}
