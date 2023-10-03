@@ -1,4 +1,5 @@
 <script>
+  import { createEventDispatcher } from "svelte";
   import { useGame } from "../useGame";
   import MenuScreen from "./MenuScreen.svelte";
 
@@ -6,6 +7,8 @@
   export let completed;
 
   const game = useGame();
+
+  const dispatch = createEventDispatcher();
 </script>
 
 {#if $game}
@@ -18,7 +21,7 @@
       <div class="h-full flex flex-col justify-center items-center">
         <div class="p-6 rounded-xl bg-white/50">
           <h2 class="font-bold text-6xl">Stage Complete</h2>
-          <button>Next</button>
+          <button on:click={() => dispatch("loadNextStage")}>Next</button>
         </div>
       </div>
     </div>

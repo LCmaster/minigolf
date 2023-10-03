@@ -31,6 +31,9 @@
   const groundMaterial = new MeshStandardMaterial({
     color: "seagreen",
   });
+  const wallsMaterial = new MeshStandardMaterial({
+    color: "sandybrown",
+  });
 
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
@@ -66,6 +69,14 @@
           material={courseMaterial ?? scene.nodes.Course.material}
         />
       </AutoColliders>
+      {#if scene.nodes.Walls}
+        <AutoColliders shape={"trimesh"} {friction} {restitution}>
+          <T.Mesh
+            geometry={scene.nodes.Walls.geometry}
+            material={wallsMaterial ?? scene.nodes.Walls.material}
+          />
+        </AutoColliders>
+      {/if}
 
       <AutoColliders shape={"cuboid"}>
         <T.Mesh

@@ -15,6 +15,8 @@
     const stages = [
       { name: "Stage 1", file: "/Stage_001.glb" },
       { name: "Stage 2", file: "/Stage_002.glb" },
+      { name: "Stage 3", file: "/Stage_003.glb" },
+      { name: "Stage 4", file: "/Stage_004.glb" },
     ];
 
     let current = 0;
@@ -30,5 +32,14 @@
 
 <div class="w-screen h-screen">
   <Scene on:hit={() => hits++} on:completed={() => (completed = true)} />
-  <GameScreen {hits} {completed} on:startGame={(ev) => startGame(ev.detail)} />
+  <GameScreen
+    {hits}
+    {completed}
+    on:startGame={(ev) => startGame(ev.detail)}
+    on:loadNextStage={() => {
+      hits = 0;
+      completed = false;
+      $game.current++;
+    }}
+  />
 </div>
