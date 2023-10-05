@@ -3,6 +3,7 @@
   import { T, forwardEventHandlers } from "@threlte/core";
   import { useGltf } from "@threlte/extras";
   import { RigidBody, AutoColliders } from "@threlte/rapier";
+  import { createEventDispatcher } from "svelte";
 
   export let type;
   export let variation = 1;
@@ -18,6 +19,8 @@
   export const ref = new Group();
   export const isEnd = type === "end";
   export const isStart = type === "start";
+
+  const dispatch = createEventDispatcher();
 
   const gltf = useGltf(`/block/${type}/${variation}.glb`);
 
