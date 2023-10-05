@@ -2,20 +2,25 @@
   import { Group, MeshBasicMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { useGltf } from "@threlte/extras";
-  import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
+  import { RigidBody, AutoColliders } from "@threlte/rapier";
 
-  export let number;
+  export let type;
+  export let variation = 1;
+
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
 
-  export let wallFriction;
-  export let wallRestitution;
-  export let groundFriction;
-  export let groundRestitution;
+  export let wallFriction = 0.5;
+  export let wallRestitution = 0.9;
+  export let groundFriction = 0.75;
+  export let groundRestitution = 0.5;
 
   export const ref = new Group();
+  export const isEnd = type === "end";
+  export const isStart = type === "start";
 
-  const gltf = useGltf(`/block/end/${number}.glb`);
+  const gltf = useGltf(`/block/${type}/${variation}.glb`);
+
   const component = forwardEventHandlers();
 </script>
 
@@ -30,14 +35,16 @@
   {#await gltf}
     <slot name="fallback" />
   {:then gltf}
-    {#each Object.keys(gltf.nodes) as name}
-      {#if name !== "Scene"}
-        {@const nameChunk = name.split("_")}
-        {@const isSensor = nameChunk[1] === "1"}
-        {@const isHole = nameChunk[2].startsWith("hole")}
-        {@const isWall = nameChunk[2].startsWith("wall")}
-        {@const mesh = gltf.nodes[name]}
-        <RigidBody type={"fixed"}>
+    <RigidBody type={"fixed"}>
+      {#each Object.keys(gltf.nodes) as name}
+        {#if name !== "Scene"}
+          {@const nameChunk = name.split("_")}
+          {@const isSensor = nameChunk[1] === "1"}
+          {@const isWall = nameChunk[2].toLowerCase().startsWith("wall")}
+          {@const isHole =
+            isEnd && nameChunk[2].toLowerCase().startsWith("hole")}
+          {@const mesh = gltf.nodes[name]}
+
           <AutoColliders
             shape={nameChunk[0]}
             sensor={isSensor}
@@ -54,9 +61,9 @@
               scale={[...mesh.scale]}
             />
           </AutoColliders>
-        </RigidBody>
-      {/if}
-    {/each}
+        {/if}
+      {/each}
+    </RigidBody>
   {:catch error}
     <slot name="error" {error} />
   {/await}

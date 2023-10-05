@@ -12,6 +12,7 @@
   import Extension from "./block/Extension.svelte";
   import End from "./block/End.svelte";
   import { RigidBody } from "@threlte/rapier";
+  import Block from "./Block.svelte";
 
   const game = useGame();
   let world;
@@ -32,22 +33,22 @@
         <T.PerspectiveCamera
           makeDefault
           on:create={({ ref }) => {
-            ref.position.set(0, 3.5, -7.5);
-            ref.lookAt(0, 0, -10);
+            ref.position.set(0, 5, 5);
+            ref.lookAt(0, 0, -5);
           }}
         />
         <RigidBody>
           <AutoColliders shape={"ball"}>
-            <T.Mesh position={[0, 0.25 + 0.5, -10]}>
+            <T.Mesh position={[0, 0.25 + 0.5, 0]}>
               <T.IcosahedronGeometry args={[0.1, 3]} />
               <T.MeshStandardMaterial flatShading color={"red"} />
             </T.Mesh>
           </AutoColliders>
         </RigidBody>
         <!-- <Stage {scene} on:completed on:hit /> -->
-        <Start />
-        <Extension number={1} position={[0, 0, -5]} />
-        <End number={1} position={[0, 0, -10]} />
+        <Block type={"start"} position={[0, 0, 0]} />
+        <Block type={"extension"} position={[0, 0, -5]} />
+        <Block type={"end"} position={[0, 0, -10]} />
       {/await}
     {:else}
       <MenuScene />
