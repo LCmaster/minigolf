@@ -17,6 +17,7 @@
       { name: "Stage 2", file: "/Stage_002.glb" },
       { name: "Stage 3", file: "/Stage_003.glb" },
       { name: "Stage 4", file: "/Stage_004.glb" },
+      { name: "Stage 5", file: "/Stage_005.glb" },
     ];
 
     let current = 0;

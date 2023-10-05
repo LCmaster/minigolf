@@ -11,8 +11,11 @@
 
   export let scene;
 
-  export let friction = 0.75;
-  export let restitution = 0.75;
+  export let courseGroundFriction = 0.75;
+  export let courseGroundRestitution = 0.75;
+
+  export let wallFriction = 0.5;
+  export let wallRestitution = 0.9;
 
   let camera;
   let controls;
@@ -63,14 +66,22 @@
 
   <T.Group {...$$restProps} bind:this={$component}>
     <RigidBody type="fixed">
-      <AutoColliders shape={"trimesh"} {friction} {restitution}>
+      <AutoColliders
+        shape={"trimesh"}
+        friction={courseGroundFriction}
+        restitution={courseGroundRestitution}
+      >
         <T.Mesh
           geometry={scene.nodes.Course.geometry}
           material={courseMaterial ?? scene.nodes.Course.material}
         />
       </AutoColliders>
       {#if scene.nodes.Walls}
-        <AutoColliders shape={"trimesh"} {friction} {restitution}>
+        <AutoColliders
+          shape={"trimesh"}
+          friction={wallFriction}
+          restitution={wallRestitution}
+        >
           <T.Mesh
             geometry={scene.nodes.Walls.geometry}
             material={wallsMaterial ?? scene.nodes.Walls.material}
