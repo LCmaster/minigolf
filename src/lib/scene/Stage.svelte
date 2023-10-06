@@ -4,7 +4,6 @@
   import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { OrbitControls } from "@threlte/extras";
-  import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
@@ -12,8 +11,8 @@
 
   export let scene;
 
-  export let courseGroundFriction = 0.75;
-  export let courseGroundRestitution = 0.75;
+  export let groundFriction = 0.75;
+  export let groundRestitution = 0.75;
 
   export let wallFriction = 0.5;
   export let wallRestitution = 0.9;
@@ -71,19 +70,35 @@
       {...scene.start}
       {wallMaterial}
       groundMaterial={courseMaterial}
+      {wallFriction}
+      {wallRestitution}
+      {groundFriction}
+      {groundRestitution}
     />
     <Block
       type={"end"}
       {...scene.end}
       {wallMaterial}
       groundMaterial={courseMaterial}
+      {wallFriction}
+      {wallRestitution}
+      {groundFriction}
+      {groundRestitution}
       on:completed={() => {
         player.setEnabled(false);
         dispatch("completed");
       }}
     />
     {#each scene.blocks as block (block.position)}
-      <Block {...block} {wallMaterial} groundMaterial={courseMaterial} />
+      <Block
+        {...block}
+        {wallMaterial}
+        groundMaterial={courseMaterial}
+        {wallFriction}
+        {wallRestitution}
+        {groundFriction}
+        {groundRestitution}
+      />
     {/each}
     <Player
       bind:this={player}
