@@ -11,6 +11,9 @@
 
   let ref = new Group();
 
+  let lowerLimit = size * 2.5;
+  let upperLimit = lowerLimit + 2.5;
+
   let opacity = 0.35;
   let selectionSphere;
   let selectionPlane;
@@ -81,7 +84,7 @@
 
 <T.Group bind:ref {position}>
   <T.Mesh bind:ref={selectionSphere}>
-    <T.SphereGeometry args={[size + 0.1, 32, 16]} />
+    <T.SphereGeometry args={[lowerLimit, 32, 16]} />
     <T.MeshBasicMaterial
       transparent
       opacity={!selected ? opacity : 0.0}
@@ -89,7 +92,7 @@
     />
   </T.Mesh>
   <T.Mesh bind:ref={selectionPlane} rotation.x={-Math.PI * 0.5}>
-    <T.RingGeometry args={[size + 0.25, 2.5 + size + 0.25, 32]} />
+    <T.RingGeometry args={[lowerLimit, upperLimit, 32]} />
     <T.MeshBasicMaterial transparent opacity={0.0} color={"white"} />
   </T.Mesh>
 </T.Group>

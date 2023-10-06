@@ -23,7 +23,11 @@
         position={[10, 10, 10]}
         castShadow
       />
-      <Stage scene={$game.stages[$game.current]} on:completed on:hit />
+      {#each $game.stages as stage, i (i)}
+        {#if i === $game.current}
+          <Stage scene={stage} on:completed on:hit />
+        {/if}
+      {/each}
     {:else}
       <MenuScene />
     {/if}

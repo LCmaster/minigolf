@@ -22,7 +22,7 @@
     let scaleVector = new Vector3();
 
     let scale =
-      scaleVector.subVectors(positionVector, targetVector).length() - 0.75;
+      scaleVector.subVectors(positionVector, targetVector).length() - 0.25;
     ref.scale.set(scale, scale, scale);
   });
 </script>

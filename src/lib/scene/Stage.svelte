@@ -28,6 +28,8 @@
   let playerPosition = spawn;
   let canSelectPlayer = true;
 
+  let ballSize = 0.1;
+
   const courseMaterial = new MeshStandardMaterial({
     color: 0x99ccff,
   });
@@ -102,7 +104,7 @@
     {/each}
     <Player
       bind:this={player}
-      size={0.1}
+      size={ballSize}
       position={lastPlayerPosition ?? spawn}
       on:moved={(ev) => {
         let position = ev.detail;
@@ -119,7 +121,7 @@
     {#if player && canSelectPlayer}
       <PlayerController
         position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
-        size={0.1}
+        size={ballSize}
         {camera}
         on:selected={() => (controls.enabled = false)}
         on:apply={(ev) => {
