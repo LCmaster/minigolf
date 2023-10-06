@@ -30,6 +30,8 @@
 
   let ballSize = 0.1;
 
+  let loaded = false;
+
   const courseMaterial = new MeshStandardMaterial({
     color: 0x99ccff,
   });
@@ -67,7 +69,7 @@
   </T.PerspectiveCamera>
 
   <T.Group {...$$restProps} bind:this={$component}>
-    <Suspense>
+    <Suspense on:load={() => (loaded = true)}>
       <Block
         type={"start"}
         {...scene.start}
@@ -104,36 +106,38 @@
         />
       {/each}
     </Suspense>
-    <Player
-      bind:this={player}
-      size={ballSize}
-      position={lastPlayerPosition ?? spawn}
-      on:moved={(ev) => {
-        let position = ev.detail;
-        playerPosition = position;
-        canSelectPlayer = false;
-      }}
-      on:stopped={(ev) => {
-        let position = ev.detail;
-        lastPlayerPosition = position;
-        canSelectPlayer = true;
-      }}
-    />
-    {#if player && canSelectPlayer}
-      <PlayerController
-        position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
+    {#if loaded}
+      <Player
+        bind:this={player}
         size={ballSize}
-        {camera}
-        on:selected={() => (controls.enabled = false)}
-        on:apply={(ev) => {
-          const hitpoint = ev.detail;
-          if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-            player.hit(hitpoint);
-            dispatch("hit");
-          }
-          controls.enabled = true;
+        position={lastPlayerPosition ?? spawn}
+        on:moved={(ev) => {
+          let position = ev.detail;
+          playerPosition = position;
+          canSelectPlayer = false;
+        }}
+        on:stopped={(ev) => {
+          let position = ev.detail;
+          lastPlayerPosition = position;
+          canSelectPlayer = true;
         }}
       />
+      {#if player && canSelectPlayer}
+        <PlayerController
+          position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
+          size={ballSize}
+          {camera}
+          on:selected={() => (controls.enabled = false)}
+          on:apply={(ev) => {
+            const hitpoint = ev.detail;
+            if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
+              player.hit(hitpoint);
+              dispatch("hit");
+            }
+            controls.enabled = true;
+          }}
+        />
+      {/if}
     {/if}
   </T.Group>
 {/if}

@@ -26,7 +26,7 @@
   const dispatch = createEventDispatcher();
 
   const suspend = useSuspense();
-  const gltf = useGltf(`/block/${type}/${variation}.glb`);
+  const gltf = suspend(useGltf(`/block/${type}/${variation}.glb`));
 
   const component = forwardEventHandlers();
 </script>
