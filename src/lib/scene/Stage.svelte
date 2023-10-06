@@ -3,7 +3,7 @@
 
   import { MeshStandardMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
-  import { OrbitControls } from "@threlte/extras";
+  import { OrbitControls, Suspense } from "@threlte/extras";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
@@ -67,33 +67,10 @@
   </T.PerspectiveCamera>
 
   <T.Group {...$$restProps} bind:this={$component}>
-    <Block
-      type={"start"}
-      {...scene.start}
-      {wallMaterial}
-      groundMaterial={courseMaterial}
-      {wallFriction}
-      {wallRestitution}
-      {groundFriction}
-      {groundRestitution}
-    />
-    <Block
-      type={"end"}
-      {...scene.end}
-      {wallMaterial}
-      groundMaterial={courseMaterial}
-      {wallFriction}
-      {wallRestitution}
-      {groundFriction}
-      {groundRestitution}
-      on:completed={() => {
-        player.setEnabled(false);
-        dispatch("completed");
-      }}
-    />
-    {#each scene.blocks as block (block.position)}
+    <Suspense>
       <Block
-        {...block}
+        type={"start"}
+        {...scene.start}
         {wallMaterial}
         groundMaterial={courseMaterial}
         {wallFriction}
@@ -101,7 +78,32 @@
         {groundFriction}
         {groundRestitution}
       />
-    {/each}
+      <Block
+        type={"end"}
+        {...scene.end}
+        {wallMaterial}
+        groundMaterial={courseMaterial}
+        {wallFriction}
+        {wallRestitution}
+        {groundFriction}
+        {groundRestitution}
+        on:completed={() => {
+          player.setEnabled(false);
+          dispatch("completed");
+        }}
+      />
+      {#each scene.blocks as block (block.position)}
+        <Block
+          {...block}
+          {wallMaterial}
+          groundMaterial={courseMaterial}
+          {wallFriction}
+          {wallRestitution}
+          {groundFriction}
+          {groundRestitution}
+        />
+      {/each}
+    </Suspense>
     <Player
       bind:this={player}
       size={ballSize}
@@ -117,7 +119,6 @@
         canSelectPlayer = true;
       }}
     />
-
     {#if player && canSelectPlayer}
       <PlayerController
         position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}

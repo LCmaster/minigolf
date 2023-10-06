@@ -1,7 +1,7 @@
 <script>
   import { Group, MeshBasicMaterial } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
-  import { useGltf } from "@threlte/extras";
+  import { useGltf, useSuspense } from "@threlte/extras";
   import { RigidBody, AutoColliders } from "@threlte/rapier";
   import { createEventDispatcher } from "svelte";
 
@@ -25,6 +25,7 @@
 
   const dispatch = createEventDispatcher();
 
+  const suspend = useSuspense();
   const gltf = useGltf(`/block/${type}/${variation}.glb`);
 
   const component = forwardEventHandlers();
