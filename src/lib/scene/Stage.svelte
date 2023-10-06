@@ -8,6 +8,7 @@
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
+  import Block from "./Block.svelte";
 
   export let scene;
 
@@ -20,8 +21,8 @@
   let camera;
   let controls;
 
-  const spawn = [...scene.nodes.Start.position];
-  spawn[1] += 0.45;
+  const spawn = [...scene.start.position];
+  spawn[1] += 0.25 + 0.1;
 
   let player;
   let lastPlayerPosition;
@@ -34,7 +35,7 @@
   const groundMaterial = new MeshStandardMaterial({
     color: "seagreen",
   });
-  const wallsMaterial = new MeshStandardMaterial({
+  const wallMaterial = new MeshStandardMaterial({
     color: "sandybrown",
   });
 
@@ -47,15 +48,15 @@
     makeDefault
     bind:ref={camera}
     on:create={({ ref }) => {
-      ref.position.set(0, 15, 25);
+      ref.position.set(0, 2.5, 5);
     }}
   >
     <OrbitControls
       bind:ref={controls}
       enableDamping
       dampingFactor={0.75}
-      minDistance={25}
-      maxDistance={30}
+      minDistance={5}
+      maxDistance={10}
       enablePan={false}
       enableZoom={false}
       minPolarAngle={Math.PI * 0.05}
@@ -65,73 +66,28 @@
   </T.PerspectiveCamera>
 
   <T.Group {...$$restProps} bind:this={$component}>
-    <RigidBody type="fixed">
-      <AutoColliders
-        shape={"trimesh"}
-        friction={courseGroundFriction}
-        restitution={courseGroundRestitution}
-      >
-        <T.Mesh
-          geometry={scene.nodes.Course.geometry}
-          material={courseMaterial ?? scene.nodes.Course.material}
-        />
-      </AutoColliders>
-      {#if scene.nodes.Walls}
-        <AutoColliders
-          shape={"trimesh"}
-          friction={wallFriction}
-          restitution={wallRestitution}
-        >
-          <T.Mesh
-            geometry={scene.nodes.Walls.geometry}
-            material={wallsMaterial ?? scene.nodes.Walls.material}
-          />
-        </AutoColliders>
-      {/if}
-
-      <AutoColliders shape={"cuboid"}>
-        <T.Mesh
-          geometry={scene.nodes.Ground.geometry}
-          material={groundMaterial ?? scene.nodes.Ground.material}
-        />
-      </AutoColliders>
-
-      <CollisionGroups groups={[2]}>
-        <AutoColliders
-          sensor
-          shape={"cuboid"}
-          on:sensorenter={() => {
-            player.moveTo(
-              lastPlayerPosition ?? [spawn[0], spawn[1] + 0.45, spawn[2]]
-            );
-          }}
-        >
-          <T.Mesh
-            geometry={scene.nodes.Ground.geometry}
-            material={groundMaterial ?? scene.nodes.Ground.material}
-          />
-        </AutoColliders>
-      </CollisionGroups>
-
-      <CollisionGroups groups={[1]}>
-        <AutoColliders
-          sensor
-          shape={"cuboid"}
-          on:sensorenter={() => {
-            player.setEnabled(false);
-            dispatch("completed");
-          }}
-        >
-          <T.Mesh position={[...scene.nodes.Target.position]}>
-            <T.BoxGeometry args={[2.5, 0.01, 2.5]} />
-            <T.MeshBasicMaterial transparent opacity={0.0} />
-          </T.Mesh>
-        </AutoColliders>
-      </CollisionGroups>
-    </RigidBody>
+    <Block
+      type={"start"}
+      {...scene.start}
+      {wallMaterial}
+      groundMaterial={courseMaterial}
+    />
+    <Block
+      type={"end"}
+      {...scene.end}
+      {wallMaterial}
+      groundMaterial={courseMaterial}
+      on:completed={() => {
+        player.setEnabled(false);
+        dispatch("completed");
+      }}
+    />
+    {#each scene.blocks as block (block.position)}
+      <Block {...block} {wallMaterial} groundMaterial={courseMaterial} />
+    {/each}
     <Player
       bind:this={player}
-      size={0.45}
+      size={0.1}
       position={lastPlayerPosition ?? spawn}
       on:moved={(ev) => {
         let position = ev.detail;
@@ -148,7 +104,7 @@
     {#if player && canSelectPlayer}
       <PlayerController
         position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
-        size={0.45}
+        size={0.1}
         {camera}
         on:selected={() => (controls.enabled = false)}
         on:apply={(ev) => {

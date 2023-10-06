@@ -77,19 +77,17 @@
 </script>
 
 <T is={ref} {position}>
-  <CollisionGroups groups={[1, 2]}>
-    <RigidBody
-      type="dynamic"
-      linearDamping={0.35}
-      angularDamping={0.35}
-      bind:rigidBody={body}
-    >
-      <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
-        <T.Mesh bind:ref={mesh}>
-          <T.IcosahedronGeometry args={[size, 3]} />
-          <T.MeshStandardMaterial flatShading {color} />
-        </T.Mesh>
-      </AutoColliders>
-    </RigidBody>
-  </CollisionGroups>
+  <RigidBody
+    type="dynamic"
+    linearDamping={0.35}
+    angularDamping={0.35}
+    bind:rigidBody={body}
+  >
+    <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
+      <T.Mesh bind:ref={mesh}>
+        <T.IcosahedronGeometry args={[size, 3]} />
+        <T.MeshStandardMaterial flatShading {color} />
+      </T.Mesh>
+    </AutoColliders>
+  </RigidBody>
 </T>

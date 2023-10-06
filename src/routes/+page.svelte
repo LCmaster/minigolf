@@ -5,6 +5,8 @@
   import GameScreen from "../lib/screen/GameScreen.svelte";
   import { setContext } from "svelte";
 
+  export let data;
+
   let hits = 0;
   let completed = false;
 
@@ -12,13 +14,7 @@
   setContext("minigolf/game/context", game);
 
   function startGame(type) {
-    const stages = [
-      { name: "Stage 1", file: "/Stage_001.glb" },
-      { name: "Stage 2", file: "/Stage_002.glb" },
-      { name: "Stage 3", file: "/Stage_003.glb" },
-      { name: "Stage 4", file: "/Stage_004.glb" },
-      { name: "Stage 5", file: "/Stage_005.glb" },
-    ];
+    const stages = data.stages;
 
     let current = 0;
     let status = "playing";

@@ -4,7 +4,7 @@
   import { Group, Raycaster, Vector2, Vector3 } from "three";
   import ArrowIndicator from "./ArrowIndicator.svelte";
 
-  export let size = 0.45;
+  export let size = 0.1;
 
   export let camera;
   export let position;
@@ -81,7 +81,7 @@
 
 <T.Group bind:ref {position}>
   <T.Mesh bind:ref={selectionSphere}>
-    <T.SphereGeometry args={[size + 0.75, 32, 16]} />
+    <T.SphereGeometry args={[size + 0.1, 32, 16]} />
     <T.MeshBasicMaterial
       transparent
       opacity={!selected ? opacity : 0.0}
@@ -89,7 +89,7 @@
     />
   </T.Mesh>
   <T.Mesh bind:ref={selectionPlane} rotation.x={-Math.PI * 0.5}>
-    <T.RingGeometry args={[size + 0.75, 5 + size + 0.75, 32]} />
+    <T.RingGeometry args={[size + 0.25, 2.5 + size + 0.25, 32]} />
     <T.MeshBasicMaterial transparent opacity={0.0} color={"white"} />
   </T.Mesh>
 </T.Group>

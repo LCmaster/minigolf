@@ -16,6 +16,9 @@
   export let groundFriction = 0.75;
   export let groundRestitution = 0.5;
 
+  export let wallMaterial;
+  export let groundMaterial;
+
   export const ref = new Group();
   export const isEnd = type === "end";
   export const isStart = type === "start";
@@ -44,13 +47,17 @@
           {@const nameChunk = name.split("_")}
           {@const isSensor = nameChunk[1] === "1"}
           {@const isWall = nameChunk[2].toLowerCase().startsWith("wall")}
-          {@const isHole =
-            isEnd && nameChunk[2].toLowerCase().startsWith("hole")}
+          {@const isHole = nameChunk[2].toLowerCase().startsWith("hole")}
+          {@const isTarget = nameChunk[2].toLowerCase().startsWith("target")}
           {@const mesh = gltf.nodes[name]}
-
           <AutoColliders
             shape={nameChunk[0]}
             sensor={isSensor}
+            on:sensorenter={() => {
+              if (isTarget) {
+                dispatch("completed");
+              }
+            }}
             friction={isWall ? wallFriction : groundFriction}
             restitution={isWall ? wallRestitution : groundRestitution}
           >
@@ -58,7 +65,9 @@
               geometry={mesh.geometry}
               material={isHole
                 ? new MeshBasicMaterial({ transparent: true, opacity: 0.0 })
-                : mesh.material}
+                : isWall
+                ? wallMaterial
+                : groundMaterial}
               position={[...mesh.position]}
               rotation={[...mesh.rotation]}
               scale={[...mesh.scale]}

@@ -1,18 +1,12 @@
 <script>
   import { T } from "@threlte/core";
   import { Canvas } from "@threlte/core";
-  import { AutoColliders, Debug, World } from "@threlte/rapier";
+  import { Debug, World } from "@threlte/rapier";
 
   import { useGame } from "../useGame";
 
   import Stage from "./Stage.svelte";
   import MenuScene from "./MenuScene.svelte";
-  import { useGltf } from "@threlte/extras";
-  import Start from "./block/Start.svelte";
-  import Extension from "./block/Extension.svelte";
-  import End from "./block/End.svelte";
-  import { RigidBody } from "@threlte/rapier";
-  import Block from "./Block.svelte";
 
   const game = useGame();
   let world;
@@ -29,27 +23,7 @@
         position={[10, 10, 10]}
         castShadow
       />
-      {#await useGltf($game.stages[$game.current].file) then scene}
-        <T.PerspectiveCamera
-          makeDefault
-          on:create={({ ref }) => {
-            ref.position.set(0, 5, 5);
-            ref.lookAt(0, 0, -5);
-          }}
-        />
-        <RigidBody>
-          <AutoColliders shape={"ball"}>
-            <T.Mesh position={[0, 0.25 + 0.5, 0]}>
-              <T.IcosahedronGeometry args={[0.1, 3]} />
-              <T.MeshStandardMaterial flatShading color={"red"} />
-            </T.Mesh>
-          </AutoColliders>
-        </RigidBody>
-        <!-- <Stage {scene} on:completed on:hit /> -->
-        <Block type={"start"} position={[0, 0, 0]} />
-        <Block type={"extension"} position={[0, 0, -5]} />
-        <Block type={"end"} position={[0, 0, -10]} />
-      {/await}
+      <Stage scene={$game.stages[$game.current]} on:completed on:hit />
     {:else}
       <MenuScene />
     {/if}
