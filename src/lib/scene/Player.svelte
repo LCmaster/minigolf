@@ -24,7 +24,7 @@
     let forceVector = new Vector3();
     forceVector
       .subVectors(hitpoint, positionVector)
-      .multiplyScalar(7.5)
+      .multiplyScalar(10)
       .negate()
       .setY(0);
 

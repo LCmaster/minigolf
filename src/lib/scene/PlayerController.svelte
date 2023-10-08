@@ -77,9 +77,9 @@
 </script>
 
 <svelte:window
-  on:pointermove={handleMouseMove}
-  on:pointerdown={handleMouseDown}
-  on:pointerup={handleMouseUp}
+  on:mousemove={handleMouseMove}
+  on:mousedown={handleMouseDown}
+  on:mouseup={handleMouseUp}
 />
 
 <T.Group bind:ref {position}>
