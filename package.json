@@ -28,6 +28,7 @@
     "@threlte/core": "^6.0.6",
     "@threlte/extras": "^5.3.0",
     "@threlte/rapier": "^1.1.0",
+    "@vercel/analytics": "^1.1.0",
     "gsap": "^3.12.2",
     "three": "^0.155.0"
   }
