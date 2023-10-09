@@ -1,7 +1,13 @@
 <script>
   import { createEventDispatcher } from "svelte";
 
-  import { CubeTextureLoader, MeshStandardMaterial } from "three";
+  import {
+    BoxGeometry,
+    CubeTextureLoader,
+    Mesh,
+    MeshBasicMaterial,
+    MeshStandardMaterial,
+  } from "three";
   import {
     T,
     forwardEventHandlers,
@@ -9,6 +15,7 @@
     useThrelte,
   } from "@threlte/core";
   import { GLTF, OrbitControls, Suspense, useTexture } from "@threlte/extras";
+  import { AutoColliders, RigidBody } from "@threlte/rapier";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
@@ -32,7 +39,7 @@
   spawn[1] += tileHeight + ballSize + 0.1;
 
   let player;
-  let lastPlayerPosition;
+  let respawnPoints = [[...spawn]];
   let playerPosition = spawn;
   let canSelectPlayer = true;
 
@@ -65,6 +72,8 @@
 
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
+
+  $: console.log(respawnPoints);
 </script>
 
 {#if scene}
@@ -99,33 +108,26 @@
       {#if scene.environement.file}
         <GLTF url={scene.environement.file} />
       {/if}
-      <Block
-        type={"start"}
-        {...scene.start}
-        {wallMaterial}
-        groundMaterial={courseMaterial}
-        {wallFriction}
-        {wallRestitution}
-        {groundFriction}
-        {groundRestitution}
-      />
-      <Block
-        type={"end"}
-        {...scene.end}
-        {wallMaterial}
-        groundMaterial={courseMaterial}
-        {wallFriction}
-        {wallRestitution}
-        {groundFriction}
-        {groundRestitution}
-        on:completed={() => {
-          player.setEnabled(false);
-          dispatch("completed");
-        }}
-      />
-      {#each scene.blocks as block (block.position)}
+      {#if scene.ground}
+        <RigidBody type="fixed">
+          <AutoColliders
+            shape={scene.ground.type}
+            on:contact={() => {
+              const pos = [...respawnPoints[respawnPoints.length - 1]];
+              player.moveTo(pos);
+            }}
+          >
+            <T.Mesh>
+              <T.BoxGeometry args={[1000, 0.1, 1000]} />
+              <T.MeshBasicMaterial color={"#567D46"} />
+            </T.Mesh>
+          </AutoColliders>
+        </RigidBody>
+      {/if}
+      <RigidBody type={"fixed"}>
         <Block
-          {...block}
+          type={"start"}
+          {...scene.start}
           {wallMaterial}
           groundMaterial={courseMaterial}
           {wallFriction}
@@ -133,13 +135,38 @@
           {groundFriction}
           {groundRestitution}
         />
-      {/each}
+        <Block
+          type={"end"}
+          {...scene.end}
+          {wallMaterial}
+          groundMaterial={courseMaterial}
+          {wallFriction}
+          {wallRestitution}
+          {groundFriction}
+          {groundRestitution}
+          on:completed={() => {
+            player.setEnabled(false);
+            dispatch("completed");
+          }}
+        />
+        {#each scene.blocks as block (block.position)}
+          <Block
+            {...block}
+            {wallMaterial}
+            groundMaterial={courseMaterial}
+            {wallFriction}
+            {wallRestitution}
+            {groundFriction}
+            {groundRestitution}
+          />
+        {/each}
+      </RigidBody>
     </Suspense>
     {#if loaded}
       <Player
         bind:this={player}
         size={ballSize}
-        position={lastPlayerPosition ?? spawn}
+        position={[...spawn]}
         on:moved={(ev) => {
           let position = ev.detail;
           playerPosition = position;
@@ -147,13 +174,16 @@
         }}
         on:stopped={(ev) => {
           let position = ev.detail;
-          lastPlayerPosition = position;
+          if (respawnPoints.slice(-1) !== position) {
+            respawnPoints.push([...position]);
+            respawnPoints = respawnPoints;
+          }
           canSelectPlayer = true;
         }}
       />
       {#if player && canSelectPlayer}
         <PlayerController
-          position={lastPlayerPosition ?? [spawn[0], spawn[1], spawn[2]]}
+          position={respawnPoints[respawnPoints.length - 1]}
           size={ballSize}
           {camera}
           on:selected={() => {

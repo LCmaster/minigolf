@@ -32,17 +32,12 @@
   }
 
   export function moveTo(pos) {
-    ref.position.set(pos[0], pos[1], pos[2]);
-    positionVector.set(pos[0], pos[1], pos[2]);
-
-    body.resetForces(true);
-    body.resetTorques(true);
-    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     body.setTranslation({ x: pos[0], y: pos[1], z: pos[2] }, true);
     body.setRotation({ w: 1.0, x: 0.0, y: 0.0, z: 0.0 }, true);
-
-    updatePosition();
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    body.resetTorques(true);
+    body.resetForces(true);
   }
 
   export function setEnabled(value) {
@@ -54,6 +49,7 @@
     position[0] = positionVector.x;
     position[1] = positionVector.y;
     position[2] = positionVector.z;
+    position = position;
   }
 
   useFrame(() => {
@@ -67,11 +63,11 @@
     if (body.isMoving()) {
       if (state !== "moving") state = "moving";
       dispatch("moved", position);
-    }
-
-    if (!body.isMoving() && state === "moving") {
-      state = "resting";
-      dispatch("stopped", position);
+    } else {
+      if (state === "moving") {
+        state = "resting";
+        dispatch("stopped", position);
+      }
     }
   });
 </script>

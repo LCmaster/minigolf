@@ -42,41 +42,39 @@
   {#await gltf}
     <slot name="fallback" />
   {:then gltf}
-    <RigidBody type={"fixed"}>
-      {#each Object.keys(gltf.nodes) as name}
-        {#if name !== "Scene"}
-          {@const nameChunk = name.split("_")}
-          {@const isSensor = nameChunk[1] === "1"}
-          {@const isWall = nameChunk[2].toLowerCase().startsWith("wall")}
-          {@const isHole = nameChunk[2].toLowerCase().startsWith("hole")}
-          {@const isTarget = nameChunk[2].toLowerCase().startsWith("target")}
-          {@const mesh = gltf.nodes[name]}
-          <AutoColliders
-            shape={nameChunk[0]}
-            sensor={isSensor}
-            on:sensorenter={() => {
-              if (isTarget) {
-                dispatch("completed");
-              }
-            }}
-            friction={isWall ? wallFriction : groundFriction}
-            restitution={isWall ? wallRestitution : groundRestitution}
-          >
-            <T.Mesh
-              geometry={mesh.geometry}
-              material={isHole
-                ? new MeshBasicMaterial({ transparent: true, opacity: 0.0 })
-                : isWall
-                ? wallMaterial
-                : groundMaterial}
-              position={[...mesh.position]}
-              rotation={[...mesh.rotation]}
-              scale={[...mesh.scale]}
-            />
-          </AutoColliders>
-        {/if}
-      {/each}
-    </RigidBody>
+    {#each Object.keys(gltf.nodes) as name}
+      {#if name !== "Scene"}
+        {@const nameChunk = name.split("_")}
+        {@const isSensor = nameChunk[1] === "1"}
+        {@const isWall = nameChunk[2].toLowerCase().startsWith("wall")}
+        {@const isHole = nameChunk[2].toLowerCase().startsWith("hole")}
+        {@const isTarget = nameChunk[2].toLowerCase().startsWith("target")}
+        {@const mesh = gltf.nodes[name]}
+        <AutoColliders
+          shape={nameChunk[0]}
+          sensor={isSensor}
+          on:sensorenter={() => {
+            if (isTarget) {
+              dispatch("completed");
+            }
+          }}
+          friction={isWall ? wallFriction : groundFriction}
+          restitution={isWall ? wallRestitution : groundRestitution}
+        >
+          <T.Mesh
+            geometry={mesh.geometry}
+            material={isHole
+              ? new MeshBasicMaterial({ transparent: true, opacity: 0.0 })
+              : isWall
+              ? wallMaterial
+              : groundMaterial}
+            position={[...mesh.position]}
+            rotation={[...mesh.rotation]}
+            scale={[...mesh.scale]}
+          />
+        </AutoColliders>
+      {/if}
+    {/each}
   {:catch error}
     <slot name="error" {error} />
   {/await}
