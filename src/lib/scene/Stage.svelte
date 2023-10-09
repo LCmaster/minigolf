@@ -3,23 +3,33 @@
 
   import {
     BoxGeometry,
+    BufferGeometry,
     CubeTextureLoader,
     Mesh,
     MeshBasicMaterial,
     MeshStandardMaterial,
   } from "three";
+
   import {
     T,
     forwardEventHandlers,
     useLoader,
     useThrelte,
   } from "@threlte/core";
-  import { GLTF, OrbitControls, Suspense, useTexture } from "@threlte/extras";
-  import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import {
+    GLTF,
+    OrbitControls,
+    Suspense,
+    useGltf,
+    useTexture,
+  } from "@threlte/extras";
+  import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
   import Block from "./Block.svelte";
+
+  import { useStitchedBlocks } from "../useStitchedBlocks";
 
   export let scene;
 
@@ -35,7 +45,7 @@
   let camera;
   let controls;
 
-  const spawn = [...scene.start.position];
+  const spawn = [...scene.blocks[0].position];
   spawn[1] += tileHeight + ballSize + 0.1;
 
   let player;
@@ -72,8 +82,6 @@
 
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
-
-  $: console.log(respawnPoints);
 </script>
 
 {#if scene}
@@ -100,14 +108,42 @@
   </T.PerspectiveCamera>
 
   <T.Group {...$$restProps} bind:this={$component}>
-    <Suspense
-      on:load={() => {
-        loaded = true;
-      }}
-    >
-      {#if scene.environement.file}
-        <GLTF url={scene.environement.file} />
-      {/if}
+    {#await useStitchedBlocks(scene.blocks) then { slab, wall }}
+      <RigidBody type="fixed">
+        <AutoColliders
+          shape={"trimesh"}
+          friction={groundFriction}
+          restitution={groundRestitution}
+        >
+          <T.Mesh>
+            <T is={slab} />
+            <T is={courseMaterial} />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders
+          shape="cuboid"
+          sensor
+          on:sensorenter={() => {
+            player.setEnabled(false);
+            dispatch("completed");
+          }}
+        >
+          <T.Mesh position={scene.blocks[scene.blocks.length - 1].position}>
+            <T.BoxGeometry args={[1, 0.25, 1]} />
+            <T is={courseMaterial} />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders
+          shape={"trimesh"}
+          friction={wallFriction}
+          restitution={wallRestitution}
+        >
+          <T.Mesh>
+            <T is={wall} />
+            <T is={wallMaterial} />
+          </T.Mesh>
+        </AutoColliders>
+      </RigidBody>
       {#if scene.ground}
         <RigidBody type="fixed">
           <AutoColliders
@@ -124,45 +160,6 @@
           </AutoColliders>
         </RigidBody>
       {/if}
-      <RigidBody type={"fixed"}>
-        <Block
-          type={"start"}
-          {...scene.start}
-          {wallMaterial}
-          groundMaterial={courseMaterial}
-          {wallFriction}
-          {wallRestitution}
-          {groundFriction}
-          {groundRestitution}
-        />
-        <Block
-          type={"end"}
-          {...scene.end}
-          {wallMaterial}
-          groundMaterial={courseMaterial}
-          {wallFriction}
-          {wallRestitution}
-          {groundFriction}
-          {groundRestitution}
-          on:completed={() => {
-            player.setEnabled(false);
-            dispatch("completed");
-          }}
-        />
-        {#each scene.blocks as block (block.position)}
-          <Block
-            {...block}
-            {wallMaterial}
-            groundMaterial={courseMaterial}
-            {wallFriction}
-            {wallRestitution}
-            {groundFriction}
-            {groundRestitution}
-          />
-        {/each}
-      </RigidBody>
-    </Suspense>
-    {#if loaded}
       <Player
         bind:this={player}
         size={ballSize}
@@ -199,6 +196,48 @@
           }}
         />
       {/if}
-    {/if}
+    {/await}
+    <!-- <Suspense
+      on:load={() => {
+        loaded = true;
+      }}
+    >
+      {#if scene.environement.file}
+        <GLTF url={scene.environement.file} />
+      {/if}
+      {#if scene.ground}
+        <RigidBody type="fixed">
+          <AutoColliders
+            shape={scene.ground.type}
+            on:contact={() => {
+              const pos = [...respawnPoints[respawnPoints.length - 1]];
+              player.moveTo(pos);
+            }}
+          >
+            <T.Mesh>
+              <T.BoxGeometry args={[1000, 0.1, 1000]} />
+              <T.MeshBasicMaterial color={"#567D46"} />
+            </T.Mesh>
+          </AutoColliders>
+        </RigidBody>
+      {/if}
+      <RigidBody type={"fixed"}>
+        {#each scene.blocks as block (block.position)}
+          <Block
+            {...block}
+            {wallMaterial}
+            groundMaterial={courseMaterial}
+            {wallFriction}
+            {wallRestitution}
+            {groundFriction}
+            {groundRestitution}
+            on:completed={() => {
+              player.setEnabled(false);
+              dispatch("completed");
+            }}
+          />
+        {/each}
+      </RigidBody>
+    </Suspense> -->
   </T.Group>
 {/if}

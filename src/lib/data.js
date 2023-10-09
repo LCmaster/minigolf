@@ -5,22 +5,23 @@ const stage_one = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
+
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -10],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
+    { type: "end", variation: 1, position: [0, 0, -15], rotation: 0 },
   ],
-  end: { variation: 1, position: [0, 0, -15], rotation: [0, 0, 0] },
 };
 
 const stage_two = {
@@ -29,29 +30,29 @@ const stage_two = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "curve", variation: 1, position: [0, 0, -10], rotation: [0, 0, 0] },
+    { type: "curve", variation: 1, position: [0, 0, -10], rotation: 0 },
     {
       type: "curve",
       variation: 1,
       position: [5, 0, -10],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 1,
       position: [5, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
+    { type: "end", variation: 1, position: [5, 0, -20], rotation: 0 },
   ],
-  end: { variation: 1, position: [5, 0, -20], rotation: [0, 0, 0] },
 };
 
 const stage_three = {
@@ -60,22 +61,22 @@ const stage_three = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 13,
       position: [0, 0, -10],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
+    { type: "end", variation: 3, position: [0, 0, -15], rotation: 0 },
   ],
-  end: { variation: 3, position: [0, 0, -15], rotation: [0, 0, 0] },
 };
 
 const stage_four = {
@@ -84,38 +85,39 @@ const stage_four = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 4,
       position: [0, 0, -10],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 4,
       position: [0, 0, -15],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "curve",
       variation: 1,
       position: [0, 0, -20],
-      rotation: [0, Math.PI * 1.5, 0],
+      rotation: 1.5,
+    },
+    {
+      type: "end",
+      variation: 1,
+      position: [-5, 0, -20],
+      rotation: 0.5,
     },
   ],
-  end: {
-    variation: 1,
-    position: [-5, 0, -20],
-    rotation: [0, Math.PI * 0.5, 0],
-  },
 };
 
 const stage_five = {
@@ -124,53 +126,53 @@ const stage_five = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "fork", variation: 1, position: [0, 0, -10], rotation: [0, 0, 0] },
+    { type: "fork", variation: 1, position: [0, 0, -10], rotation: 0 },
     {
       type: "slope",
       variation: 1,
       position: [-2.5, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "slope",
       variation: 1,
       position: [2.5, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "slope",
       variation: 1,
       position: [-2.5, 0, -20],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "slope",
       variation: 1,
       position: [2.5, 0, -20],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "fork",
       variation: 1,
       position: [0, 0, -25],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -30],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
+    { type: "end", variation: 1, position: [0, 0, -35], rotation: 0 },
   ],
-  end: { variation: 1, position: [0, 0, -35], rotation: [0, 0, 0] },
 };
 
 const stage_six = {
@@ -179,40 +181,41 @@ const stage_six = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "slope", variation: 1, position: [0, 0, -10], rotation: [0, 0, 0] },
+    { type: "slope", variation: 1, position: [0, 0, -10], rotation: 0 },
     {
       type: "slope",
       variation: 1,
       position: [0, 0, -15],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 6,
       position: [0, 0, -20],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "curve", variation: 1, position: [0, 0, -25], rotation: [0, 0, 0] },
+    { type: "curve", variation: 1, position: [0, 0, -25], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [5, 0, -25],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
+    },
+    {
+      type: "end",
+      variation: 3,
+      position: [10, 0, -25],
+      rotation: 1.5,
     },
   ],
-  end: {
-    variation: 3,
-    position: [10, 0, -25],
-    rotation: [0, Math.PI * 1.5, 0],
-  },
 };
 
 const stage_seven = {
@@ -221,47 +224,52 @@ const stage_seven = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "slope", variation: 1, position: [0, 0, -10], rotation: [0, 0, 0] },
+    { type: "slope", variation: 1, position: [0, 0, -10], rotation: 0 },
     {
       type: "slope",
       variation: 1,
       position: [0, 0, -15],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "curve",
       variation: 1,
       position: [0, 0, -20],
-      rotation: [0, Math.PI * 1.5, 0],
+      rotation: 1.5,
     },
     {
       type: "extension",
       variation: 8,
       position: [-5, 0, -20],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
     },
     {
       type: "curve",
       variation: 1,
       position: [-10, 0, -20],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 1,
       position: [-10, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
+    },
+    {
+      type: "end",
+      variation: 1,
+      position: [-10, 0, -10],
+      rotation: 1,
     },
   ],
-  end: { variation: 1, position: [-10, 0, -10], rotation: [0, Math.PI, 0] },
 };
 
 const stage_eight = {
@@ -270,82 +278,82 @@ const stage_eight = {
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -10],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "curve",
       variation: 1,
       position: [0, 0, -15],
-      rotation: [0, Math.PI * 1.5, 0],
+      rotation: 1.5,
     },
     {
       type: "extension",
       variation: 1,
       position: [-5, 0, -15],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
     },
     {
       type: "curve",
       variation: 1,
       position: [-10, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 1,
       position: [-10, 0, -10],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "curve",
       variation: 1,
       position: [-10, 0, -5],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
     },
     {
       type: "slope",
       variation: 1,
       position: [-5, 0, -5],
-      rotation: [0, Math.PI * 1.5, 0],
+      rotation: 1.5,
     },
     {
       type: "extension",
       variation: 10,
       position: [0, 0.5, -5],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
     },
     {
       type: "slope",
       variation: 1,
       position: [5, 0, -5],
-      rotation: [0, Math.PI * 0.5, 0],
+      rotation: 0.5,
     },
     {
       type: "curve",
       variation: 1,
       position: [10, 0, -5],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 9,
       position: [10, 0, -10],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
+    { type: "end", variation: 3, position: [10, 0, -15], rotation: 0 },
   ],
-  end: { variation: 3, position: [10, 0, -15], rotation: [0, 0, 0] },
 };
 
 const stage_nine = {
@@ -353,60 +361,60 @@ const stage_nine = {
   environement: {
     skybox: "default",
   },
-  ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
-  start: { variation: 1, position: [0, 0, 0], rotation: [0, 0, 0] },
+  ground: { shape: "cuboid", position: [0, 0, 0], rotation: 0 },
   blocks: [
+    { type: "start", variation: 1, position: [0, 0, 0], rotation: 0 },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -5],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
-    { type: "fork", variation: 1, position: [0, 0, -10], rotation: [0, 0, 0] },
+    { type: "fork", variation: 1, position: [0, 0, -10], rotation: 0 },
     {
       type: "slope",
       variation: 1,
       position: [-2.5, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 16,
       position: [2.5, 0, -15],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "slope",
       variation: 1,
       position: [-2.5, 0, -20],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 16,
       position: [2.5, 0, -20],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "fork",
       variation: 1,
       position: [0, 0, -25],
-      rotation: [0, Math.PI, 0],
+      rotation: 1,
     },
     {
       type: "extension",
       variation: 1,
       position: [0, 0, -30],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
     {
       type: "extension",
       variation: 15,
       position: [0, 0, -30],
-      rotation: [0, 0, 0],
+      rotation: 0,
     },
+    { type: "end", variation: 3, position: [0, 0, -35], rotation: 0 },
   ],
-  end: { variation: 3, position: [0, 0, -35], rotation: [0, 0, 0] },
 };
 
 export const stages = [

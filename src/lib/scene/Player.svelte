@@ -74,6 +74,7 @@
 
 <T is={ref} {position}>
   <RigidBody
+    ccd
     type="dynamic"
     linearDamping={0.35}
     angularDamping={0.35}
