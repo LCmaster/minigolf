@@ -2,6 +2,7 @@
   import { createEventDispatcher } from "svelte";
   import { useGame } from "../useGame";
   import MenuScreen from "./MenuScreen.svelte";
+  import ScoreCard from "./ScoreCard.svelte";
 
   export let hits;
   export let completed;
@@ -21,6 +22,7 @@
       <div class="h-full flex flex-col justify-center items-center">
         <div class="p-6 rounded-xl bg-white/50">
           <h2 class="font-bold text-6xl">Stage Complete</h2>
+          <ScoreCard />
           <button on:click={() => dispatch("loadNextStage")}>Next</button>
         </div>
       </div>

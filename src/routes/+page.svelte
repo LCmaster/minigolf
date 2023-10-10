@@ -18,6 +18,7 @@
 
     let current = 0;
     let status = "playing";
+    let scorecard = [];
 
     $game = {
       stages,

@@ -107,7 +107,7 @@ const stage_four = {
     },
     {
       type: "curve",
-      variation: 1,
+      variation: 3,
       position: [0, 0, -20],
       rotation: 1.5,
     },
@@ -202,7 +202,7 @@ const stage_six = {
       position: [0, 0, -20],
       rotation: 0,
     },
-    { type: "curve", variation: 1, position: [0, 0, -25], rotation: 0 },
+    { type: "curve", variation: 3, position: [0, 0, -25], rotation: 0 },
     {
       type: "extension",
       variation: 1,
@@ -418,12 +418,12 @@ const stage_nine = {
 };
 
 export const stages = [
+  stage_six,
   stage_one,
   stage_two,
   stage_three,
   stage_four,
   stage_five,
-  stage_six,
   stage_seven,
   stage_eight,
   stage_nine,

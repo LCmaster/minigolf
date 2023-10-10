@@ -1,7 +1,7 @@
 <script>
   import { Group, Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
-  import { AutoColliders, CollisionGroups, RigidBody } from "@threlte/rapier";
+  import { AutoColliders, RigidBody } from "@threlte/rapier";
 
   import { createEventDispatcher } from "svelte";
 
@@ -17,7 +17,6 @@
   let body;
   let mesh;
   let enabled = true;
-  let state = "resting";
   let positionVector = new Vector3(position[0], position[1], position[2]);
 
   export function hit(hitpoint) {
@@ -55,30 +54,23 @@
   useFrame(() => {
     if (!body && !enabled) return;
 
-    if (state === "moving") {
+    if (body.isMoving()) {
       mesh.getWorldPosition(positionVector);
       updatePosition();
-    }
 
-    if (body.isMoving()) {
-      if (state !== "moving") state = "moving";
       dispatch("moved", position);
-    } else {
-      if (state === "moving") {
-        state = "resting";
-        dispatch("stopped", position);
-      }
     }
   });
 </script>
 
 <T is={ref} {position}>
   <RigidBody
-    ccd
+    ccd={false}
     type="dynamic"
     linearDamping={0.35}
     angularDamping={0.35}
     bind:rigidBody={body}
+    on:sleep={() => dispatch("stopped", position)}
   >
     <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
       <T.Mesh bind:ref={mesh}>
