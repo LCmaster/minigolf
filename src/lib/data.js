@@ -217,7 +217,7 @@ const stage_six = {
     },
     {
       type: "end",
-      variation: 3,
+      variation: 1,
       position: [10, 0, -25],
       rotation: 1.5,
     },
