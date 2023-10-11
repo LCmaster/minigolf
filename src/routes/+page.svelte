@@ -29,7 +29,13 @@
 </script>
 
 <div class="w-screen h-screen">
-  <Scene on:hit={() => hits++} on:completed={() => (completed = true)} />
+  <Scene
+    on:hit={() => hits++}
+    on:completed={() => {
+      $game.stages[$game.current].strokes = hits;
+      completed = true;
+    }}
+  />
   <GameScreen
     {hits}
     {completed}

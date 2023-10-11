@@ -14,7 +14,7 @@
 
 <Canvas>
   <World bind:this={world} gravity={[0, -15, 0]}>
-    <!-- <Debug /> -->
+    <Debug />
     <T.AmbientLight color="#ffffff" intensity={1} />
     {#if $game}
       <T.DirectionalLight

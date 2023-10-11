@@ -23,7 +23,15 @@
         <div class="p-6 rounded-xl bg-white/50">
           <h2 class="font-bold text-6xl">Stage Complete</h2>
           <ScoreCard />
-          <button on:click={() => dispatch("loadNextStage")}>Next</button>
+          {#if $game.current < $game.stages.length - 1}
+            <button on:click={() => dispatch("loadNextStage")}>Next</button>
+          {:else}
+            <button
+              on:click={() => ($game = null)}
+              class="py-2 px-4 rounded-md bg-blue-500 text-white font-semibold"
+              >Back to menu</button
+            >
+          {/if}
         </div>
       </div>
     </div>

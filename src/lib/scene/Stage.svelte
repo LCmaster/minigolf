@@ -161,7 +161,7 @@
         />
         {#if player && canSelectPlayer}
           <PlayerController
-            position={playerPosition}
+            position={respawnPoints[respawnPoints.length - 1]}
             size={ballSize}
             {camera}
             on:selected={() => {

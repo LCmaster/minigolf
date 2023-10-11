@@ -1,5 +1,6 @@
 const stage_one = {
-  name: "Stage 1",
+  name: "Hole 1",
+  par: 2,
   environement: {
     // file:"/scene/default/stage1.glb",
     skybox: "default",
@@ -25,7 +26,8 @@ const stage_one = {
 };
 
 const stage_two = {
-  name: "Stage 2",
+  name: "Hole 2",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -56,7 +58,8 @@ const stage_two = {
 };
 
 const stage_three = {
-  name: "Stage 3",
+  name: "Hole 3",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -80,7 +83,8 @@ const stage_three = {
 };
 
 const stage_four = {
-  name: "Stage 4",
+  name: "Hole 4",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -121,7 +125,8 @@ const stage_four = {
 };
 
 const stage_five = {
-  name: "Stage 5",
+  name: "Hole 5",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -176,7 +181,8 @@ const stage_five = {
 };
 
 const stage_six = {
-  name: "Stage 6",
+  name: "Hole 6",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -219,7 +225,8 @@ const stage_six = {
 };
 
 const stage_seven = {
-  name: "Stage 7",
+  name: "Hole 7",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -273,7 +280,8 @@ const stage_seven = {
 };
 
 const stage_eight = {
-  name: "Stage 8",
+  name: "Hole 8",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -357,7 +365,8 @@ const stage_eight = {
 };
 
 const stage_nine = {
-  name: "Stage 9",
+  name: "Hole 9",
+  par: 2,
   environement: {
     skybox: "default",
   },
@@ -418,12 +427,12 @@ const stage_nine = {
 };
 
 export const stages = [
-  stage_six,
   stage_one,
   stage_two,
   stage_three,
   stage_four,
   stage_five,
+  stage_six,
   stage_seven,
   stage_eight,
   stage_nine,
