@@ -20,11 +20,15 @@
   {#if completed}
     <div class="fixed top-0 left-0 w-screen h-screen p-8">
       <div class="h-full flex flex-col justify-center items-center">
-        <div class="p-6 rounded-xl bg-white/50">
-          <h2 class="font-bold text-6xl">Stage Complete</h2>
+        <div class="p-6 flex flex-col gap-4 rounded-xl bg-white/50">
+          <h2 class="font-bold text-6xl">Nice Job!</h2>
           <ScoreCard />
           {#if $game.current < $game.stages.length - 1}
-            <button on:click={() => dispatch("loadNextStage")}>Next</button>
+            <button
+              on:click={() => dispatch("loadNextStage")}
+              class="py-2 px-4 rounded-md bg-blue-500 text-white font-semibold"
+              >Next</button
+            >
           {:else}
             <button
               on:click={() => ($game = null)}
