@@ -4,7 +4,9 @@
   import { useGltf } from "@threlte/extras";
   import { createEventDispatcher } from "svelte";
 
-  export let position;
+  export let position = block.position;
+  export let rotation = block.rotation;
+
   export const ref = new Group();
   const material = new MeshBasicMaterial({ color: 0xffffff });
   const gltf = useGltf("/editor/rotation_indicator.glb");
@@ -14,7 +16,13 @@
   const component = forwardEventHandlers();
 </script>
 
-<T is={ref} dispose={false} {...$$restProps} bind:this={$component} {position}>
+<T
+  is={ref}
+  {...$$restProps}
+  bind:this={$component}
+  {position}
+  rotation={[0, -Math.PI * rotation, 0]}
+>
   {#await gltf}
     <slot name="fallback" />
   {:then gltf}

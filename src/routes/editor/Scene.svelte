@@ -16,9 +16,14 @@
 
   function onRotateBlock(direction) {
     console.log("direction", direction);
-    const currentRotation = $blocks[$editor.selected].rotation;
-    $blocks[$editor.selected].rotation = currentRotation + direction * 0.5;
+    const blockSelected = $blocks[$editor.selected];
+    let rotation = blockSelected.rotation + direction * 0.5;
+    if (rotation > 2) rotation -= 2;
+    if (rotation < 0) rotation += 2;
+    $blocks[$editor.selected] = { ...blockSelected, rotation };
   }
+
+  $: selectedBlock = $blocks[$editor.selected];
 
   interactivity();
 </script>
@@ -33,13 +38,11 @@
 {#each $blocks as block, i (i)}
   <Block id={i} {...block} {groundMaterial} {wallMaterial} on:slotSelected />
 {/each}
-{#if $editor.selected}
-  {@const position = $blocks[$editor.selected].position}
+{#if selectedBlock}
   <RotationHelper
-    {position}
-    on:rotate={(ev) => {
-      onRotateBlock(ev.detail);
-    }}
+    position={selectedBlock.position}
+    rotation={selectedBlock.rotation}
+    on:rotate={(ev) => onRotateBlock(ev.detail)}
   />
 {/if}
 <T.Mesh

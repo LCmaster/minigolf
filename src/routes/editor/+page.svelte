@@ -64,7 +64,12 @@
           <span>Rotation</span>
           <select
             class="select"
-            bind:value={$blocks[$editor.selected].rotation}
+            value={$blocks[$editor.selected].rotation.toString()}
+            on:change={(ev) => {
+              const block = $blocks[$editor.selected];
+              const rotation = parseFloat(ev.target.value);
+              $blocks[$editor.selected] = { ...block, rotation };
+            }}
           >
             <option value="0">0&deg;</option>
             <option value="0.5">90&deg;</option>
