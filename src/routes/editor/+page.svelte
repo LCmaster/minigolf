@@ -34,8 +34,21 @@
     </World>
   </Canvas>
 </div>
-<button class="fixed bottom-4 right-4 text-6xl">&#9658;</button>
+<!-- <button class="fixed bottom-4 right-4 btn-icon">
+  <img src="/editor/play.svg" alt="Play" class="block h-10 w-10" />
+</button> -->
 {#if $editor.selected !== null}
+  <button
+    class="fixed bottom-20 right-4 btn-icon"
+    on:click={() => {
+      const index = $editor.selected;
+      $blocks.splice(index, 1);
+      $blocks = [...$blocks];
+      $editor.selected = null;
+    }}
+  >
+    <img src="/editor/garbage.svg" alt="Delete" class="block h-10 w-10" />
+  </button>
   <div class="fixed top-0 left-0">
     <div class="card h-screen rounded-none">
       <div class="p-4">
