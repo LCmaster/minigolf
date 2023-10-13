@@ -1,11 +1,19 @@
 <script>
-  import { Box3, Color, Group, MeshBasicMaterial, Vector3 } from "three";
+  import {
+    Box3,
+    BoxHelper,
+    Color,
+    Group,
+    MeshBasicMaterial,
+    Vector3,
+  } from "three";
   import { T, forwardEventHandlers } from "@threlte/core";
   import { useGltf, useSuspense } from "@threlte/extras";
   import { createEventDispatcher, onDestroy } from "svelte";
 
-  import { blocks } from "./store";
+  import { editor, blocks } from "./store";
 
+  export let id;
   export let type;
   export let variation = 1;
 
@@ -20,7 +28,8 @@
 
   let slots = [];
   let mainGroup;
-  let box = new Box3();
+  let mainGroupBox;
+  let box;
 
   const suspend = useSuspense();
   const gltf = suspend(useGltf(`/block/${type}/${variation}.glb`));
@@ -55,6 +64,7 @@
           }
         }
       });
+      box = new BoxHelper(mainGroup, 0x990000);
     }
   });
 
@@ -98,7 +108,7 @@
   {...$$restProps}
   bind:this={$component}
   {position}
-  rotation={[0, Math.PI * rotation, 0]}
+  rotation={[0, -Math.PI * rotation, 0]}
 >
   {#each slots as { mesh, available }, i}
     {#if available}
@@ -111,6 +121,7 @@
         on:pointerenter={(e) => (e.object.material.color = slotHoverColor)}
         on:pointerleave={(e) => (e.object.material.color = slotColor)}
         on:click={(e) => {
+          e.stopPropagation();
           const worldPos = new Vector3();
           e.object.getWorldPosition(worldPos);
           dispatch("slotSelected", {
@@ -123,7 +134,16 @@
   {/each}
 
   {#if mainGroup}
-    <T is={mainGroup} />
+    <T
+      is={mainGroup}
+      on:click={(e) => {
+        e.stopPropagation();
+        if (id !== 0) $editor.selected = id;
+      }}
+    />
+  {/if}
+  {#if box && $editor.selected === id}
+    <T is={box} />
   {/if}
 
   <slot {ref} />

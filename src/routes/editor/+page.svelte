@@ -5,6 +5,7 @@
   import Scene from "./Scene.svelte";
   import { editor, blocks } from "./store";
   import BlockPicker from "./BlockPicker.svelte";
+  import Backdrop from "../../lib/component/Backdrop.svelte";
 
   export let data;
 
@@ -33,23 +34,63 @@
     </World>
   </Canvas>
 </div>
-
+<button class="fixed bottom-4 right-4 text-6xl">&#9658;</button>
+{#if $editor.selected !== null}
+  <div class="fixed top-0 left-0">
+    <div class="card h-screen rounded-none">
+      <div class="p-4">
+        <label class="label">
+          <span>Type</span>
+          <select class="select" bind:value={$blocks[$editor.selected].type}>
+            <option value="extension">Extension</option>
+            <option value="curve">Curve</option>
+            <option value="slope">Slope</option>
+            <option value="fork">Fork</option>
+            <option value="end">End</option>
+          </select>
+        </label>
+        <label class="label">
+          <span>Variation</span>
+          <select
+            class="select"
+            bind:value={$blocks[$editor.selected].variation}
+          >
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <label class="label">
+          <span>Rotation</span>
+          <select
+            class="select"
+            bind:value={$blocks[$editor.selected].rotation}
+          >
+            <option value="0">0&deg;</option>
+            <option value="0.5">90&deg;</option>
+            <option value="1">180&deg;</option>
+            <option value="1.5">270&deg;</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </div>
+{/if}
 {#if slotSelected}
   <div class="fixed top-0 left-0 w-screen h-screen">
-    <button
-      class="absolute top-0 left-0 w-screen h-screen bg-black/50"
-      on:click={() => (slotSelected = null)}
-    />
+    <Backdrop on:click={() => (slotSelected = null)} />
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
       <BlockPicker
         on:cancel={() => (slotSelected = null)}
         on:add={(ev) => {
           const { type, variation, rotation } = ev.detail;
+          const selectedId = $blocks.length;
           $blocks = [
             ...$blocks,
             { type, variation, position: slotSelected, rotation },
           ];
           slotSelected = null;
+          $editor.selected = selectedId;
         }}
       />
     </div>
