@@ -1,5 +1,5 @@
 import { useGltf } from "@threlte/extras";
-import * as BufferGeometryUtils from "./BufferGeometryUtils";
+import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils";
 
 export const useStitchedBlocks = async (blocks) => {
   const tile = await Promise.all(
