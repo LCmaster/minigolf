@@ -38,18 +38,18 @@
 {#each $blocks as block, i (i)}
   <Block id={i} {...block} {groundMaterial} {wallMaterial} on:slotSelected />
 {/each}
-{#if selectedBlock}
+<!-- {#if selectedBlock}
   <RotationHelper
     position={selectedBlock.position}
     rotation={selectedBlock.rotation}
     on:rotate={(ev) => onRotateBlock(ev.detail)}
   />
-{/if}
-<T.Mesh
+{/if} -->
+<!-- <T.Mesh
   on:click={() => {
     $editor.selected = null;
   }}
 >
   <T.BoxGeometry args={[1000, 0.1, 1000]} />
   <T.MeshBasicMaterial color={"#567D46"} />
-</T.Mesh>
+</T.Mesh> -->

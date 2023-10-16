@@ -8,7 +8,10 @@
   export let rotation = block.rotation;
 
   export const ref = new Group();
-  const material = new MeshBasicMaterial({ color: 0xffffff });
+  const material = new MeshBasicMaterial({
+    color: 0xff00ff,
+    renderOrder: 9999,
+  });
   const gltf = useGltf("/editor/rotation_indicator.glb");
 
   const dispatch = createEventDispatcher();

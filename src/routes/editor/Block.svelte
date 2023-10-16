@@ -71,34 +71,8 @@
   const slotColor = new Color("#FFD700");
   const slotHoverColor = new Color("#990000");
 
-  function computeAvaibleSlots() {
-    slots = slots.map(({ mesh, available }, i) => {
-      available = true;
-
-      const slotPos = [
-        position[0] + mesh.position.x,
-        position[1] + mesh.position.y,
-        position[2] + mesh.position.z,
-      ];
-
-      available = !$blocks.some((block) => {
-        const blockPos = block.position;
-        return (
-          blockPos[0] === slotPos[0] &&
-          blockPos[1] === slotPos[1] &&
-          blockPos[2] === slotPos[2]
-        );
-      });
-
-      return { mesh, available };
-    });
-  }
-
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
-
-  $: if (slots) computeAvaibleSlots();
-  $: if ($blocks) computeAvaibleSlots();
 
   onDestroy(unsubscribe);
 </script>
@@ -110,35 +84,36 @@
   {position}
   rotation={[0, -Math.PI * rotation, 0]}
 >
-  {#each slots as { mesh, available }, i}
-    {#if available}
-      <T.Mesh
-        geometry={mesh.geometry}
-        material={new MeshBasicMaterial({ color: slotColor })}
-        position={[...mesh.position]}
-        rotation={[...mesh.rotation]}
-        scale={[...mesh.scale]}
-        on:pointerenter={(e) => (e.object.material.color = slotHoverColor)}
-        on:pointerleave={(e) => (e.object.material.color = slotColor)}
-        on:click={(e) => {
-          e.stopPropagation();
-          const worldPos = new Vector3();
-          e.object.getWorldPosition(worldPos);
-          dispatch("slotSelected", {
-            position: [...worldPos],
-            element: i,
-          });
-        }}
-      />
-    {/if}
-  {/each}
-
+  {#if $editor.selected === id}
+    {#each slots as { mesh, available }, i}
+      {#if available}
+        <T.Mesh
+          geometry={mesh.geometry}
+          material={new MeshBasicMaterial({ color: slotColor })}
+          position={[...mesh.position]}
+          rotation={[...mesh.rotation]}
+          scale={[...mesh.scale]}
+          on:pointerenter={(e) => (e.object.material.color = slotHoverColor)}
+          on:pointerleave={(e) => (e.object.material.color = slotColor)}
+          on:click={(e) => {
+            e.stopPropagation();
+            const worldPos = new Vector3();
+            e.object.getWorldPosition(worldPos);
+            dispatch("slotSelected", {
+              position: [...worldPos],
+              element: i,
+            });
+          }}
+        />
+      {/if}
+    {/each}
+  {/if}
   {#if mainGroup}
     <T
       is={mainGroup}
       on:click={(e) => {
         e.stopPropagation();
-        if (id !== 0) $editor.selected = id;
+        $editor.selected = id;
       }}
     />
   {/if}
