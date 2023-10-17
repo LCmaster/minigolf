@@ -49,18 +49,9 @@
         files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
         isBackground={true}
       />
-      <T.PerspectiveCamera
-        makeDefault
-        fov={70}
-        on:create={({ ref }) => {
-          ref.position.set(0, 5, 5);
-          ref.lookAt(0, 0, 0);
-        }}
-      >
-        <OrbitControls />
-      </T.PerspectiveCamera>
+
       {#if $editor.testing}
-        <TestScene />
+        <TestScene on:completed={() => ($editor.testing = false)} />
       {:else}<EditorScene
           on:slotSelected={(ev) => {
             const { position } = ev.detail;

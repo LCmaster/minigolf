@@ -11,12 +11,8 @@
     body: "To test a level you need a starting and an ending block",
   };
 
-  function isValid() {
-    const validBlocks = $blocks.filter(
-      (b) => b.type === "start" || b.type === "end"
-    );
-    return validBlocks.length === 2;
-  }
+  $: valid =
+    $blocks.filter((b) => b.type === "start" || b.type === "end").length === 2;
 </script>
 
 <AppBar background={"variant-filled"} gridColumns="grid-cols-[1fr_auto]">
@@ -39,9 +35,9 @@
       <button
         type="button"
         class="btn-icon btn-icon-sm variant-filled"
-        disabled={!isValid()}
+        disabled={!valid}
         on:click={() => {
-          if (isValid()) {
+          if (valid) {
             $editor.testing = true;
           } else {
             modalStore.trigger(invalidModal);

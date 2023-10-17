@@ -84,7 +84,7 @@
   {position}
   rotation={[0, -Math.PI * rotation, 0]}
 >
-  {#if $editor.selected === id}
+  {#if !$editor.testing && $editor.selected === id}
     {#each slots as { mesh, available }, i}
       {#if available}
         <T.Mesh
@@ -107,6 +107,9 @@
         />
       {/if}
     {/each}
+    {#if box}
+      <T is={box} />
+    {/if}
   {/if}
   {#if mainGroup}
     <T
@@ -116,9 +119,6 @@
         $editor.selected = id;
       }}
     />
-  {/if}
-  {#if box && $editor.selected === id}
-    <T is={box} />
   {/if}
 
   <slot {ref} />

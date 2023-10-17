@@ -1,7 +1,7 @@
 <script>
   import { MeshBasicMaterial } from "three";
   import { T } from "@threlte/core";
-  import { interactivity } from "@threlte/extras";
+  import { interactivity, OrbitControls } from "@threlte/extras";
   import Block from "./Block.svelte";
 
   import { editor, blocks } from "./store";
@@ -35,16 +35,19 @@
   position={[10, 10, 10]}
   castShadow
 />
+<T.PerspectiveCamera
+  makeDefault
+  fov={70}
+  on:create={({ ref }) => {
+    ref.position.set(-5, 5, 5);
+    ref.lookAt(0, 0, 0);
+  }}
+>
+  <OrbitControls />
+</T.PerspectiveCamera>
 {#each $blocks as block, i (i)}
   <Block id={i} {...block} {groundMaterial} {wallMaterial} on:slotSelected />
 {/each}
-<!-- {#if selectedBlock}
-  <RotationHelper
-    position={selectedBlock.position}
-    rotation={selectedBlock.rotation}
-    on:rotate={(ev) => onRotateBlock(ev.detail)}
-  />
-{/if} -->
 <!-- <T.Mesh
   on:click={() => {
     $editor.selected = null;
