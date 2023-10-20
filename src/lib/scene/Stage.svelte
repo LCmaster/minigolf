@@ -1,9 +1,9 @@
 <script>
   import { createEventDispatcher } from "svelte";
 
-  import { CubeTextureLoader, MeshStandardMaterial } from "three";
+  import { MeshStandardMaterial } from "three";
 
-  import { T, forwardEventHandlers, useThrelte } from "@threlte/core";
+  import { T, forwardEventHandlers } from "@threlte/core";
   import {
     Environment,
     OrbitControls,
@@ -14,7 +14,6 @@
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
-  import Block from "./Block.svelte";
 
   import { useStitchedBlocks } from "../useStitchedBlocks";
 
@@ -28,13 +27,13 @@
   export let wallRestitution = 0.95;
 
   let ballSize = 0.1;
-  let tileHeight = 0.25;
+  let tileHeight = 0.5;
 
   let camera;
   let controls;
 
   const spawn = [...blocks[0].position];
-  spawn[1] += tileHeight + ballSize + 0.1;
+  spawn[1] += tileHeight + ballSize + 0.01;
 
   let player;
   let respawnPoints = [[...spawn]];

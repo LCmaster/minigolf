@@ -5,8 +5,6 @@
   import ArrowIndicator from "./ArrowIndicator.svelte";
 
   export let size = 0.1;
-
-  export let camera;
   export let position;
 
   let ref = new Group();

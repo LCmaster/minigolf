@@ -1,19 +1,15 @@
 <script>
   import { dev } from "$app/environment";
   import { inject } from "@vercel/analytics";
-  import {
-    AppShell,
-    AppBar,
-    Modal,
-    initializeStores,
-  } from "@skeletonlabs/skeleton";
+  import { Modal, initializeStores } from "@skeletonlabs/skeleton";
   import "../app.postcss";
+  import EditorSettingsModal from "./editor/components/EditorSettingsModal.svelte";
 
   inject({ mode: dev ? "development" : "production" });
   initializeStores();
 
   const modalRegistry = {
-    // Set a unique modal ID, then pass the component reference
+    editorSettings: { ref: EditorSettingsModal },
   };
 </script>
 

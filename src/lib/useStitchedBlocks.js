@@ -1,9 +1,9 @@
 import { useGltf } from "@threlte/extras";
-import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils";
+import * as BufferGeometryUtils from "./BufferGeometryUtils";
 
 export const useStitchedBlocks = async (blocks) => {
   const tile = await Promise.all(
-    [...blocks].map((block) => {
+    blocks.map((block) => {
       return useGltf(`/block/${block.type}/${block.variation}.glb`);
     })
   );
@@ -14,7 +14,7 @@ export const useStitchedBlocks = async (blocks) => {
       const offset = blocks[index].position;
 
       let geometry = child.geometry.clone();
-      geometry.rotateY(Math.PI * rotation);
+      geometry.rotateY(-Math.PI * rotation);
       geometry.translate(offset[0], offset[1], offset[2]);
 
       return { name: child.name, geometry };
@@ -23,7 +23,7 @@ export const useStitchedBlocks = async (blocks) => {
 
   const slabGeo = BufferGeometryUtils.mergeBufferGeometries(
     parts
-      .filter(({ name }) => name.includes("slab"))
+      .filter(({ name }) => name.includes("floor"))
       .map(({ geometry }) => geometry)
   );
   const wallGeo = BufferGeometryUtils.mergeBufferGeometries(
