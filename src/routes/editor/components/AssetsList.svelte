@@ -29,22 +29,6 @@
     </svelte:fragment>
     <span class=" ">Blocks</span>
   </Tab>
-  <Tab bind:group={tabSet} name="tab2" value={1}>
-    <svelte:fragment slot="lead">
-      <div class="flex justify-center items-center">
-        <img src="/editor/props.svg" alt="" width="48" height="48" />
-      </div>
-    </svelte:fragment>
-    <span class=" ">Props</span>
-  </Tab>
-  <Tab bind:group={tabSet} name="tab3" value={2}>
-    <svelte:fragment slot="lead">
-      <div class="flex justify-center items-center">
-        <img src="/editor/terrain.svg" alt="" width="48" height="48" />
-      </div>
-    </svelte:fragment>
-    <span class=" ">Terrain</span>
-  </Tab>
   <!-- Tab Panels --->
   <svelte:fragment slot="panel">
     {#if tabSet === 0}
@@ -72,10 +56,6 @@
           {/each}
         {/each}
       </div>
-    {:else if tabSet === 1}
-      (tab panel 2 contents)
-    {:else if tabSet === 2}
-      (tab panel 3 contents)
     {/if}
   </svelte:fragment>
 </TabGroup>

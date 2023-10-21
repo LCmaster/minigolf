@@ -118,23 +118,21 @@
           </T.Mesh>
         </AutoColliders>
       </RigidBody>
-      <!-- {#if scene.ground}
-          <RigidBody type="fixed">
-            <AutoColliders
-              shape={scene.ground.type}
-              on:contact={() => {
-                const pos = [...respawnPoints[respawnPoints.length - 1]];
-                player.moveTo(pos);
-                playerPosition = pos;
-              }}
-            >
-              <T.Mesh>
-                <T.BoxGeometry args={[1000, 0.1, 1000]} />
-                <T.MeshBasicMaterial color={"#567D46"} />
-              </T.Mesh>
-            </AutoColliders>
-          </RigidBody>
-        {/if} -->
+      <RigidBody type="fixed">
+        <AutoColliders
+          shape={"cuboid"}
+          on:contact={() => {
+            const pos = [...respawnPoints[respawnPoints.length - 1]];
+            player.moveTo(pos);
+            playerPosition = pos;
+          }}
+        >
+          <T.Mesh>
+            <T.BoxGeometry args={[1000, 0.1, 1000]} />
+            <T.MeshBasicMaterial color={"#567D46"} />
+          </T.Mesh>
+        </AutoColliders>
+      </RigidBody>
       <Player
         bind:this={player}
         size={ballSize}

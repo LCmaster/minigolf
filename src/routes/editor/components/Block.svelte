@@ -7,13 +7,13 @@
     MeshBasicMaterial,
     Vector3,
   } from "three";
-  import { T, forwardEventHandlers } from "@threlte/core";
+  import { T, forwardEventHandlers, useFrame } from "@threlte/core";
   import { TransformControls, useGltf, useSuspense } from "@threlte/extras";
   import { createEventDispatcher, onDestroy } from "svelte";
 
   import { useEditor } from "../context";
 
-  const { testing, blockSelected } = useEditor();
+  const { testing, blocks, blockSelected } = useEditor();
 
   export let id;
   export let type;
@@ -30,11 +30,27 @@
 
   let slots = [];
   let mainGroup;
-  let mainGroupBox;
   let box;
 
   const suspend = useSuspense();
   const gltf = suspend(useGltf(`/block/${type}/${variation}.glb`));
+
+  useFrame(() => {
+    if (
+      ref.position.x !== position[0] ||
+      ref.position.y !== position[1] ||
+      ref.position.z !== position[2]
+    ) {
+      const index = $blocks.findIndex((b) => b.id === id);
+      $blocks[index] = {
+        id,
+        type,
+        variation,
+        position: [...ref.position],
+        rotation,
+      };
+    }
+  });
 
   const unsubscribe = gltf.subscribe((model) => {
     if (model) {

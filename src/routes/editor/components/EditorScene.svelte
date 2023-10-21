@@ -1,5 +1,5 @@
 <script>
-  import { MeshBasicMaterial } from "three";
+  import { BoxGeometry, MeshBasicMaterial } from "three";
   import { T } from "@threlte/core";
   import { interactivity, OrbitControls } from "@threlte/extras";
   import Block from "./Block.svelte";
@@ -47,3 +47,7 @@
 {#each $blocks as block (block.id)}
   <Block {...block} {groundMaterial} {wallMaterial} on:slotSelected />
 {/each}
+<T.Mesh position={[0, -0.05, 0]}>
+  <T.BoxGeometry args={[1000, 0.1, 1000]} />
+  <T.MeshBasicMaterial color={"#567D46"} />
+</T.Mesh>

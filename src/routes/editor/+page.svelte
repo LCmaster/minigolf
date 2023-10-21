@@ -47,10 +47,10 @@
         $blocks = [
           ...$blocks,
           {
+            id,
             ...block,
             position: $slotSelected,
             rotation: 0,
-            id,
           },
         ];
         $blockSelected = id;
@@ -61,14 +61,14 @@
   {:else if $drawerStore.id === "menu-drawer"}
     <nav class="p-4">
       <ul>
-        <li>
+        <!-- <li>
           <button
             class="text-2xl"
             on:click={() => {
               modalStore.trigger(settingsModal);
             }}>Settings</button
           >
-        </li>
+        </li> -->
         <li>
           <button
             class="text-2xl"
@@ -77,8 +77,6 @@
               zip.file(
                 "config.json",
                 JSON.stringify({
-                  name: "Stage 01",
-                  par: 2,
                   blocks: [...$blocks],
                 })
               );

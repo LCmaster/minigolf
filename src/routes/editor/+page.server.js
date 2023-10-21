@@ -1,7 +1,7 @@
 export function load() {
   const types = ["end", "extension", "curve", "slope", "fork", "tube"];
   const rotations = { 0: 0, 90: 0.5, 180: 1, 270: 1.5 };
-  const extensions = [...new Array(2).keys()].map((index) => {
+  const extensions = [...new Array(16).keys()].map((index) => {
     return { type: "extension", variation: index + 1 };
   });
   const curves = [...new Array(2).keys()].map((index) => {
