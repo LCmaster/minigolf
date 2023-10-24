@@ -1,7 +1,5 @@
-import {stages} from "$lib/data";
-
 export function load() {
-    return {
-        stages
-    };
+  return {
+    courses: [{ name: "Practice Course", holes: 4, difficulty: "Easy" }],
+  };
 }

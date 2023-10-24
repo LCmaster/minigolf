@@ -1,8 +1,9 @@
+const practiceCourse = {};
+
 const stage_one = {
   name: "Hole 1",
   par: 2,
   environement: {
-    // file:"/scene/default/stage1.glb",
     skybox: "default",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
