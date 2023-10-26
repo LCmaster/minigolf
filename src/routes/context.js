@@ -8,7 +8,7 @@ export function setGame(course) {
     id,
     writable({
       current: writable(0),
-      strokes: writable(course.holes.map((_) => 0)),
+      strokes: writable(coursecourse.holes.map((_) => 0)),
       course,
     })
   );
