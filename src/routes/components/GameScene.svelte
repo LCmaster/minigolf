@@ -10,7 +10,7 @@
 
 <T.DirectionalLight
   color="#ffffff"
-  intensity={2}
+  intensity={1}
   position={[10, 10, 10]}
   castShadow
 />
