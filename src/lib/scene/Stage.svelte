@@ -79,7 +79,7 @@
     enablePan={false}
     enableZoom={false}
     minPolarAngle={Math.PI * 0.05}
-    maxPolarAngle={Math.PI * 0.45}
+    maxPolarAngle={Math.PI * 0.35}
     bind:target={playerPosition}
   />
 </T.PerspectiveCamera>

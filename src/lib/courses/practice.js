@@ -1,5 +1,6 @@
 export const course = {
   name: "Practice Course",
+  difficulty: "Easy",
   holes: [
     {
       par: 2,
