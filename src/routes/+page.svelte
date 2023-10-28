@@ -8,6 +8,7 @@
   import LobbyScene from "./components/LobbyScene.svelte";
   import LobbyScreen from "./components/LobbyScreen.svelte";
   import { World } from "@threlte/rapier";
+  import Button from "../lib/component/Button.svelte";
 
   export let data;
 
@@ -21,23 +22,26 @@
   }
 </script>
 
-<AppShell>
-  <svelte:fragment slot="header">
-    {#if !game}
-      <AppBar background={"variant-filled"}>
-        <svelte:fragment slot="lead">
-          <h2 class="font-bold uppercase">MinigolfMania</h2>
-        </svelte:fragment>
-      </AppBar>
-    {/if}
-  </svelte:fragment>
-
+<div class="bg-[#C4E9CC]">
   {#if game}
     <GameScreen bind:game on:quit={() => (game = null)} />
   {:else}
-    <LobbyScreen
+    <!-- <LobbyScreen
       courses={data.courses}
       on:submit={(ev) => handleGameStart(ev.detail)}
-    />
+    /> -->
+    <div
+      class="w-screen h-screen flex flex-col gap-6 justify-center items-center"
+    >
+      <img src="/logo.png" alt="Minigolf Mania" width="320" />
+      <div class="w-80 flex flex-col gap-2">
+        <Button>How to play</Button>
+        <Button>Play</Button>
+        <!-- 
+        <img src="/separator.png" alt="or" />
+        <Button>Sign In</Button>
+        -->
+      </div>
+    </div>
   {/if}
-</AppShell>
+</div>

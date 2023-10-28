@@ -2,7 +2,6 @@
   export let holes;
   export let pars;
   export let strokes;
-  export let current;
 </script>
 
 <div class="table-container">
