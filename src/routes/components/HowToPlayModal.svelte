@@ -22,14 +22,18 @@
 {#if $modalStore[0]}
   <div class="modal-example-form {cBase}">
     <button class={cButton} on:click={parent.onClose}>✕</button>
-    <div class="px-12 py-8 flex flex-col gap-4 font-acme text-white">
+    <div
+      class="px-6 md:px-12 py-4 md:py-8 flex flex-col gap-4 font-acme text-white"
+    >
       <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-4xl">Rules</h2>
-        <p>Put the ball into the hole with fewer shots possible.</p>
+        <h2 class="h2 font-acme text-2xl md:text-4xl">Rules</h2>
+        <p class="text-sm md:text-md tracking-wider md:tracking-normal">
+          Put the ball into the hole with fewer shots possible.
+        </p>
       </div>
       <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-4xl">How to play</h2>
-        <ol class="list">
+        <h2 class="h2 font-acme text-2xl md:text-4xl">How to play</h2>
+        <ol class="list text-sm md:text-md tracking-wider md:tracking-normal">
           <li>
             <span> 1. </span>
             <span>
@@ -61,20 +65,17 @@
         </ol>
       </div>
       <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-5xl">Tips</h2>
-        <ul class="list">
-          <li>
-            <span> - </span>
-            <span>
-              Use the shape of the course and obstacles to your advantage and
-              making the ball bounce off to a better and advantageous place.
-            </span>
-          </li>
+        <h2 class="h2 font-acme text-2xl md:text-4xl">Tips</h2>
+        <ul class="list text-sm md:text-md tracking-wider md:tracking-normal">
           <li>
             <span> - </span>
             <span>
               To cancel the shot just drag the cursor back into the ball.
             </span>
+          </li>
+          <li>
+            <span> - </span>
+            <span> Use the walls and obstacles to your advantage. </span>
           </li>
         </ul>
       </div>

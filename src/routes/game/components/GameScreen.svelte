@@ -48,7 +48,7 @@
 {#if complete}
   <div class="fixed top-0 left-0 w-screen h-screen bg-black/25">
     <div
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col rounded-md variant-filled"
+      class="w-modal-wide variant-filled absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col rounded-md"
     >
       <h2
         class="h2 text-2xl px-6 py-2 absolute top-0 left-1/2 -translate-y-1/2 -translate-x-1/2 font-acme rounded-full bg-[#7ACF46] bg-[url('/checker_pattern_2x2.png')] border-4 border-solid border-[#DEC6A3]"

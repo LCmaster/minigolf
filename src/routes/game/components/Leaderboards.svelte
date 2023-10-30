@@ -20,7 +20,14 @@
           {/each} -->
     </tr>
   </thead>
-  <tbody class=" drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
+  <tbody
+    class="drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)] border-y-2 border-y-solid border-y-white"
+  >
+    <tr>
+      <td />
+      <td />
+      <td />
+    </tr>
     {#each [...new Array(holes.length)] as _, i (i)}
       <tr class={i === current ? "bg-[#7ACC52]" : ""}>
         <td
@@ -42,6 +49,11 @@
         </td>
       </tr>
     {/each}
+    <tr>
+      <td />
+      <td />
+      <td />
+    </tr>
   </tbody>
   <tfoot class=" drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
     <tr>

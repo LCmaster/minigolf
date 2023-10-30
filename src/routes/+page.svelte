@@ -3,6 +3,8 @@
   import Button from "../lib/component/Button.svelte";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
 
+  export let data;
+
   const modalStore = getModalStore();
 
   const modal = {
@@ -23,12 +25,22 @@
       <Button
         on:click={() => {
           window.location = "/game";
-        }}>Play</Button
+        }}
       >
-      <!-- 
-        <img src="/separator.png" alt="or" />
+        Play
+      </Button>
+      <!-- {#if data.session}
+        <Button
+          on:click={() => {
+            window.location = "/game";
+          }}
+        >
+          Level editor
+        </Button>
+      {:else}
+        <img src="/separator.png" alt="or" class="self-center" />
         <Button>Sign In</Button>
-        -->
+      {/if} -->
     </div>
   </div>
 </div>
