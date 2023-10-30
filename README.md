@@ -1,38 +1,37 @@
-# create-svelte
+# Minigolf Mania
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+![logo](https://github.com/LCmaster/minigolf/assets/930046/74666a39-84b5-4d60-8120-79c0f4ee9211)
 
-## Creating a project
+## Introduction
 
-If you're seeing this, you've probably already done this step. Congrats!
+Minigolf Mania is a simple and fun web-based mini golf game.
+To play, visit [monigolfmania.vercel.app](https://minigolfmania.vercel.app/).
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+## Features
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+- Level editor
+  - Live preview
 
-## Developing
+## Roadmap
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+- [x] Game mechanics
+- [x] Level editor
+- User accounts
+- Block creator
+- Support for environment customization
+- Level settings, level name and par for example.
+- Level bundling support
+- Moving blocks/obstacles
 
-```bash
-npm run dev
+## Installation
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
+Install with npm
 
 ```bash
-npm run build
+  cd minigolf
+  npm install
 ```
 
-You can preview the production build with `npm run preview`.
+## License
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+Minigolf Mania is released under the [MIT](https://choosealicense.com/licenses/mit/) License. Feel free to use, modify, and distribute the project in accordance with the terms specified in the license.
