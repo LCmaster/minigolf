@@ -12,16 +12,16 @@ To play, visit [monigolfmania.vercel.app](https://minigolfmania.vercel.app/).
 - Level editor
   - Live preview
 
-## Roadmap
+## TODOs
 
 - [x] Game mechanics
 - [x] Level editor
-- User accounts
-- Block creator
-- Support for environment customization
-- Level settings, level name and par for example.
-- Level bundling support
-- Moving blocks/obstacles
+- [ ] User accounts
+- [ ] Block creator
+- [ ] Support for environment customization
+- [ ] Level settings, level name and par for example.
+- [ ] Level bundling support
+- [ ] Moving blocks/obstacles
 
 ## Installation
 
