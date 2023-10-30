@@ -1,13 +1,18 @@
 <script>
+  import { page } from "$app/stores";
+
   import CurrentHoleIndicator from "./CurrentHoleIndicator.svelte";
   import Leaderboards from "./Leaderboards.svelte";
   import ShotsIndicator from "./ShotsIndicator.svelte";
   import { Canvas, T } from "@threlte/core";
-  import { World } from "@threlte/rapier";
+  import { Debug, World } from "@threlte/rapier";
   import GameScene from "./GameScene.svelte";
   import { createEventDispatcher } from "svelte";
 
   export let game;
+
+  const isDebuging = $page.url.searchParams.has("debug");
+
   let complete = false;
   let shots = game.course.holes.map((_) => 0);
   $: hole = game.current + 1;
@@ -17,6 +22,9 @@
 
 <Canvas>
   <World gravity={[0, -15, 0]}>
+    {#if isDebuging}
+      <Debug />
+    {/if}
     <T.AmbientLight color="#ffffff" intensity={1} />
     <GameScene
       {game}
