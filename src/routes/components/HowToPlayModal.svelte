@@ -1,0 +1,83 @@
+<script lang="ts">
+  import type { SvelteComponent } from "svelte";
+
+  import { getModalStore } from "@skeletonlabs/skeleton";
+
+  // Props
+  /** Exposes parent props to this component. */
+  export let parent: SvelteComponent;
+
+  const modalStore = getModalStore();
+
+  // Base Classes
+  const cBase = "relative w-modal-wide shadow-xl rounded-md variant-filled";
+  const cButton =
+    "absolute -top-3 -right-3 z-1 btn-icon variant-filled border-2 border-solid border-white";
+  const cIframe =
+    "bg-black w-full aspect-video rounded-container-token overflow-hidden";
+
+  console.log("Hello Modal");
+</script>
+
+{#if $modalStore[0]}
+  <div class="modal-example-form {cBase}">
+    <button class={cButton} on:click={parent.onClose}>✕</button>
+    <div class="px-12 py-8 flex flex-col gap-4 font-acme text-white">
+      <div class="flex flex-col gap-2">
+        <h2 class="h2 font-acme text-4xl">Rules</h2>
+        <p>Put the ball into the hole with fewer shots possible.</p>
+      </div>
+      <div class="flex flex-col gap-2">
+        <h2 class="h2 font-acme text-4xl">How to play</h2>
+        <ol class="list">
+          <li>
+            <span> 1. </span>
+            <span>
+              Click/tap the white translucent ball over the golf ball.
+            </span>
+          </li>
+          <li>
+            <span> 2. </span>
+            <span>
+              Drag in the oposite direction you want the ball to go.
+            </span>
+          </li>
+          <li>
+            <span> 3. </span>
+            <span>
+              An indicator will appear showing the way the ball will be shot to.
+            </span>
+          </li>
+          <li>
+            <span> 4. </span>
+            <span>
+              The further you drag the arrow the harder you will hit the ball.
+            </span>
+          </li>
+          <li>
+            <span> 5. </span>
+            <span> Aim for the hole. </span>
+          </li>
+        </ol>
+      </div>
+      <div class="flex flex-col gap-2">
+        <h2 class="h2 font-acme text-5xl">Tips</h2>
+        <ul class="list">
+          <li>
+            <span> - </span>
+            <span>
+              Use the shape of the course and obstacles to your advantage and
+              making the ball bounce off to a better and advantageous place.
+            </span>
+          </li>
+          <li>
+            <span> - </span>
+            <span>
+              To cancel the shot just drag the cursor back into the ball.
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+{/if}

@@ -1,7 +1,9 @@
 <script>
+  let clazz = "";
+  export { clazz as class };
 </script>
 
-<button on:click>
+<button on:click class={clazz}>
   <div class="p-1 rounded-full bg-gradient-to-t from-[#825106] to-[#F8C487]">
     <div class="p-1 rounded-full bg-gradient-to-b from-[#825106] to-[#F8C487]">
       <div

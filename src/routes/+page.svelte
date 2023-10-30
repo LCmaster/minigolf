@@ -1,4 +1,5 @@
 <script>
+  import { getModalStore } from "@skeletonlabs/skeleton";
   import { useGame } from "./context";
   import { writable } from "svelte/store";
   import { Canvas, T } from "@threlte/core";
@@ -9,17 +10,16 @@
   import LobbyScreen from "./components/LobbyScreen.svelte";
   import { World } from "@threlte/rapier";
   import Button from "../lib/component/Button.svelte";
+  import HowToPlayModal from "./components/HowToPlayModal.svelte";
 
-  export let data;
+  const modalStore = getModalStore();
 
-  let game = null;
-
-  function handleGameStart(course) {
-    game = {
-      current: 0,
-      course,
-    };
-  }
+  const modal = {
+    type: "component",
+    component: {
+      ref: HowToPlayModal,
+    },
+  };
 </script>
 
 <div class="bg-[#C4E9CC]">
@@ -35,8 +35,12 @@
     >
       <img src="/logo.png" alt="Minigolf Mania" width="320" />
       <div class="w-80 flex flex-col gap-2">
-        <Button>How to play</Button>
-        <Button>Play</Button>
+        <Button on:click={() => modalStore.trigger(modal)}>How to play</Button>
+        <Button
+          on:click={() => {
+            window.location = "/game";
+          }}>Play</Button
+        >
         <!-- 
         <img src="/separator.png" alt="or" />
         <Button>Sign In</Button>

@@ -4,6 +4,7 @@
   import { Modal, initializeStores } from "@skeletonlabs/skeleton";
   import "../app.postcss";
   import EditorSettingsModal from "./editor/components/EditorSettingsModal.svelte";
+  import HowToPlayModal from "./components/HowToPlayModal.svelte";
 
   inject({ mode: dev ? "development" : "production" });
   initializeStores();
