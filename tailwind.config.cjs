@@ -14,7 +14,14 @@ const config = {
     ),
   ],
   theme: {
-    extend: {},
+    fontFamily: {
+      acme: ["Acme", "sans-serif"],
+    },
+    extend: {
+      backgroundImage: {
+        "checker-pattern": "url('/checker_pattern.png')",
+      },
+    },
   },
   plugins: [
     forms,
