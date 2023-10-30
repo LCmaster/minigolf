@@ -11,7 +11,7 @@
     <span class="text-4xl">{hole}</span>
   </div>
   <div
-    class="px-4 pt-4 pb-2 flex flex-col text-white text-center rounded-md rounded-bl-none bg-[#424242]"
+    class="px-4 pt-4 pb-2 flex flex-col text-white text-center rounded-md rounded-tl-none rounded-bl-none bg-[#424242]"
   >
     <h3 class="h3 font-acme text-xl">Par</h3>
     <span class="text-2xl">{par}</span>
