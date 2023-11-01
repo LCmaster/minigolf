@@ -56,7 +56,7 @@
       <td />
     </tr>
   </tbody>
-  <tfoot class=" drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
+  <tfoot class=" drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
     <tr>
       <td class="font-bold text-center">Total</td>
       <td class="text-center">

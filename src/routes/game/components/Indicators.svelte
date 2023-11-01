@@ -9,11 +9,11 @@
   export let shots;
 </script>
 
-<div class="absolute bottom-4 left-4 flex flex-col gap-2">
+<div class="fixed bottom-4 left-4 flex flex-col gap-2">
   <ParIndicator {par} />
   <HoleIndicator {currentHole} {totalHoleNumber} />
 </div>
 
-<div class="absolute bottom-4 right-4">
+<div class="fixed bottom-4 right-4">
   <ShotsIndicator {shots} />
 </div>
