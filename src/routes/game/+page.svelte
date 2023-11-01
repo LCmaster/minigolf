@@ -26,7 +26,7 @@
   {#if $course}
     <GameScreen on:quit={quitGame} />
   {:else}
-    <div class="container mx-auto py-4">
+    <div class="container mx-auto px-4 py-4">
       <div class="flex justify-between">
         <button
           on:click={() => {

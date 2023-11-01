@@ -8,7 +8,7 @@
     phrase = "Hole in one";
   } else if (par > 2 && shots === par - 1) {
     phrase = "Birdie";
-  } else if (pshots === par) {
+  } else if (shots === par) {
     phrase = "Par";
   } else if (shots === par + 1) {
     phrase = "Bogey";
