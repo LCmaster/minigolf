@@ -1,24 +1,29 @@
 <script>
-  import ArrowButton from "$lib/component/ArrowButton.svelte";
   import Button from "$lib/component/Button.svelte";
   import GameScreen from "./components/GameScreen.svelte";
+  import { useGame } from "./context";
 
   export let data;
   let current = 0;
-  let game = null;
 
-  function handleGameStart() {
-    const course = data.courses[current];
-    game = {
-      current: 0,
-      course,
-    };
+  const { course, current: currentHole, shots } = useGame();
+
+  function startGame() {
+    $currentHole = 0;
+    $course = data.courses[current];
+    $shots = data.courses[current].holes.map((_) => 0);
+  }
+
+  function quitGame() {
+    $currentHole = null;
+    $course = null;
+    $shots = null;
   }
 </script>
 
 <div class="w-screen h-screen flex justify-center items-center bg-[#C4E9CC]">
-  {#if game}
-    <GameScreen bind:game on:quit={() => (game = null)} />
+  {#if $course}
+    <GameScreen on:quit={quitGame} />
   {:else}
     <div class="flex flex-col gap-4">
       <div
@@ -79,7 +84,7 @@
         </div>
         <Button
           class="col-start-2 w-full from-[#F6A655] to-[#E57300]"
-          on:click={handleGameStart}>Play</Button
+          on:click={startGame}>Play</Button
         >
       </div>
     </div>

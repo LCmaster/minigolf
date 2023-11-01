@@ -1,10 +1,13 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import Leaderboards from "../ui/Leaderboards.svelte";
   import CatchPhrase from "../ui/CatchPhrase.svelte";
+  import { useGame } from "../../context";
 
-  export let game;
-  export let shots;
+  const { course, current, shots } = useGame();
+
+  let holes = $course.holes.map((_, index) => index + 1);
+  let pars = $course.holes.map((hole) => hole.par);
 
   const dispatch = createEventDispatcher();
 </script>
@@ -19,17 +22,12 @@
       <span class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">Scoreboard</span>
     </h2>
     <div class="px-8 py-4 pt-10 font-acme flex flex-col justify-between gap-4">
-      <CatchPhrase {game} {shots} />
+      <CatchPhrase shots={$shots[$current]} par={pars[$current]} />
 
-      <Leaderboards
-        current={game.current}
-        holes={game.course.holes.map((_, index) => index + 1)}
-        pars={game.course.holes.map(({ par }) => par)}
-        {shots}
-      />
+      <Leaderboards current={$current} {holes} {pars} shots={$shots} />
       <div
         class="flex justify-center"
-        class:justify-between={game.current < game.course.holes.length - 1}
+        class:justify-between={$current < holes.length - 1}
       >
         <button
           class="flex flex-col justify-center items-center"
@@ -47,7 +45,7 @@
         <img src="/icons/replay.svg" alt="Replay" />
         <span>Replay</span>
       </button> -->
-        {#if game.current < game.course.holes.length - 1}
+        {#if $current < holes.length - 1}
           <button
             class="flex flex-col justify-center items-center"
             on:click={() => dispatch("next")}

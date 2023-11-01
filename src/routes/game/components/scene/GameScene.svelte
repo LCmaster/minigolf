@@ -1,23 +1,16 @@
 <script>
-  import { T } from "@threlte/core";
   import { interactivity } from "@threlte/extras";
   import Stage from "$lib/scene/Stage.svelte";
+  import { useGame } from "../../context";
 
-  export let game;
+  export let course;
+  export let current;
 
   interactivity();
 </script>
 
-<!-- <T.AmbientLight color="#ffffff" intensity={1} /> -->
-<!-- <T.DirectionalLight
-  color="#ffffff"
-  intensity={0.5}
-  position={[10, 10, 10]}
-  castShadow
-/> -->
-
-{#each game.course.holes as hole, i (i)}
-  {#if i === game.current}
+{#each course.holes as hole, i (i)}
+  {#if i === current}
     <Stage blocks={hole.blocks} skybox={"default"} on:completed on:hit />
   {/if}
 {/each}

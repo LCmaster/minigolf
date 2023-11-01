@@ -6,7 +6,7 @@
 </script>
 
 <Canvas>
-  <World>
+  <World gravity={[0, -15, 0]}>
     {#if debug}
       <Debug />
     {/if}
