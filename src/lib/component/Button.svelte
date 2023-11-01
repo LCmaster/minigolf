@@ -1,24 +1,16 @@
 <script>
-  let clazz = "";
-  export { clazz as class };
+  let className = "";
+  export { className as class };
 </script>
 
-<button on:click class={clazz}>
-  <div class="p-1 rounded-full bg-gradient-to-t from-[#825106] to-[#F8C487]">
-    <div class="p-1 rounded-full bg-gradient-to-b from-[#825106] to-[#F8C487]">
-      <div
-        class="rounded-full bg-[#63B92E] shadow-[inset_0_-4px_2px_0_rgba(0,0,0,0.5)]"
-      >
-        <div
-          class="px-8 py-2 rounded-full bg-checker-pattern shadow-[inset_0_4px_2px_0_rgba(255,255,255,0.5)]"
-        >
-          <span
-            class="font-acme text-white text-xl drop-shadow-[1px_2px_0_rgba(0,0,0,0.75)]"
-          >
-            <slot />
-          </span>
-        </div>
-      </div>
-    </div>
+<button
+  on:click
+  class={"p-[2px] rounded-lg bg-gradient-to-b from-[#9FF20D] to-[#4C9900] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)] " +
+    className}
+>
+  <div class="px-4 py-2 rounded-lg bg-checker-pattern">
+    <span class="font-acme text-white drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]">
+      <slot />
+    </span>
   </div>
 </button>

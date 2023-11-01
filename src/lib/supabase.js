@@ -4,7 +4,7 @@ import {
   PUBLIC_SUPABASE_ANON_KEY,
 } from "$env/static/public";
 
-export const supabaseClient = createClient(
+export const client = createClient(
   PUBLIC_SUPABASE_API,
   PUBLIC_SUPABASE_ANON_KEY
 );

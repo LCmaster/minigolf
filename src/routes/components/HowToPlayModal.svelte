@@ -15,25 +15,25 @@
     "absolute -top-3 -right-3 z-1 btn-icon variant-filled border-2 border-solid border-white";
   const cIframe =
     "bg-black w-full aspect-video rounded-container-token overflow-hidden";
-
-  console.log("Hello Modal");
 </script>
 
 {#if $modalStore[0]}
   <div class="modal-example-form {cBase}">
     <button class={cButton} on:click={parent.onClose}>✕</button>
-    <div
-      class="px-6 md:px-12 py-4 md:py-8 flex flex-col gap-4 font-acme text-white"
-    >
+    <div class="px-6 md:px-12 py-4 md:py-8 flex flex-col gap-4 text-white">
       <div class="flex flex-col gap-2">
         <h2 class="h2 font-acme text-2xl md:text-4xl">Rules</h2>
-        <p class="text-sm md:text-md tracking-wider md:tracking-normal">
+        <p
+          class="font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
+        >
           Put the ball into the hole with fewer shots possible.
         </p>
       </div>
       <div class="flex flex-col gap-2">
         <h2 class="h2 font-acme text-2xl md:text-4xl">How to play</h2>
-        <ol class="list text-sm md:text-md tracking-wider md:tracking-normal">
+        <ol
+          class="list font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
+        >
           <li>
             <span> 1. </span>
             <span>
@@ -66,7 +66,9 @@
       </div>
       <div class="flex flex-col gap-2">
         <h2 class="h2 font-acme text-2xl md:text-4xl">Tips</h2>
-        <ul class="list text-sm md:text-md tracking-wider md:tracking-normal">
+        <ul
+          class="list font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
+        >
           <li>
             <span> - </span>
             <span>

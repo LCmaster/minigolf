@@ -21,25 +21,32 @@
     <GameScreen bind:game on:quit={() => (game = null)} />
   {:else}
     <div class="flex flex-col gap-4">
-      <div class="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr] gap-2">
-        <ArrowButton
-          direction="left"
-          on:click={() => (current = current === 0 ? 0 : current - 1)}
-        />
+      <div
+        class="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr] gap-x-2 gap-y-4"
+      >
+        <div class="flex justify-center items-center">
+          <Button
+            on:click={() => (current = current === 0 ? 0 : current - 1)}
+            class="w-12 h-12"
+          >
+            <img src="/icons/arrow_left.svg" alt="Prev" />
+          </Button>
+        </div>
+
         {#each data.courses as course, i (i)}
           {#if i === current}
             <div
               class="px-4 py-4 flex flex-col gap-4 rounded-md text-white variant-filled"
             >
               <h2
-                class="h2 font-acme text-4xl drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]"
+                class="h2 font-acme text-2xl drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
               >
                 {course.name}
               </h2>
-              <div class="bg-zinc-400 w-64 h-64 rounded-md" />
+              <div class="bg-zinc-400 w-40 h-36 rounded-md" />
 
               <ul
-                class="list font-bold drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]"
+                class="list font-roboto font-bold drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
               >
                 <li>
                   <span>Holes:</span>
@@ -61,13 +68,18 @@
             </div>
           {/if}
         {/each}
-        <ArrowButton
-          direction="right"
-          on:click={() =>
-            (current = current < data.courses.length - 1 ? current + 1 : 0)}
-        />
-        <Button class="col-start-2 w-full" on:click={handleGameStart}
-          >Play</Button
+        <div class="flex justify-center items-center">
+          <Button
+            on:click={() =>
+              (current = current < data.courses.length - 1 ? current + 1 : 0)}
+            class="w-12 h-12"
+          >
+            <img src="/icons/arrow_right.svg" alt="Next" />
+          </Button>
+        </div>
+        <Button
+          class="col-start-2 w-full from-[#F6A655] to-[#E57300]"
+          on:click={handleGameStart}>Play</Button
         >
       </div>
     </div>

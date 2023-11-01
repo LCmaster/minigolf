@@ -16,10 +16,12 @@ const config = {
   theme: {
     fontFamily: {
       acme: ["Acme", "sans-serif"],
+      roboto: ["Roboto", "sans-serif"],
+      mono: ["Roboto Mono'", "monospace"],
     },
     extend: {
       backgroundImage: {
-        "checker-pattern": "url('/checker_pattern.png')",
+        "checker-pattern": "url('/checker_pattern_2x2.png')",
       },
     },
   },

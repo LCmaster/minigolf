@@ -1,4 +1,5 @@
 <script>
+  import { goto } from "$app/navigation";
   import { getModalStore } from "@skeletonlabs/skeleton";
   import Button from "../lib/component/Button.svelte";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
@@ -24,22 +25,27 @@
       <Button on:click={() => modalStore.trigger(modal)}>How to play</Button>
       <Button
         on:click={() => {
-          window.location = "/game";
+          goto("/game");
         }}
+        class="h-16 text-2xl from-[#F6A655] to-[#E57300]"
       >
         Play
       </Button>
       <!-- {#if data.session}
         <Button
           on:click={() => {
-            window.location = "/game";
+            window.location = "/editor";
           }}
         >
           Level editor
         </Button>
       {:else}
         <img src="/separator.png" alt="or" class="self-center" />
-        <Button>Sign In</Button>
+        <Button
+          on:click={() => {
+            goto("/auth/signin");
+          }}>Sign In</Button
+        >
       {/if} -->
     </div>
   </div>
