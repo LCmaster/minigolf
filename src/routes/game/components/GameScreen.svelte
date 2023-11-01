@@ -2,7 +2,7 @@
   import { page } from "$app/stores";
 
   import { T } from "@threlte/core";
-  import GameScene from "./GameScene.svelte";
+  import GameScene from "./scene/GameScene.svelte";
   import Indicators from "./ui/Indicators.svelte";
   import Header from "./ui/Header.svelte";
   import ScoreboardModal from "./modal/ScoreboardModal.svelte";

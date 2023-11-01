@@ -8,12 +8,13 @@
   interactivity();
 </script>
 
-<T.DirectionalLight
+<!-- <T.AmbientLight color="#ffffff" intensity={1} /> -->
+<!-- <T.DirectionalLight
   color="#ffffff"
-  intensity={1}
+  intensity={0.5}
   position={[10, 10, 10]}
   castShadow
-/>
+/> -->
 
 {#each game.course.holes as hole, i (i)}
   {#if i === game.current}

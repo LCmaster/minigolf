@@ -12,6 +12,12 @@
   <div
     class="z-10 -ml-[2px] w-12 h-12 flex justify-center items-center rounded-lg bg-gradient-to-b from-[#F6A655] to-[#E57300] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)]"
   >
-    <img src="/icons/golf_ball.svg" alt="Ball" />
+    <img src="/icons/ball.svg" alt="Ball" class="ball" />
   </div>
 </div>
+
+<style>
+  .ball {
+    height: 32px;
+  }
+</style>
