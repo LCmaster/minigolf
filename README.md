@@ -5,7 +5,7 @@
 ## Introduction
 
 Minigolf Mania is a simple and fun web-based mini golf game.
-To play, visit [monigolfmania.vercel.app](https://minigolfmania.vercel.app/).
+To play, visit [minigolfmania.vercel.app](https://minigolfmania.vercel.app/).
 
 ## Features
 
