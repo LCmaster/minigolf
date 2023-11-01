@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import Leaderboards from "./Leaderboards.svelte";
+  import Leaderboards from "../ui/Leaderboards.svelte";
   import Button from "$lib/component/Button.svelte";
 
   export let game;

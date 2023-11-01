@@ -1,28 +1,21 @@
 <script>
   import { page } from "$app/stores";
 
-  import Leaderboards from "./Leaderboards.svelte";
-  import { Canvas, T } from "@threlte/core";
+  import { T } from "@threlte/core";
   import GameScene from "./GameScene.svelte";
-  import { createEventDispatcher } from "svelte";
-  import Indicators from "./Indicators.svelte";
-  import Header from "./Header.svelte";
-  import ScoreboardModal from "./ScoreboardModal.svelte";
+  import Indicators from "./ui/Indicators.svelte";
+  import Header from "./ui/Header.svelte";
+  import ScoreboardModal from "./modal/ScoreboardModal.svelte";
   import Scene from "$lib/component/Scene.svelte";
-  import StageCompleteModal from "./StageCompleteModal.svelte";
+  import StageCompleteModal from "./modal/StageCompleteModal.svelte";
 
   export let game;
 
   const debug = $page.url.searchParams.has("debug");
 
   let modal = "";
-  let showScoreboard = false;
-
-  let complete = false;
   let shots = game.course.holes.map((_) => 0);
   $: hole = game.current + 1;
-
-  const dispatch = createEventDispatcher();
 </script>
 
 <Scene {debug}>

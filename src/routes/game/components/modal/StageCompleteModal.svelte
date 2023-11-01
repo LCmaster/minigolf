@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import Leaderboards from "./Leaderboards.svelte";
+  import Leaderboards from "../ui/Leaderboards.svelte";
+  import CatchPhrase from "../ui/CatchPhrase.svelte";
 
   export let game;
   export let shots;
@@ -18,19 +19,7 @@
       <span class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">Scoreboard</span>
     </h2>
     <div class="px-8 py-4 pt-10 font-acme flex flex-col justify-between gap-4">
-      <p class="text-4xl text-center drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
-        {#if shots[game.current] === 1}
-          Hole in one!
-        {:else if game.course.holes[game.current].par > 2 && shots[game.current] === game.course.holes[game.current].par - 1}
-          Birdie!
-        {:else if shots[game.current] === game.course.holes[game.current].par}
-          Par!
-        {:else if shots[game.current] === game.course.holes[game.current].par + 1}
-          Bogey!
-        {:else}
-          Well done!
-        {/if}
-      </p>
+      <CatchPhrase {game} {shots} />
 
       <Leaderboards
         current={game.current}
