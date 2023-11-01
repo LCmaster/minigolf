@@ -1,7 +1,6 @@
 <script>
   import { interactivity } from "@threlte/extras";
   import Stage from "$lib/scene/Stage.svelte";
-  import { useGame } from "../../context";
 
   export let course;
   export let current;

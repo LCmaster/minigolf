@@ -1,4 +1,5 @@
 <script>
+  import { goto } from "$app/navigation";
   import Button from "$lib/component/Button.svelte";
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
@@ -21,15 +22,31 @@
   }
 </script>
 
-<div class="w-screen h-screen flex justify-center items-center bg-[#C4E9CC]">
+<div class="w-screen min-h-screen bg-[#C4E9CC]">
   {#if $course}
     <GameScreen on:quit={quitGame} />
   {:else}
-    <div class="flex flex-col gap-4">
+    <div class="container mx-auto py-4">
+      <div class="flex justify-between">
+        <button
+          on:click={() => {
+            goto("/");
+          }}
+        >
+          <img src="/icons/back.svg" alt="Back" />
+        </button>
+        <h1
+          class="h1 font-acme text-center text-white drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
+        >
+          Select a course
+        </h1>
+        <div />
+      </div>
+
       <div
-        class="grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr] gap-x-2 gap-y-4"
+        class="mt-8 grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr] gap-x-2 gap-y-4"
       >
-        <div class="flex justify-center items-center">
+        <div class="flex justify-end items-center">
           <Button
             on:click={() => (current = current === 0 ? 0 : current - 1)}
             class="w-12 h-12"
@@ -73,7 +90,7 @@
             </div>
           {/if}
         {/each}
-        <div class="flex justify-center items-center">
+        <div class="flex justify-start items-center">
           <Button
             on:click={() =>
               (current = current < data.courses.length - 1 ? current + 1 : 0)}
