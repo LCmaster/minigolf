@@ -3,8 +3,7 @@
   import { getModalStore } from "@skeletonlabs/skeleton";
   import Button from "../lib/component/Button.svelte";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
-
-  export let data;
+  import { user } from "$lib/authStore";
 
   const modalStore = getModalStore();
 
@@ -31,7 +30,7 @@
       >
         Play
       </Button>
-      <!-- {#if data.session}
+      {#if $user}
         <Button
           on:click={() => {
             window.location = "/editor";
@@ -46,7 +45,7 @@
             goto("/auth/signin");
           }}>Sign In</Button
         >
-      {/if} -->
+      {/if}
     </div>
   </div>
 </div>

@@ -2,8 +2,10 @@
   import { dev } from "$app/environment";
   import { inject } from "@vercel/analytics";
 
-  import { invalidate } from "$app/navigation";
   import { onMount } from "svelte";
+  import { auth } from "$lib/firebase";
+  import { onAuthStateChanged } from "firebase/auth";
+  import { user } from "$lib/authStore";
 
   import { Modal, initializeStores } from "@skeletonlabs/skeleton";
   import EditorSettingsModal from "./editor/components/EditorSettingsModal.svelte";
@@ -17,19 +19,12 @@
     editorSettings: { ref: EditorSettingsModal },
   };
 
-  export let data;
-
-  let { supabase, session } = data;
-  $: ({ supabase, session } = data);
-
   onMount(() => {
-    const { data } = supabase.auth.onAuthStateChange((event, _session) => {
-      if (_session?.expires_at !== session?.expires_at) {
-        invalidate("supabase:auth");
-      }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      $user = firebaseUser;
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => unsubscribe();
   });
 </script>
 

@@ -1,7 +1,6 @@
-import { join } from "path";
-import { skeleton } from "@skeletonlabs/tw-plugin";
-
-import forms from "@tailwindcss/forms";
+const { join } = require("path");
+const { skeleton } = require("@skeletonlabs/tw-plugin");
+const forms = require("@tailwindcss/forms");
 
 /** @type {import('tailwindcss').Config}*/
 const config = {

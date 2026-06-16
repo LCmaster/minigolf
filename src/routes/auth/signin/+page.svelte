@@ -1,20 +1,17 @@
 <script>
   import { goto } from "$app/navigation";
-  export let data;
+  import { auth } from "$lib/firebase";
+  import { signInWithEmailAndPassword } from "firebase/auth";
 
   let email = "";
   let password = "";
 
   async function handleEmailLogin() {
-    const { error } = await data.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    console.log(error);
-
-    if (!error) {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       goto("/");
+    } catch (error) {
+      console.log(error);
     }
   }
 </script>

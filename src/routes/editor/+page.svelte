@@ -61,14 +61,25 @@
   {:else if $drawerStore.id === "menu-drawer"}
     <nav class="p-4">
       <ul>
-        <!-- <li>
+        <li>
           <button
             class="text-2xl"
             on:click={() => {
-              modalStore.trigger(settingsModal);
+              drawerStore.close();
+              modalStore.trigger({
+                ...settingsModal,
+                meta: { stage: $stage },
+                response: (r) => {
+                  if (r) {
+                    $stage.name = r.name;
+                    $stage.par = parseInt(r.par);
+                    $stage.skybox = r.skybox;
+                  }
+                }
+              });
             }}>Settings</button
           >
-        </li> -->
+        </li>
         <li>
           <button
             class="text-2xl"

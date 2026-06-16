@@ -1,9 +1,15 @@
 <script>
-  export let data;
+  import { goto } from "$app/navigation";
+  import { auth } from "$lib/firebase";
+  import { signOut } from "firebase/auth";
 
   async function signout() {
-    const { error } = await data.supabase.auth.signOut();
-    console.log(error);
+    try {
+      await signOut(auth);
+      goto("/");
+    } catch (error) {
+      console.log(error);
+    }
   }
 </script>
 

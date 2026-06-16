@@ -10,9 +10,9 @@
 
   // Form Data
   const formData = {
-    name: "",
-    skybox: "default",
-    par: "2",
+    name: $modalStore[0]?.meta?.stage?.name ?? "",
+    skybox: $modalStore[0]?.meta?.stage?.skybox ?? "default",
+    par: $modalStore[0]?.meta?.stage?.par ?? 2,
   };
 
   // We've created a custom submit function to pass the response and close the modal.
@@ -42,32 +42,30 @@
           class="input"
           type="text"
           bind:value={formData.name}
-          placeholder="Enter name..."
+          placeholder="Enter level name..."
         />
       </label>
       <label class="label">
-        <span>Phone Number</span>
+        <span>Par</span>
         <input
           class="input"
-          type="tel"
-          bind:value={formData.tel}
-          placeholder="Enter phone..."
+          type="number"
+          min="1"
+          bind:value={formData.par}
+          placeholder="Enter par..."
         />
       </label>
       <label class="label">
-        <span>Email</span>
-        <input
-          class="input"
-          type="email"
-          bind:value={formData.email}
-          placeholder="Enter email address..."
-        />
+        <span>Skybox</span>
+        <select class="select" bind:value={formData.skybox}>
+          <option value="default">Default</option>
+        </select>
       </label>
     </form>
     <!-- prettier-ignore -->
     <footer class="modal-footer {parent.regionFooter}">
         <button class="btn {parent.buttonNeutral}" on:click={parent.onClose}>{parent.buttonTextCancel}</button>
-        <button class="btn {parent.buttonPositive}" on:click={onFormSubmit}>Submit Form</button>
+        <button class="btn {parent.buttonPositive}" on:click={onFormSubmit}>Save</button>
     </footer>
   </div>
 {/if}
