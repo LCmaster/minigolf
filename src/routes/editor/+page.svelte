@@ -20,6 +20,7 @@
   import { setEditor } from "./context";
   import { saveLevel } from "$lib/firestore";
   import { user } from "$lib/authStore";
+  import { goto } from "$app/navigation";
 
   const modalStore = getModalStore();
   const drawerStore = getDrawerStore();
@@ -122,6 +123,16 @@
                 .generateAsync({ type: "blob" })
                 .then((content) => saveAs(content, "stage.zip"));
             }}>Export</button
+          >
+        </li>
+        <hr class="my-2 opacity-50" />
+        <li>
+          <button
+            class="text-2xl text-error-500"
+            on:click={() => {
+              drawerStore.close();
+              goto("/");
+            }}>Exit Editor</button
           >
         </li>
       </ul>
