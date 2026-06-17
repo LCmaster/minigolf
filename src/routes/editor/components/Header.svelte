@@ -4,7 +4,10 @@
   // import { editor, blocks } from "../store";
   import { useEditor } from "../context";
 
-  const { testing, blocks } = useEditor();
+  const { testing, controlPoints } = useEditor();
+
+  $: canUndo = controlPoints.canUndo;
+  $: canRedo = controlPoints.canRedo;
 
   const modalStore = getModalStore();
   const drawerStore = getDrawerStore();
@@ -13,7 +16,7 @@
     type: "alert",
     title: "Error",
     buttonTextCancel: "Ok",
-    body: "To test a level you need a starting and an ending block",
+    body: "To test a level you need at least 2 control points.",
   };
 
   const settingsModal = {
@@ -27,8 +30,7 @@
     width: "w-64",
   };
 
-  $: valid =
-    $blocks.filter((b) => b.type === "start" || b.type === "end").length === 2;
+  $: valid = $controlPoints && $controlPoints.length >= 2;
 </script>
 
 <AppBar background={"variant-filled"} gridColumns="grid-cols-[1fr_auto]">
@@ -48,7 +50,28 @@
         <img src="/editor/close.svg" alt="Close" />
       </button>
     {:else}
-      <div class="flex gap-8">
+      <div class="flex gap-2">
+        <!-- Undo -->
+        <button
+          type="button"
+          class="btn-icon btn-icon-sm variant-filled"
+          disabled={!$canUndo}
+          title="Undo (Ctrl+Z)"
+          on:click={() => controlPoints.undo()}
+        >
+          ↩
+        </button>
+        <!-- Redo -->
+        <button
+          type="button"
+          class="btn-icon btn-icon-sm variant-filled"
+          disabled={!$canRedo}
+          title="Redo (Ctrl+Y)"
+          on:click={() => controlPoints.redo()}
+        >
+          ↪
+        </button>
+        <!-- Play -->
         <button
           type="button"
           class="btn-icon btn-icon-sm variant-filled"
@@ -66,7 +89,9 @@
         <button
           type="button"
           class="btn-icon btn-icon-sm variant-filled"
-          on:click={() => drawerStore.open(menuDrawer)}
+          on:click={() => {
+            drawerStore.open(menuDrawer);
+          }}
         >
           <img src="/editor/menu.svg" alt="Menu" />
         </button>

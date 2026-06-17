@@ -8,7 +8,6 @@
   import {
     AppShell,
     getModalStore,
-    Drawer,
     getDrawerStore,
   } from "@skeletonlabs/skeleton";
   import EditorScene from "./components/EditorScene.svelte";
@@ -21,12 +20,27 @@
   import { saveLevel } from "$lib/firestore";
   import { user } from "$lib/authStore";
   import { goto } from "$app/navigation";
+  import { CourseBuilder } from "$lib/CourseBuilder";
 
   const modalStore = getModalStore();
   const drawerStore = getDrawerStore();
 
   export let data;
-  let { testing, blocks, slotSelected, blockSelected, stage } = setEditor();
+  let { testing, controlPoints, pointSelected, stage } = setEditor();
+
+  function handleKeydown(e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
+      e.preventDefault();
+      controlPoints.undo();
+    } else if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key === "y" || (e.shiftKey && e.key === "z"))
+    ) {
+      e.preventDefault();
+      controlPoints.redo();
+    }
+  }
 
   const assetsDrawerSettings = {
     id: "assets-list",
@@ -38,112 +52,13 @@
   };
 </script>
 
-<Drawer>
-  {#if $drawerStore.id === "assets-list"}
-    <AssetsList
-      types={data.types}
-      blocks={data.blocks}
-      bind:selected={blockSelected}
-      on:assetSelected={(ev) => {
-        const block = ev.detail;
-        const id = crypto.randomUUID();
-        $blocks = [
-          ...$blocks,
-          {
-            id,
-            ...block,
-            position: $slotSelected,
-            rotation: 0,
-          },
-        ];
-        $blockSelected = id;
-        $slotSelected = null;
-        drawerStore.close();
-      }}
-    />
-  {:else if $drawerStore.id === "menu-drawer"}
-    <nav class="p-4">
-      <ul>
-        <li>
-          <button
-            class="text-2xl"
-            on:click={() => {
-              drawerStore.close();
-              modalStore.trigger({
-                ...settingsModal,
-                meta: { stage: $stage },
-                response: (r) => {
-                  if (r) {
-                    $stage.name = r.name;
-                    $stage.par = parseInt(r.par);
-                    $stage.skybox = r.skybox;
-                    $stage.groundFriction = parseFloat(r.groundFriction);
-                    $stage.groundRestitution = parseFloat(r.groundRestitution);
-                    $stage.wallFriction = parseFloat(r.wallFriction);
-                    $stage.wallRestitution = parseFloat(r.wallRestitution);
-                  }
-                }
-              });
-            }}>Settings</button
-          >
-        </li>
-        <li>
-          <button
-            class="text-2xl"
-            on:click={async () => {
-              if (!$user) {
-                alert("You must be logged in to save.");
-                return;
-              }
-              try {
-                const canvas = document.querySelector("canvas");
-                const thumbnailDataUrl = canvas.toDataURL("image/png");
-                await saveLevel($user.uid, $stage, $blocks, thumbnailDataUrl);
-                alert("Level saved successfully!");
-                drawerStore.close();
-              } catch (e) {
-                console.error(e);
-                alert("Failed to save level.");
-              }
-            }}>Save to Cloud</button
-          >
-        </li>
-        <li>
-          <button
-            class="text-2xl"
-            on:click={() => {
-              const zip = new JSZip();
-              zip.file(
-                "config.json",
-                JSON.stringify({
-                  blocks: [...$blocks],
-                })
-              );
-              zip
-                .generateAsync({ type: "blob" })
-                .then((content) => saveAs(content, "stage.zip"));
-            }}>Export</button
-          >
-        </li>
-        <hr class="my-2 opacity-50" />
-        <li>
-          <button
-            class="text-2xl text-error-500"
-            on:click={() => {
-              drawerStore.close();
-              goto("/");
-            }}>Exit Editor</button
-          >
-        </li>
-      </ul>
-    </nav>
-  {/if}
-</Drawer>
+<svelte:window on:keydown={handleKeydown} />
+
 <AppShell regionPage="relative" slotPageHeader="sticky top-0 z-10">
   <svelte:fragment slot="header">
     <Header />
   </svelte:fragment>
-  <svelte:fragment slot="sidebarRight">
+  <svelte:fragment slot="sidebarLeft">
     {#if !$testing}
       <AssetProperties />
     {/if}
@@ -159,13 +74,7 @@
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
       {:else}
-        <EditorScene
-          on:slotSelected={(e) => {
-            const { position } = e.detail;
-            $slotSelected = position;
-            drawerStore.open(assetsDrawerSettings);
-          }}
-        />
+        <EditorScene />
       {/if}
     </World>
   </Canvas>

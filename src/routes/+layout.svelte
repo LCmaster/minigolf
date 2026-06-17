@@ -7,8 +7,9 @@
   import { onAuthStateChanged } from "firebase/auth";
   import { user } from "$lib/authStore";
 
-  import { Modal, initializeStores } from "@skeletonlabs/skeleton";
+  import { Modal, Drawer, initializeStores } from "@skeletonlabs/skeleton";
   import EditorSettingsModal from "./editor/components/EditorSettingsModal.svelte";
+  import EditorDrawer from "./editor/components/EditorDrawer.svelte";
 
   import "../app.postcss";
 
@@ -29,4 +30,7 @@
 </script>
 
 <Modal components={modalRegistry} />
+<Drawer>
+  <EditorDrawer />
+</Drawer>
 <slot />

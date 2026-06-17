@@ -1,92 +1,133 @@
 <script>
   import { getModalStore } from "@skeletonlabs/skeleton";
-  // import { editor, blocks } from "../store";
   import { useEditor } from "../context";
+  import { CourseBuilder } from "$lib/CourseBuilder";
 
-  const { blocks, blockSelected } = useEditor();
-
+  const { controlPoints, pointSelected, pointColors } = useEditor();
   const modalStore = getModalStore();
+
+  $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
+  $: selectedPoint =
+    selectedIndex !== -1 ? $controlPoints[selectedIndex] : null;
+
   const deleteModal = {
     type: "confirm",
-    title: "Please Confirm",
-    body: "Are you sure you wish to proceed?",
+    title: "Delete Point",
+    body: "Are you sure you wish to delete this control point?",
     response: (r) => {
-      if (r) {
-        const blockIndex = $blocks.findIndex((b) => b.id === $blockSelected);
-        if (blockIndex) {
-          $blocks.splice(blockIndex, 1);
-          $blocks = [...$blocks];
-          $blockSelected = null;
-        }
+      if (r && selectedIndex !== -1) {
+        controlPoints.commit();
+        $controlPoints.splice(selectedIndex, 1);
+        $controlPoints = [...$controlPoints];
+        $pointSelected = null;
       }
     },
   };
-
-  const rotate = (direction) => {
-    const blockIndex = $blocks.findIndex((b) => b.id === $blockSelected);
-    if (blockIndex) {
-      const block = $blocks[blockIndex];
-      let rotation = block.rotation + direction * 0.5;
-      if (rotation < 0) rotation = 2 + rotation;
-      if (rotation >= 2) rotation = rotation - 2;
-      $blocks[blockIndex] = { ...block, rotation };
-    }
-  };
 </script>
 
-<div id="sidebar-right" class="h-full flex flex-col justify-between">
-  <div class="card h-full rounded-none">
-    <div class="p-4">
-      <label class="label">
-        <span>Rotation</span>
-        <div class="flex gap-2">
-          <button
-            on:click={() => rotate(1)}
-            type="button"
-            class="btn-icon"
-            disabled={$blockSelected === null || $blockSelected === 0}
-          >
-            <img src="/editor/turn_cw.svg" alt="CW" />
-          </button>
-          <select
-            class="select"
-            value={$blocks[$blockSelected]?.rotation.toString()}
-            on:change={(ev) => {
-              const blockIndex = $blocks.findIndex(
-                (b) => b.id === $blockSelected
-              );
-              if (blockIndex) {
-                const block = $blocks[blockIndex];
-                const rotation = parseFloat(ev.target.value);
-                $blocks[blockIndex] = { ...block, rotation };
-              }
-            }}
-            disabled={$blockSelected === null || $blockSelected === 0}
-          >
-            <option value="0">0&deg;</option>
-            <option value="0.5">90&deg;</option>
-            <option value="1">180&deg;</option>
-            <option value="1.5">270&deg;</option>
-          </select>
-          <button
-            on:click={() => rotate(-1)}
-            type="button"
-            class="btn-icon"
-            disabled={$blockSelected === null || $blockSelected === 0}
-          >
-            <img src="/editor/turn_ccw.svg" alt="CCW" />
-          </button>
-        </div>
-      </label>
+<div
+  id="sidebar-right"
+  class="w-64 h-full flex flex-col bg-surface-100-800-token border-l border-surface-500/30"
+>
+  <div class="flex-grow flex flex-col overflow-hidden">
+    <!-- <div class="p-4 flex flex-col gap-4 flex-shrink-0">
+      {#if selectedPoint}
+        <h3 class="h3">Point Selected</h3>
+        <p>X: {selectedPoint.position[0].toFixed(2)}</p>
+        <p>Z: {selectedPoint.position[2].toFixed(2)}</p>
+      {:else}
+        <p class="text-surface-400">Select a point to edit properties</p>
+      {/if}
+    </div> -->
+
+    <!-- Point Color Settings -->
+    <!-- <div class="p-4 flex-shrink-0 border-t border-surface-500/30">
+      <h4 class="h4 mb-3">Point Colors</h4>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="flex flex-col gap-1 text-xs">
+          <span class="text-surface-400">Default</span>
+          <input
+            type="color"
+            class="w-full h-8 rounded cursor-pointer"
+            value={$pointColors.normal}
+            on:input={(e) => ($pointColors = { ...$pointColors, normal: e.target.value })}
+          />
+        </label>
+        <label class="flex flex-col gap-1 text-xs">
+          <span class="text-surface-400">Hover</span>
+          <input
+            type="color"
+            class="w-full h-8 rounded cursor-pointer"
+            value={$pointColors.hover}
+            on:input={(e) => ($pointColors = { ...$pointColors, hover: e.target.value })}
+          />
+        </label>
+        <label class="flex flex-col gap-1 text-xs">
+          <span class="text-surface-400">Selected</span>
+          <input
+            type="color"
+            class="w-full h-8 rounded cursor-pointer"
+            value={$pointColors.selected}
+            on:input={(e) => ($pointColors = { ...$pointColors, selected: e.target.value })}
+          />
+        </label>
+        <label class="flex flex-col gap-1 text-xs">
+          <span class="text-surface-400">Selected Hover</span>
+          <input
+            type="color"
+            class="w-full h-8 rounded cursor-pointer"
+            value={$pointColors.selectedHover}
+            on:input={(e) => ($pointColors = { ...$pointColors, selectedHover: e.target.value })}
+          />
+        </label>
+      </div>
+    </div> -->
+
+    <div class="p-4 flex-grow overflow-y-auto border-t border-surface-500/30">
+      <h4 class="h4 mb-4">All Points</h4>
+      <div class="flex flex-col gap-2">
+        {#each $controlPoints as point, index (point.id)}
+          {#if index === 0}
+            <div
+              class="btn w-full text-left justify-start variant-soft opacity-60 cursor-not-allowed flex items-center gap-2"
+            >
+              <span class="text-success-400">⚑</span>
+              <span>Start (locked)</span>
+            </div>
+          {:else}
+            <button
+              class="btn w-full text-left justify-start {point.id ===
+              $pointSelected
+                ? 'variant-filled-primary'
+                : 'variant-soft'}"
+              on:click={() => ($pointSelected = point.id)}
+            >
+              Point {index + 1}
+            </button>
+          {/if}
+        {/each}
+      </div>
     </div>
   </div>
-  <button
-    class="w-full btn variant-filled-error"
-    on:click={() => {
-      modalStore.trigger(deleteModal);
-    }}
-    disabled={$blockSelected === null || $blockSelected === 0}
-  >
-    Delete
-  </button>
+  <div class="p-4 flex-shrink-0 border-t border-surface-500/30 flex flex-col gap-2">
+    <button
+      class="w-full btn variant-filled-primary"
+      on:click={() => {
+        controlPoints.commit();
+        const builder = new CourseBuilder();
+        $controlPoints = builder.generateRandomSpline(5);
+      }}
+    >
+      Generate Random Course
+    </button>
+    <button
+      class="w-full btn variant-filled-error"
+      on:click={() => {
+        modalStore.trigger(deleteModal);
+      }}
+      disabled={!selectedPoint}
+    >
+      Delete Point
+    </button>
+  </div>
 </div>

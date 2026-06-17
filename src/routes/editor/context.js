@@ -1,21 +1,30 @@
 import { setContext, getContext } from "svelte";
 import { writable } from "svelte/store";
+import { createHistoryStore } from "./historyStore";
 
 export const setEditor = () => {
+  const startId = crypto.randomUUID();
+  const secondId = crypto.randomUUID();
+
   return setContext("minigolfmania/editor/context", {
     testing: writable(false),
-    blocks: writable([
+    controlPoints: createHistoryStore([
       {
-        id: crypto.randomUUID(),
-        type: "start",
-        variation: 1,
+        id: startId,
         position: [0, 0, 0],
-        rotation: 0,
-        locked: true,
+      },
+      {
+        id: secondId,
+        position: [0, 0, -10],
       },
     ]),
-    blockSelected: writable(null),
-    slotSelected: writable(null),
+    pointSelected: writable(secondId),
+    pointColors: writable({
+      normal: "#3b82f6",        // blue-500
+      hover: "#22d3ee",         // cyan-400
+      selected: "#ef4444",      // red-500
+      selectedHover: "#f97316", // orange-500
+    }),
     stage: writable({
       name: "",
       par: 0,

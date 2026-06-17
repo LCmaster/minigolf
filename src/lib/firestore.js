@@ -5,10 +5,15 @@ import { ref, uploadString, getDownloadURL } from "firebase/storage";
 export async function saveLevel(uid, stage, blocks, thumbnailDataUrl) {
   try {
     // 1. Upload thumbnail
-    const thumbnailId = crypto.randomUUID();
-    const storageRef = ref(storage, `thumbnails/${uid}/${thumbnailId}.png`);
-    await uploadString(storageRef, thumbnailDataUrl, 'data_url');
-    const thumbnailUrl = await getDownloadURL(storageRef);
+    let thumbnailUrl = null;
+    try {
+      const thumbnailId = crypto.randomUUID();
+      const storageRef = ref(storage, `thumbnails/${uid}/${thumbnailId}.png`);
+      await uploadString(storageRef, thumbnailDataUrl, 'data_url');
+      thumbnailUrl = await getDownloadURL(storageRef);
+    } catch (uploadError) {
+      console.warn("Thumbnail upload failed, skipping...", uploadError);
+    }
 
     // 2. Save document to firestore
     const levelsCol = collection(db, "levels");
