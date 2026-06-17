@@ -76,6 +76,10 @@
                     $stage.name = r.name;
                     $stage.par = parseInt(r.par);
                     $stage.skybox = r.skybox;
+                    $stage.groundFriction = parseFloat(r.groundFriction);
+                    $stage.groundRestitution = parseFloat(r.groundRestitution);
+                    $stage.wallFriction = parseFloat(r.wallFriction);
+                    $stage.wallRestitution = parseFloat(r.wallRestitution);
                   }
                 }
               });

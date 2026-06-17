@@ -55,10 +55,19 @@
     if (!body && !enabled) return;
 
     if (body.isMoving()) {
-      mesh.getWorldPosition(positionVector);
-      updatePosition();
+      const linvel = body.linvel();
+      const speed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
 
-      dispatch("moved", position);
+      // Force stop if the ball is crawling very slowly
+      if (speed < 0.1 && Math.abs(linvel.y) < 0.1) {
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        body.sleep();
+      } else {
+        mesh.getWorldPosition(positionVector);
+        updatePosition();
+        dispatch("moved", position);
+      }
     }
   });
 </script>

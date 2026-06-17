@@ -1,31 +1,60 @@
 <script>
   import { goto } from "$app/navigation";
   import { auth } from "$lib/firebase";
-  import { signInWithEmailAndPassword } from "firebase/auth";
+  import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+  import Button from "$lib/component/Button.svelte";
 
   let email = "";
   let password = "";
+  let errorMessage = "";
+  let isSubmitting = false;
+  let showPassword = false;
 
   async function handleEmailLogin() {
+    errorMessage = "";
+    isSubmitting = true;
     try {
       await signInWithEmailAndPassword(auth, email, password);
       goto("/");
     } catch (error) {
       console.log(error);
+      errorMessage = "Invalid email or password. Please try again.";
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  async function handleGoogleLogin() {
+    errorMessage = "";
+    isSubmitting = true;
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      goto("/");
+    } catch (error) {
+      console.log(error);
+      errorMessage = "Google sign-in failed. Please try again.";
+    } finally {
+      isSubmitting = false;
     }
   }
 </script>
 
 <div class="w-screen h-screen flex justify-center items-center bg-[#C4E9CC]">
-  <div
-    class="px-8 py-4 rounded-md flex flex-col items-center gap-4 variant-filled"
-  >
-    <h1
-      class="h1 font-acme text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]"
-    >
+  <div class="px-8 py-6 rounded-md flex flex-col items-center gap-6 variant-filled w-[400px] max-w-full">
+    <h1 class="h1 font-acme text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,0.5)]">
       Sign In
     </h1>
-    <form on:submit|preventDefault={handleEmailLogin}>
+
+    {#if errorMessage}
+      <aside class="alert variant-filled-error w-full">
+        <div class="alert-message">
+          <p>{errorMessage}</p>
+        </div>
+      </aside>
+    {/if}
+
+    <form class="w-full flex flex-col gap-4" on:submit|preventDefault={handleEmailLogin}>
       <label class="label">
         <span>Email</span>
         <input
@@ -34,19 +63,51 @@
           type="email"
           placeholder="johndoe@gmail.com"
           bind:value={email}
+          autocomplete="username"
+          required
         />
       </label>
-      <label class="label">
+      <label class="label relative">
         <span>Password</span>
-        <input
-          class="input text-black"
-          title="Password"
-          type="password"
-          placeholder=""
-          bind:value={password}
-        />
+        <div class="input-group input-group-divider grid-cols-[1fr_auto]">
+          <input
+            class="input text-black border-0 bg-transparent"
+            title="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            on:input={(e) => password = e.target.value}
+            autocomplete="current-password"
+            required
+          />
+          <button 
+            type="button" 
+            class="variant-filled-surface w-16" 
+            on:click={() => showPassword = !showPassword}
+          >
+            {showPassword ? 'Hide' : 'Show'}
+          </button>
+        </div>
       </label>
-      <button type="submit">Sign in</button>
+      
+      <Button 
+        type="submit" 
+        class="w-full mt-2" 
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? 'Signing in...' : 'Sign In'}
+      </Button>
     </form>
+    
+    <hr class="opacity-50 w-full" />
+    
+    <Button 
+      type="button" 
+      class="w-full" 
+      disabled={isSubmitting}
+      on:click={handleGoogleLogin}
+    >
+      Sign In with Google
+    </Button>
   </div>
 </div>

@@ -5,6 +5,7 @@
 
 <button
   on:click
+  {...$$restProps}
   class={"p-[2px] rounded-lg bg-gradient-to-b from-[#9FF20D] to-[#4C9900] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)] " +
     className}
 >

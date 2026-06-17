@@ -21,6 +21,10 @@ export const setEditor = () => {
       par: 0,
       skybox: "default",
       strokeLimit: 8,
+      groundFriction: 0.75,
+      groundRestitution: 0.75,
+      wallFriction: 0.75,
+      wallRestitution: 0.95,
     }),
   });
 };

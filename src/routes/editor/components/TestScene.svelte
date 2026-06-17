@@ -4,7 +4,7 @@
   import Stage from "../../../lib/scene/Stage.svelte";
   import { useEditor } from "../context";
 
-  const { blocks } = useEditor();
+  const { blocks, stage } = useEditor();
 
   const groundMaterial = new MeshBasicMaterial({
     color: 0x99ccff,
@@ -16,4 +16,12 @@
   interactivity();
 </script>
 
-<Stage blocks={$blocks} skybox={"default"} on:completed />
+<Stage 
+  blocks={$blocks} 
+  skybox={$stage.skybox} 
+  groundFriction={$stage.groundFriction}
+  groundRestitution={$stage.groundRestitution}
+  wallFriction={$stage.wallFriction}
+  wallRestitution={$stage.wallRestitution}
+  on:completed 
+/>

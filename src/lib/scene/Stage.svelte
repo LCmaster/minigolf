@@ -88,7 +88,11 @@
   <Suspense on:load={() => console.log("Loaded")}>
     {#await suspend(useStitchedBlocks(blocks)) then { slab, wall }}
       <RigidBody type="fixed">
-        <AutoColliders shape={"trimesh"}>
+        <AutoColliders 
+          shape={"trimesh"}
+          friction={groundFriction}
+          restitution={groundRestitution}
+        >
           <T.Mesh>
             <T is={slab} />
             <T is={courseMaterial} />

@@ -13,6 +13,10 @@
     name: $modalStore[0]?.meta?.stage?.name ?? "",
     skybox: $modalStore[0]?.meta?.stage?.skybox ?? "default",
     par: $modalStore[0]?.meta?.stage?.par ?? 2,
+    groundFriction: $modalStore[0]?.meta?.stage?.groundFriction ?? 0.75,
+    groundRestitution: $modalStore[0]?.meta?.stage?.groundRestitution ?? 0.75,
+    wallFriction: $modalStore[0]?.meta?.stage?.wallFriction ?? 0.75,
+    wallRestitution: $modalStore[0]?.meta?.stage?.wallRestitution ?? 0.95,
   };
 
   // We've created a custom submit function to pass the response and close the modal.
@@ -61,6 +65,25 @@
           <option value="default">Default</option>
         </select>
       </label>
+      <hr class="opacity-50" />
+      <div class="grid grid-cols-2 gap-4">
+        <label class="label">
+          <span>Ground Friction</span>
+          <input class="input" type="number" step="0.05" bind:value={formData.groundFriction} />
+        </label>
+        <label class="label">
+          <span>Ground Restitution</span>
+          <input class="input" type="number" step="0.05" bind:value={formData.groundRestitution} />
+        </label>
+        <label class="label">
+          <span>Wall Friction</span>
+          <input class="input" type="number" step="0.05" bind:value={formData.wallFriction} />
+        </label>
+        <label class="label">
+          <span>Wall Restitution</span>
+          <input class="input" type="number" step="0.05" bind:value={formData.wallRestitution} />
+        </label>
+      </div>
     </form>
     <!-- prettier-ignore -->
     <footer class="modal-footer {parent.regionFooter}">
