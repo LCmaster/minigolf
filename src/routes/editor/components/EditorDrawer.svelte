@@ -7,7 +7,7 @@
   import { user } from "$lib/authStore";
   import { useEditor } from "../context";
 
-  const { stage } = useEditor();
+  const { stage, controlPoints } = useEditor();
   const drawerStore = getDrawerStore();
   const modalStore = getModalStore();
 

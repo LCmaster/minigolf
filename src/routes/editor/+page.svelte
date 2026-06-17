@@ -1,32 +1,15 @@
 <script>
-  import JSZip from "jszip";
-  import { saveAs } from "file-saver";
-
-  import { T, Canvas } from "@threlte/core";
-  import { World } from "@threlte/rapier";
+  import { Canvas } from "@threlte/core";
   import { Environment } from "@threlte/extras";
-  import {
-    AppShell,
-    getModalStore,
-    getDrawerStore,
-  } from "@skeletonlabs/skeleton";
+  import { World } from "@threlte/rapier";
+  import { AppShell } from "@skeletonlabs/skeleton";
   import EditorScene from "./components/EditorScene.svelte";
   import TestScene from "./components/TestScene.svelte";
-  import AssetsList from "./components/AssetsList.svelte";
-  import AssetProperties from "./components/AssetProperties.svelte";
   import Header from "./components/Header.svelte";
+  import AssetProperties from "./components/AssetProperties.svelte";
 
   import { setEditor } from "./context";
-  import { saveLevel } from "$lib/firestore";
-  import { user } from "$lib/authStore";
-  import { goto } from "$app/navigation";
-  import { CourseBuilder } from "$lib/CourseBuilder";
-
-  const modalStore = getModalStore();
-  const drawerStore = getDrawerStore();
-
-  export let data;
-  let { testing, controlPoints, pointSelected, stage } = setEditor();
+  let { testing, controlPoints, stage } = setEditor();
 
   function handleKeydown(e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -41,15 +24,6 @@
       controlPoints.redo();
     }
   }
-
-  const assetsDrawerSettings = {
-    id: "assets-list",
-  };
-
-  const settingsModal = {
-    type: "component",
-    component: "editorSettings",
-  };
 </script>
 
 <svelte:window on:keydown={handleKeydown} />

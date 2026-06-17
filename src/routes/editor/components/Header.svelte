@@ -19,10 +19,7 @@
     body: "To test a level you need at least 2 control points.",
   };
 
-  const settingsModal = {
-    type: "component",
-    component: "editorSettingsModal",
-  };
+
 
   const menuDrawer = {
     id: "menu-drawer",

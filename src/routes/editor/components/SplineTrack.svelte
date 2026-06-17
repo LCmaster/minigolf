@@ -4,7 +4,6 @@
     Vector3,
     CatmullRomCurve3,
     ExtrudeGeometry,
-    MeshStandardMaterial,
   } from "three";
   import { onDestroy } from "svelte";
   import { T } from "@threlte/core";

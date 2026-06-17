@@ -22,9 +22,6 @@
     $pointSelected = id;
   }
 
-  function deselectPoint() {
-    $pointSelected = null;
-  }
 
   function onTransformChange(e, i) {
     const pos = e.target.object.position;

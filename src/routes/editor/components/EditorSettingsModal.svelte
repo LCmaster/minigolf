@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { getModalStore } from "@skeletonlabs/skeleton";
 
   // Props
   /** Exposes parent props to this component. */
-  export let parent: any;
+  export let parent;
 
   // Stores
   const modalStore = getModalStore();
@@ -20,7 +20,7 @@
   };
 
   // We've created a custom submit function to pass the response and close the modal.
-  function onFormSubmit(): void {
+  function onFormSubmit() {
     if ($modalStore[0].response) $modalStore[0].response(formData);
     modalStore.close();
   }

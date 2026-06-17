@@ -3,7 +3,7 @@
   import { useEditor } from "../context";
   import { CourseBuilder } from "$lib/CourseBuilder";
 
-  const { controlPoints, pointSelected, pointColors } = useEditor();
+  const { controlPoints, pointSelected } = useEditor();
   const modalStore = getModalStore();
 
   $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
