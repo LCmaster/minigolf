@@ -54,7 +54,12 @@
             try {
               const canvas = document.querySelector("canvas");
               const thumbnailDataUrl = canvas.toDataURL("image/png");
-              await saveLevel($user.uid, $stage, $controlPoints, thumbnailDataUrl);
+              await saveLevel(
+                $user.uid,
+                $stage,
+                $controlPoints,
+                thumbnailDataUrl,
+              );
               alert("Level saved successfully!");
               drawerStore.close();
             } catch (e) {
