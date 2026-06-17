@@ -37,7 +37,7 @@ export class CourseBuilder {
 
   async add(type, variation = 1, forceOptions = {}) {
     const id = forceOptions.id || crypto.randomUUID();
-    
+
     const block = {
       id,
       type,
@@ -49,10 +49,10 @@ export class CourseBuilder {
     this.blocks.push(block);
 
     const slots = await getSlots(type, variation);
-    
+
     // Try to find a forward-facing slot to snap to
     const forwardSlot = slots.find(s => s.z < -1) || slots.find(s => s.z <= 0);
-    
+
     if (forwardSlot) {
       this.updateCursor(block, forwardSlot);
     }
@@ -96,7 +96,7 @@ export class CourseBuilder {
     for (let i = 0; i < length; i++) {
       const randType = middleTypes[Math.floor(Math.random() * middleTypes.length)];
       const randVar = Math.floor(Math.random() * randType.vars) + 1;
-      
+
       const id = crypto.randomUUID();
       const block = {
         id,
@@ -108,11 +108,11 @@ export class CourseBuilder {
       this.blocks.push(block);
 
       const slots = await getSlots(randType.type, randVar);
-      
+
       // Filter out backwards-facing slots
       const validSlots = slots.filter(s => s.z < 2);
       let chosenSlot = validSlots[Math.floor(Math.random() * validSlots.length)];
-      if (!chosenSlot) chosenSlot = slots[0]; 
+      if (!chosenSlot) chosenSlot = slots[0];
 
       this.updateCursor(block, chosenSlot);
     }
@@ -131,12 +131,12 @@ export class CourseBuilder {
 
   async extendFromBlock(existingBlocks, startBlockId, length = 5) {
     this.blocks = [...existingBlocks];
-    
+
     const startBlock = this.blocks.find(b => b.id === startBlockId);
     if (!startBlock) return this.blocks;
 
     const slots = await getSlots(startBlock.type, startBlock.variation);
-    
+
     // Filter out backwards-facing slots
     const validSlots = slots.filter(s => s.z < 2);
     let chosenSlot = validSlots[Math.floor(Math.random() * validSlots.length)];
@@ -156,7 +156,7 @@ export class CourseBuilder {
     for (let i = 0; i < length; i++) {
       const randType = middleTypes[Math.floor(Math.random() * middleTypes.length)];
       const randVar = Math.floor(Math.random() * randType.vars) + 1;
-      
+
       const id = crypto.randomUUID();
       const block = {
         id,
@@ -170,7 +170,7 @@ export class CourseBuilder {
       const nextSlots = await getSlots(randType.type, randVar);
       const nextValidSlots = nextSlots.filter(s => s.z < 2);
       let nextChosenSlot = nextValidSlots[Math.floor(Math.random() * nextValidSlots.length)];
-      if (!nextChosenSlot) nextChosenSlot = nextSlots[0]; 
+      if (!nextChosenSlot) nextChosenSlot = nextSlots[0];
 
       this.updateCursor(block, nextChosenSlot);
     }
@@ -197,8 +197,8 @@ export class CourseBuilder {
       const turn = (Math.random() * 2 * maxTurn) - maxTurn;
       currentAngle += turn;
 
-      // Pick a random distance for this segment
-      const dist = 10 + Math.random() * 10;
+      // Pick a random distance for this segment (closer together)
+      const dist = 5 + Math.random() * 5;
 
       currentX += Math.cos(currentAngle) * dist;
       currentZ -= Math.sin(currentAngle) * dist;

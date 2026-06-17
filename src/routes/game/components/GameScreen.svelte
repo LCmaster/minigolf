@@ -17,7 +17,6 @@
 </script>
 
 <Scene {debug}>
-  <T.AmbientLight color="#ffffff" intensity={1} />
   <GameScene
     course={$course}
     current={$current}

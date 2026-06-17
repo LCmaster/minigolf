@@ -9,11 +9,13 @@
     Suspense,
     useSuspense,
     useTexture,
+    Environment
   } from "@threlte/extras";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
+  import Ground from "./Ground.svelte";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
@@ -50,21 +52,44 @@
     controlPoints && controlPoints.length > 0
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
-
-  $: texture = useTexture("/low_poly_grass.png");
-  $: if ($texture) {
-    $texture.wrapS = RepeatWrapping;
-    $texture.wrapT = RepeatWrapping;
-    $texture.repeat.set(100, 100);
-  }
 </script>
+
+<T.AmbientLight intensity={0.6} />
+<T.DirectionalLight
+  position={[20, 30, 20]}
+  intensity={2.5}
+  castShadow
+  shadow.mapSize.width={2048}
+  shadow.mapSize.height={2048}
+/>
+{#if skybox}
+  <Environment 
+    path={`/skybox/${skybox}/`} 
+    files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]} 
+    isBackground={true} 
+  />
+{/if}
 
 <T.PerspectiveCamera
   makeDefault
   fov={70}
   bind:ref={camera}
   on:create={({ ref }) => {
-    ref.position.set(0, 2.5, 5);
+    if (controlPoints && controlPoints.length > 1) {
+      const p0 = controlPoints[0].position;
+      const p1 = controlPoints[1].position;
+      const dx = p1[0] - p0[0];
+      const dz = p1[2] - p0[2];
+      const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+      
+      const camDist = 5;
+      const cx = spawn[0] - (dx / dist) * camDist;
+      const cz = spawn[2] - (dz / dist) * camDist;
+      
+      ref.position.set(cx, spawn[1] + 2.5, cz);
+    } else {
+      ref.position.set(spawn[0], spawn[1] + 2.5, spawn[2] + 5);
+    }
   }}
 >
   <OrbitControls
@@ -103,26 +128,13 @@
       </AutoColliders>
     </RigidBody>
 
-    <!-- Ground / out-of-bounds floor -->
-    <RigidBody type="fixed">
-      <AutoColliders
-        shape={"cuboid"}
-        on:contact={() => {
-          const pos = [...respawnPoints[respawnPoints.length - 1]];
-          player.moveTo(pos);
-          playerPosition = pos;
-        }}
-      >
-        <T.Mesh>
-          <T.BoxGeometry args={[1000, 0.1, 1000]} />
-          {#if $texture}
-            <T.MeshStandardMaterial map={$texture} color={"#ffffff"} />
-          {:else}
-            <T.MeshBasicMaterial color={"#567D46"} />
-          {/if}
-        </T.Mesh>
-      </AutoColliders>
-    </RigidBody>
+    <Ground
+      on:outofbounds={() => {
+        const pos = [...respawnPoints[respawnPoints.length - 1]];
+        player.moveTo(pos);
+        playerPosition = pos;
+      }}
+    />
 
     <!-- Player ball -->
     <Player
