@@ -18,6 +18,8 @@
   import Header from "./components/Header.svelte";
 
   import { setEditor } from "./context";
+  import { saveLevel } from "$lib/firestore";
+  import { user } from "$lib/authStore";
 
   const modalStore = getModalStore();
   const drawerStore = getDrawerStore();
@@ -83,6 +85,27 @@
         <li>
           <button
             class="text-2xl"
+            on:click={async () => {
+              if (!$user) {
+                alert("You must be logged in to save.");
+                return;
+              }
+              try {
+                const canvas = document.querySelector("canvas");
+                const thumbnailDataUrl = canvas.toDataURL("image/png");
+                await saveLevel($user.uid, $stage, $blocks, thumbnailDataUrl);
+                alert("Level saved successfully!");
+                drawerStore.close();
+              } catch (e) {
+                console.error(e);
+                alert("Failed to save level.");
+              }
+            }}>Save to Cloud</button
+          >
+        </li>
+        <li>
+          <button
+            class="text-2xl"
             on:click={() => {
               const zip = new JSZip();
               zip.file(
@@ -110,7 +133,7 @@
       <AssetProperties />
     {/if}
   </svelte:fragment>
-  <Canvas>
+  <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
     <World gravity={[0, -15, 0]}>
       <Environment
         path={`/skybox/${$stage.skybox}/`}

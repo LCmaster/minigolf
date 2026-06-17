@@ -38,6 +38,13 @@
         >
           Level editor
         </Button>
+        <Button
+          on:click={() => {
+            goto("/mylevels");
+          }}
+        >
+          My Levels
+        </Button>
       {:else}
         <img src="/separator.png" alt="or" class="self-center" />
         <Button
