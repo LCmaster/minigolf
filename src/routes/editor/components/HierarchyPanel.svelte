@@ -90,12 +90,15 @@
           <button
             class="btn w-full text-left justify-start {point.id === $pointSelected
               ? 'variant-filled-primary'
-              : 'variant-soft'} {index === 0 ? 'flex items-center gap-2' : ''}"
+              : 'variant-soft'} {(index === 0 || index === $controlPoints.length - 1) ? 'flex items-center gap-2' : ''}"
             on:click={() => ($pointSelected = point.id)}
           >
             {#if index === 0}
-              <span class="text-success-400">⚑</span>
-              <span>Start (locked pos)</span>
+              <img src="/editor/map-pin.svg" alt="Start" class="w-4 h-4" />
+              <span class="text-success-400">Start (locked pos)</span>
+            {:else if index === $controlPoints.length - 1}
+              <img src="/editor/flag.svg" alt="End" class="w-4 h-4" />
+              <span class="text-error-400">End Point</span>
             {:else}
               Point {index + 1}
             {/if}

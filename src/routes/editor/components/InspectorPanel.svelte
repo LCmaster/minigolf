@@ -21,6 +21,11 @@
       pos[0] = snapToGrid(pos[0] + steps * TILE_SIZE);
     } else if (axis === "z") {
       pos[2] = snapToGrid(pos[2] + steps * TILE_SIZE);
+    } else if (axis === "y") {
+      let newY = pos[1] + steps * 1;
+      if (newY < 0) newY = 0;
+      if (newY > 10) newY = 10;
+      pos[1] = newY;
     }
 
     $controlPoints[idx].position = pos;
@@ -86,6 +91,31 @@
               >+</button>
             </div>
           </div>
+
+          <!-- Y axis stepper -->
+          {#if selectedIndex !== $controlPoints.length - 1}
+            <div class="flex flex-col gap-1">
+              <span class="text-sm font-medium">Y Axis (Height)</span>
+              <div class="flex items-center gap-2">
+                <button
+                  class="btn btn-sm variant-filled w-10 h-10 text-lg font-bold"
+                  on:click={() => movePoint("y", -1)}
+                  disabled={selectedPoint.position[1] <= 0}
+                  title="Move down"
+                >−</button>
+                <div class="flex-1 input text-center py-2 text-sm font-mono">
+                  {selectedPoint.position[1].toFixed(1)}
+                  <span class="opacity-50 text-xs ml-1">(units)</span>
+                </div>
+                <button
+                  class="btn btn-sm variant-filled w-10 h-10 text-lg font-bold"
+                  on:click={() => movePoint("y", +1)}
+                  disabled={selectedPoint.position[1] >= 10}
+                  title="Move up"
+                >+</button>
+              </div>
+            </div>
+          {/if}
 
           <p class="text-xs opacity-50 mt-1">
             Each step moves the point by one tile ({TILE_SIZE} units).

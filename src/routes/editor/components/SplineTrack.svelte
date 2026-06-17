@@ -124,12 +124,9 @@
       : null;
 
   $: startTangent =
-    controlPoints.length > 1 ? curve.getTangentAt(0) : new Vector3(0, 0, 1);
+    controlPoints.length > 1 && curve ? curve.getTangentAt(0) : new Vector3(0, 0, 1);
   $: endTangent =
-    controlPoints.length > 1 ? curve.getTangentAt(1) : new Vector3(0, 0, 1);
-
-  $: startRotation = Math.atan2(startTangent.x, startTangent.z);
-  $: endRotation = Math.atan2(endTangent.x, endTangent.z);
+    controlPoints.length > 1 && curve ? curve.getTangentAt(1) : new Vector3(0, 0, 1);
 </script>
 
 {#if noPhysics && baseGeo}
@@ -171,7 +168,7 @@
     type="start"
     shape={controlPoints[0].shape || "square"}
     position={startPos}
-    rotation={startRotation}
+    tangent={startTangent}
     isEditor={noPhysics}
   />
 {/if}
@@ -181,7 +178,7 @@
     type="end"
     shape={controlPoints[controlPoints.length - 1].shape || "square"}
     position={endPos}
-    rotation={endRotation}
+    tangent={endTangent}
     isEditor={noPhysics}
   />
 {/if}
