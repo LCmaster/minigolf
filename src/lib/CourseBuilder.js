@@ -1,4 +1,5 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { snapToGrid } from '$lib/gridUtils';
 
 const loader = new GLTFLoader();
 const cache = {};
@@ -179,15 +180,15 @@ export class CourseBuilder {
 
   generateRandomSpline(length = 10) {
     const points = [];
-    
+
     let currentX = 0;
     let currentZ = 0;
     let currentAngle = 0;
 
-    // Start point
+    // Start point – snapped to nearest tile centre
     points.push({
       id: crypto.randomUUID(),
-      position: [currentX, 0, currentZ]
+      position: [snapToGrid(currentX), 0, snapToGrid(currentZ)]
     });
 
     for (let i = 1; i < length; i++) {
@@ -200,11 +201,11 @@ export class CourseBuilder {
       const dist = 10 + Math.random() * 10;
 
       currentX += Math.cos(currentAngle) * dist;
-      currentZ -= Math.sin(currentAngle) * dist; // Minus because Z is usually back-to-front
+      currentZ -= Math.sin(currentAngle) * dist;
 
       points.push({
         id: crypto.randomUUID(),
-        position: [currentX, 0, currentZ]
+        position: [snapToGrid(currentX), 0, snapToGrid(currentZ)]
       });
     }
 

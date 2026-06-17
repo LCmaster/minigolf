@@ -8,7 +8,6 @@
   import { user } from "$lib/authStore";
 
   import { Modal, Drawer, initializeStores } from "@skeletonlabs/skeleton";
-  import EditorSettingsModal from "./editor/components/EditorSettingsModal.svelte";
   import EditorDrawer from "./editor/components/EditorDrawer.svelte";
 
   import "../app.postcss";
@@ -16,9 +15,7 @@
   inject({ mode: dev ? "development" : "production" });
   initializeStores();
 
-  const modalRegistry = {
-    editorSettings: { ref: EditorSettingsModal },
-  };
+  const modalRegistry = {};
 
   onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {

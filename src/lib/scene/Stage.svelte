@@ -5,7 +5,6 @@
 
   import { T, forwardEventHandlers } from "@threlte/core";
   import {
-    Environment,
     OrbitControls,
     Suspense,
     useSuspense,
@@ -33,7 +32,10 @@
   let camera;
   let controls;
 
-  const spawn = controlPoints && controlPoints.length > 0 ? [...controlPoints[0].position] : [0, 0, 0];
+  const spawn =
+    controlPoints && controlPoints.length > 0
+      ? [...controlPoints[0].position]
+      : [0, 0, 0];
   spawn[1] += tileHeight + ballSize + 0.01;
 
   let player;
@@ -41,23 +43,13 @@
   let playerPosition = spawn;
   let canSelectPlayer = true;
 
-  let loaded = false;
-
-  const courseMaterial = new MeshStandardMaterial({
-    color: 0x99ccff,
-  });
-  const groundMaterial = new MeshStandardMaterial({
-    color: "seagreen",
-  });
-  const wallMaterial = new MeshStandardMaterial({
-    color: "sandybrown",
-  });
-
-  const suspend = useSuspense();
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
 
-  $: endPos = controlPoints && controlPoints.length > 0 ? controlPoints[controlPoints.length - 1].position : [0,0,0];
+  $: endPos =
+    controlPoints && controlPoints.length > 0
+      ? controlPoints[controlPoints.length - 1].position
+      : [0, 0, 0];
 
   $: texture = useTexture("/low_poly_grass.png");
   $: if ($texture) {
@@ -67,11 +59,6 @@
   }
 </script>
 
-<Environment
-  path={`/skybox/${skybox}/`}
-  files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-  isBackground={true}
-/>
 <T.PerspectiveCamera
   makeDefault
   fov={70}
@@ -95,79 +82,83 @@
 </T.PerspectiveCamera>
 
 <T.Group {...$$restProps} bind:this={$component}>
-  <Suspense on:load={() => console.log("Loaded")}>
-      <RigidBody type="fixed">
-        <!-- SplineTrack already wraps itself in AutoColliders, but we might want custom friction. For now just render it -->
-        <SplineTrack {controlPoints} />
+  <Suspense on:load={() => console.log("Stage loaded")}>
+    <!-- SplineTrack manages its own AutoColliders internally -->
+    <SplineTrack {controlPoints} />
 
-        <AutoColliders
-          shape="cuboid"
-          sensor
-          on:sensorenter={() => {
-            player.setEnabled(false);
-            dispatch("completed");
-          }}
-        >
-          <T.Mesh position={endPos}>
-            <T.BoxGeometry args={[1, 0.25, 1]} />
-            <T is={courseMaterial} transparent opacity={0} />
-          </T.Mesh>
-        </AutoColliders>
-      </RigidBody>
-      <RigidBody type="fixed">
-        <AutoColliders
-          shape={"cuboid"}
-          on:contact={() => {
-            const pos = [...respawnPoints[respawnPoints.length - 1]];
-            player.moveTo(pos);
-            playerPosition = pos;
-          }}
-        >
-          <T.Mesh>
-            <T.BoxGeometry args={[1000, 0.1, 1000]} />
-            {#if $texture}
-              <T.MeshStandardMaterial map={$texture} color={"#ffffff"} />
-            {:else}
-              <T.MeshBasicMaterial color={"#567D46"} />
-            {/if}
-          </T.Mesh>
-        </AutoColliders>
-      </RigidBody>
-      <Player
-        bind:this={player}
-        size={ballSize}
-        position={[...spawn]}
-        on:moved={(ev) => {
-          let position = ev.detail;
-          playerPosition = position;
-          canSelectPlayer = false;
+    <!-- Hole sensor: triggers "completed" when ball enters -->
+    <RigidBody type="fixed">
+      <AutoColliders
+        shape="cuboid"
+        sensor
+        on:sensorenter={() => {
+          player.setEnabled(false);
+          dispatch("completed");
         }}
-        on:stopped={(ev) => {
-          let position = ev.detail;
-          if (respawnPoints.slice(-1) !== position) {
-            respawnPoints.push([...position]);
-            respawnPoints = respawnPoints;
+      >
+        <T.Mesh position={endPos}>
+          <T.BoxGeometry args={[1, 0.25, 1]} />
+          <T.MeshStandardMaterial transparent opacity={0} />
+        </T.Mesh>
+      </AutoColliders>
+    </RigidBody>
+
+    <!-- Ground / out-of-bounds floor -->
+    <RigidBody type="fixed">
+      <AutoColliders
+        shape={"cuboid"}
+        on:contact={() => {
+          const pos = [...respawnPoints[respawnPoints.length - 1]];
+          player.moveTo(pos);
+          playerPosition = pos;
+        }}
+      >
+        <T.Mesh>
+          <T.BoxGeometry args={[1000, 0.1, 1000]} />
+          {#if $texture}
+            <T.MeshStandardMaterial map={$texture} color={"#ffffff"} />
+          {:else}
+            <T.MeshBasicMaterial color={"#567D46"} />
+          {/if}
+        </T.Mesh>
+      </AutoColliders>
+    </RigidBody>
+
+    <!-- Player ball -->
+    <Player
+      bind:this={player}
+      size={ballSize}
+      position={[...spawn]}
+      on:moved={(ev) => {
+        playerPosition = ev.detail;
+        canSelectPlayer = false;
+      }}
+      on:stopped={(ev) => {
+        const position = ev.detail;
+        respawnPoints.push([...position]);
+        respawnPoints = respawnPoints;
+        canSelectPlayer = true;
+      }}
+    />
+
+    <!-- Shot controller — only visible when ball is at rest -->
+    {#if player && canSelectPlayer}
+      <PlayerController
+        position={respawnPoints[respawnPoints.length - 1]}
+        size={ballSize}
+        {camera}
+        on:selected={() => {
+          controls.enabled = false;
+        }}
+        on:apply={(ev) => {
+          const hitpoint = ev.detail;
+          if (hitpoint.x !== 0 || hitpoint.y !== 0 || hitpoint.z !== 0) {
+            player.hit(hitpoint);
+            dispatch("hit");
           }
-          canSelectPlayer = true;
+          controls.enabled = true;
         }}
       />
-      {#if player && canSelectPlayer}
-        <PlayerController
-          position={respawnPoints[respawnPoints.length - 1]}
-          size={ballSize}
-          {camera}
-          on:selected={() => {
-            controls.enabled = false;
-          }}
-          on:apply={(ev) => {
-            const hitpoint = ev.detail;
-            if ((hitpoint.x !== 0 && hitpoint.y !== 0, hitpoint.z !== 0)) {
-              player.hit(hitpoint);
-              dispatch("hit");
-            }
-            controls.enabled = true;
-          }}
-        />
-      {/if}
-    </Suspense>
+    {/if}
+  </Suspense>
 </T.Group>

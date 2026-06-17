@@ -1,6 +1,7 @@
 import { setContext, getContext } from "svelte";
 import { writable } from "svelte/store";
 import { createHistoryStore } from "./historyStore";
+import { snapToGrid } from "$lib/gridUtils";
 
 export const setEditor = () => {
   const startId = crypto.randomUUID();
@@ -8,14 +9,15 @@ export const setEditor = () => {
 
   return setContext("minigolfmania/editor/context", {
     testing: writable(false),
+    previewing: writable(false),
     controlPoints: createHistoryStore([
       {
         id: startId,
-        position: [0, 0, 0],
+        position: [snapToGrid(0), 0, snapToGrid(0)],
       },
       {
         id: secondId,
-        position: [0, 0, -10],
+        position: [snapToGrid(0), 0, snapToGrid(-10)],
       },
     ]),
     pointSelected: writable(secondId),

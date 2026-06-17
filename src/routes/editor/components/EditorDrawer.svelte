@@ -5,44 +5,24 @@
   import { goto } from "$app/navigation";
   import { saveLevel } from "$lib/firestore";
   import { user } from "$lib/authStore";
-  import { useEditor } from "../context";
+  import { getContext } from "svelte";
+  import { writable } from "svelte/store";
 
-  const { stage, controlPoints } = useEditor();
+  // EditorDrawer is mounted in the root layout (outside the editor page),
+  // so the editor context may not exist. Use safe fallbacks to avoid
+  // breaking Svelte's reactivity graph when context is absent.
+  const editorCtx = getContext("minigolfmania/editor/context");
+  const stage = editorCtx?.stage ?? writable({});
+  const controlPoints = editorCtx?.controlPoints ?? writable([]);
+
   const drawerStore = getDrawerStore();
   const modalStore = getModalStore();
-
-  const settingsModal = {
-    type: "component",
-    component: "editorSettings",
-  };
 </script>
 
 {#if $drawerStore.id === "menu-drawer"}
   <nav class="p-4 h-full">
     <ul class="flex flex-col gap-4">
-      <li>
-        <button
-          class="text-2xl w-full text-left"
-          on:click={() => {
-            drawerStore.close();
-            modalStore.trigger({
-              ...settingsModal,
-              meta: { stage: $stage },
-              response: (r) => {
-                if (r) {
-                  $stage.name = r.name;
-                  $stage.par = parseInt(r.par);
-                  $stage.skybox = r.skybox;
-                  $stage.groundFriction = parseFloat(r.groundFriction);
-                  $stage.groundRestitution = parseFloat(r.groundRestitution);
-                  $stage.wallFriction = parseFloat(r.wallFriction);
-                  $stage.wallRestitution = parseFloat(r.wallRestitution);
-                }
-              },
-            });
-          }}>Settings</button
-        >
-      </li>
+
       <li>
         <button
           class="text-2xl w-full text-left"

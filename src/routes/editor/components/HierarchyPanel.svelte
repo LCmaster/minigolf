@@ -26,8 +26,8 @@
 </script>
 
 <div
-  id="sidebar-right"
-  class="w-64 h-full flex flex-col bg-surface-100-800-token border-l border-surface-500/30"
+  id="sidebar-left"
+  class="w-64 h-full flex flex-col bg-surface-100-800-token border-r border-surface-500/30"
 >
   <div class="flex-grow flex flex-col overflow-hidden">
     <!-- <div class="p-4 flex flex-col gap-4 flex-shrink-0">
@@ -87,35 +87,36 @@
       <h4 class="h4 mb-4">All Points</h4>
       <div class="flex flex-col gap-2">
         {#each $controlPoints as point, index (point.id)}
-          {#if index === 0}
-            <div
-              class="btn w-full text-left justify-start variant-soft opacity-60 cursor-not-allowed flex items-center gap-2"
-            >
+          <button
+            class="btn w-full text-left justify-start {point.id === $pointSelected
+              ? 'variant-filled-primary'
+              : 'variant-soft'} {index === 0 ? 'flex items-center gap-2' : ''}"
+            on:click={() => ($pointSelected = point.id)}
+          >
+            {#if index === 0}
               <span class="text-success-400">⚑</span>
-              <span>Start (locked)</span>
-            </div>
-          {:else}
-            <button
-              class="btn w-full text-left justify-start {point.id ===
-              $pointSelected
-                ? 'variant-filled-primary'
-                : 'variant-soft'}"
-              on:click={() => ($pointSelected = point.id)}
-            >
+              <span>Start (locked pos)</span>
+            {:else}
               Point {index + 1}
-            </button>
-          {/if}
+            {/if}
+          </button>
         {/each}
       </div>
     </div>
   </div>
-  <div class="p-4 flex-shrink-0 border-t border-surface-500/30 flex flex-col gap-2">
+  <div
+    class="p-4 flex-shrink-0 border-t border-surface-500/30 flex flex-col gap-2"
+  >
     <button
       class="w-full btn variant-filled-primary"
       on:click={() => {
+        console.log("generate random clicked");
         controlPoints.commit();
         const builder = new CourseBuilder();
-        $controlPoints = builder.generateRandomSpline(5);
+        const numPoints = 5;
+        console.log("generating " + numPoints + " random points");
+        $controlPoints = builder.generateRandomSpline(numPoints);
+        console.log($controlPoints);
       }}
     >
       Generate Random Course
@@ -125,7 +126,7 @@
       on:click={() => {
         modalStore.trigger(deleteModal);
       }}
-      disabled={!selectedPoint}
+      disabled={!selectedPoint || selectedIndex === 0}
     >
       Delete Point
     </button>
