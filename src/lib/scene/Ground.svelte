@@ -1,6 +1,6 @@
 <script>
   import { T } from "@threlte/core";
-  import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
   import { createEventDispatcher } from "svelte";
   import {
     DataTexture,
@@ -39,16 +39,23 @@
   checkerTexture.needsUpdate = true;
 </script>
 
-<!-- Ground / out-of-bounds floor -->
+<!-- Infinite ground plane — cheapest possible Rapier collider (halfspace) -->
 <RigidBody type="fixed">
-  <AutoColliders shape={"cuboid"} on:contact={() => dispatch("outofbounds")}>
-    <T.Mesh>
-      <T.BoxGeometry args={[1000, 0.1, 1000]} />
-      <T.MeshStandardMaterial
-        map={checkerTexture}
-        color={"#7AA966"}
-        roughness={0.8}
-      />
-    </T.Mesh>
-  </AutoColliders>
+  <!-- Halfspace sits at Y = -1.0, its normal points up -->
+  <Collider
+    shape="halfspace"
+    params={[{ x: 0, y: 1, z: 0 }]}
+    position={[0, -1, 0]}
+    on:contact={() => dispatch("outofbounds")}
+  />
 </RigidBody>
+
+<!-- Visual ground mesh (no physics, pure visuals) -->
+<T.Mesh position={[0, -1.05, 0]} receiveShadow>
+  <T.BoxGeometry args={[1000, 0.1, 1000]} />
+  <T.MeshStandardMaterial
+    map={checkerTexture}
+    color={"#7AA966"}
+    roughness={0.8}
+  />
+</T.Mesh>

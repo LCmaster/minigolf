@@ -1,5 +1,5 @@
 <script>
-  import { Group, Vector3 } from "three";
+  import { Group, Vector3, DataTexture, RGBAFormat, NearestFilter } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
@@ -13,6 +13,17 @@
   export let ref = new Group();
 
   const dispatch = createEventDispatcher();
+
+  // Procedural toon shading gradient map
+  const gradientColors = new Uint8Array([
+    80, 80, 80, 255,     // Dark shadow
+    160, 160, 160, 255,  // Midtone
+    255, 255, 255, 255   // Highlight
+  ]);
+  const gradientMap = new DataTexture(gradientColors, 3, 1, RGBAFormat);
+  gradientMap.minFilter = NearestFilter;
+  gradientMap.magFilter = NearestFilter;
+  gradientMap.needsUpdate = true;
 
   let body;
   let mesh;
@@ -51,15 +62,18 @@
     position = position;
   }
 
+  let framesAwake = 0;
+
   useFrame(() => {
-    if (!body && !enabled) return;
+    if (!body || !enabled) return;
 
     if (body.isMoving()) {
+      framesAwake++;
       const linvel = body.linvel();
       const speed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
 
-      // Force stop if the ball is crawling very slowly
-      if (speed < 0.1 && Math.abs(linvel.y) < 0.1) {
+      // Force stop if the ball is crawling very slowly, but give it a few frames to start falling first
+      if (framesAwake > 5 && speed < 0.1 && Math.abs(linvel.y) < 0.1) {
         body.setLinvel({ x: 0, y: 0, z: 0 }, true);
         body.setAngvel({ x: 0, y: 0, z: 0 }, true);
         body.sleep();
@@ -68,6 +82,8 @@
         updatePosition();
         dispatch("moved", position);
       }
+    } else {
+      framesAwake = 0;
     }
   });
 </script>
@@ -83,8 +99,8 @@
   >
     <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
       <T.Mesh bind:ref={mesh}>
-        <T.IcosahedronGeometry args={[size, 3]} />
-        <T.MeshStandardMaterial flatShading {color} />
+        <T.IcosahedronGeometry args={[size, 4]} />
+        <T.MeshToonMaterial {color} gradientMap={gradientMap} />
       </T.Mesh>
     </AutoColliders>
   </RigidBody>

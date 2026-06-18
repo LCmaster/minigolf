@@ -113,13 +113,9 @@
     <button
       class="w-full btn variant-filled-primary"
       on:click={() => {
-        console.log("generate random clicked");
         controlPoints.commit();
         const builder = new CourseBuilder();
-        const numPoints = 5;
-        console.log("generating " + numPoints + " random points");
-        $controlPoints = builder.generateRandomSpline(numPoints);
-        console.log($controlPoints);
+        $controlPoints = builder.generateRandomSpline();
       }}
     >
       Generate Random Course

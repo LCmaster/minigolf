@@ -1,7 +1,7 @@
 <script>
   import { Canvas } from "@threlte/core";
   import { Environment } from "@threlte/extras";
-  import { World } from "@threlte/rapier";
+  import { World, Debug } from "@threlte/rapier";
   import { AppShell } from "@skeletonlabs/skeleton";
   import EditorScene from "./components/EditorScene.svelte";
   import TestScene from "./components/TestScene.svelte";
@@ -49,24 +49,25 @@
     {/if}
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
-      {#if $testing}
-        <World gravity={[0, -15, 0]}>
-          <TestScene on:completed={() => ($testing = false)} />
-        </World>
-      {:else if $previewing}
-        <Environment
-          path={`/skybox/${$stage.skybox}/`}
-          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-          isBackground={true}
-        />
-        <PreviewScene />
-      {:else}
-        <Environment
-          path={`/skybox/${$stage.skybox}/`}
-          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-          isBackground={true}
-        />
-        <EditorScene />
-      {/if}
+    {#if $testing}
+      <World gravity={[0, -15, 0]}>
+        <Debug />
+        <TestScene on:completed={() => ($testing = false)} />
+      </World>
+    {:else if $previewing}
+      <Environment
+        path={`/skybox/${$stage.skybox}/`}
+        files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
+        isBackground={true}
+      />
+      <PreviewScene />
+    {:else}
+      <Environment
+        path={`/skybox/${$stage.skybox}/`}
+        files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
+        isBackground={true}
+      />
+      <EditorScene />
+    {/if}
   </Canvas>
 </AppShell>

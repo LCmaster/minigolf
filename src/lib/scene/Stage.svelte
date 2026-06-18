@@ -9,7 +9,7 @@
     Suspense,
     useSuspense,
     useTexture,
-    Environment
+    Environment,
   } from "@threlte/extras";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
@@ -38,12 +38,12 @@
     controlPoints && controlPoints.length > 0
       ? [...controlPoints[0].position]
       : [0, 0, 0];
-  spawn[1] += tileHeight + ballSize + 0.01;
+  spawn[1] += 2.0;
 
   let player;
   let respawnPoints = [[...spawn]];
   let playerPosition = spawn;
-  let canSelectPlayer = true;
+  let canSelectPlayer = false;
 
   const dispatch = createEventDispatcher();
   const component = forwardEventHandlers();
@@ -63,10 +63,10 @@
   shadow.mapSize.height={2048}
 />
 {#if skybox}
-  <Environment 
-    path={`/skybox/${skybox}/`} 
-    files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]} 
-    isBackground={true} 
+  <Environment
+    path={`/skybox/${skybox}/`}
+    files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
+    isBackground={true}
   />
 {/if}
 
@@ -81,11 +81,11 @@
       const dx = p1[0] - p0[0];
       const dz = p1[2] - p0[2];
       const dist = Math.sqrt(dx * dx + dz * dz) || 1;
-      
+
       const camDist = 5;
       const cx = spawn[0] - (dx / dist) * camDist;
       const cz = spawn[2] - (dz / dist) * camDist;
-      
+
       ref.position.set(cx, spawn[1] + 2.5, cz);
     } else {
       ref.position.set(spawn[0], spawn[1] + 2.5, spawn[2] + 5);
@@ -108,6 +108,14 @@
 
 <T.Group {...$$restProps} bind:this={$component}>
   <Suspense on:load={() => console.log("Stage loaded")}>
+    <Ground
+      on:outofbounds={() => {
+        const pos = [...respawnPoints[respawnPoints.length - 1]];
+        player.moveTo(pos);
+        playerPosition = pos;
+      }}
+    />
+
     <!-- SplineTrack manages its own AutoColliders internally -->
     <SplineTrack {controlPoints} />
 
@@ -127,14 +135,6 @@
         </T.Mesh>
       </AutoColliders>
     </RigidBody>
-
-    <Ground
-      on:outofbounds={() => {
-        const pos = [...respawnPoints[respawnPoints.length - 1]];
-        player.moveTo(pos);
-        playerPosition = pos;
-      }}
-    />
 
     <!-- Player ball -->
     <Player

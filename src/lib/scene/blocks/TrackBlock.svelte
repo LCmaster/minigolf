@@ -115,10 +115,14 @@
     let wallStart, wallEnd;
     if (type === "start") {
       wallStart = pathStart.clone();
-      wallEnd = pathStart.clone().add(dir.clone().multiplyScalar(wallThickness));
+      wallEnd = pathStart
+        .clone()
+        .add(dir.clone().multiplyScalar(wallThickness));
     } else {
       wallEnd = pathEnd.clone();
-      wallStart = pathEnd.clone().add(dir.clone().multiplyScalar(-wallThickness));
+      wallStart = pathEnd
+        .clone()
+        .add(dir.clone().multiplyScalar(-wallThickness));
     }
     const backWallPath = new LineCurve3(wallStart, wallEnd);
     backWallGeo = new ExtrudeGeometry(backWallShape, {
@@ -165,25 +169,33 @@
       </T.Mesh>
     </T.Group>
   {:else}
-    <AutoColliders shape="trimesh">
-      <T.Group>
+    <T.Group>
+      <AutoColliders shape="convexHull">
         <T.Mesh geometry={baseGeo} castShadow receiveShadow>
           <T.MeshStandardMaterial color="#888888" />
         </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
         <T.Mesh geometry={tileGeo} castShadow receiveShadow>
           <T.MeshStandardMaterial color="#567D46" />
         </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
         <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
           <T.MeshStandardMaterial color="#8B5A2B" />
         </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
         <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
           <T.MeshStandardMaterial color="#8B5A2B" />
         </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
         <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
           <T.MeshStandardMaterial color="#8B5A2B" />
         </T.Mesh>
-      </T.Group>
-    </AutoColliders>
+      </AutoColliders>
+    </T.Group>
   {/if}
 {/if}
 
@@ -211,7 +223,8 @@
   <!-- Flag pole -->
   <T.Mesh
     position={[position[0], position[1] + floorDepth + 1.0, position[2]]}
-    castShadow receiveShadow
+    castShadow
+    receiveShadow
   >
     <T.CylinderGeometry args={[0.02, 0.02, 2, 8]} />
     <T.MeshStandardMaterial color="#cccccc" />
@@ -220,7 +233,8 @@
   <!-- Flag -->
   <T.Mesh
     position={[position[0] + 0.3, position[1] + floorDepth + 1.8, position[2]]}
-    castShadow receiveShadow
+    castShadow
+    receiveShadow
   >
     <T.BoxGeometry args={[0.6, 0.3, 0.02]} />
     <T.MeshStandardMaterial color="#ef4444" />

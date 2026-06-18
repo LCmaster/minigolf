@@ -178,12 +178,15 @@ export class CourseBuilder {
     return this.blocks;
   }
 
-  generateRandomSpline(length = 10) {
+  generateRandomSpline() {
     const points = [];
 
     let currentX = 0;
     let currentZ = 0;
     let currentAngle = 0;
+
+    // Randomly pick between 3 and 8 control points total
+    const numPoints = 3 + Math.floor(Math.random() * 6);
 
     // Start point – snapped to nearest tile centre
     points.push({
@@ -191,14 +194,14 @@ export class CourseBuilder {
       position: [snapToGrid(currentX), 0, snapToGrid(currentZ)]
     });
 
-    for (let i = 1; i < length; i++) {
-      // Pick a random turn angle between -60 and +60 degrees
-      const maxTurn = Math.PI / 3;
+    for (let i = 1; i < numPoints; i++) {
+      // Pick a random turn angle between -70 and +70 degrees
+      const maxTurn = Math.PI * 0.4;
       const turn = (Math.random() * 2 * maxTurn) - maxTurn;
       currentAngle += turn;
 
-      // Pick a random distance for this segment (closer together)
-      const dist = 5 + Math.random() * 5;
+      // Pick a variable distance per segment (4 to 12 units)
+      const dist = 4 + Math.random() * 8;
 
       currentX += Math.cos(currentAngle) * dist;
       currentZ -= Math.sin(currentAngle) * dist;

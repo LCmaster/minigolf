@@ -25,7 +25,8 @@
   // Base shape: spans full width, height 0 to -0.1
   const baseShape = (() => {
     const s = new Shape();
-    const w = 2.5; const t = 0.2;
+    const w = 2.5;
+    const t = 0.2;
     s.moveTo(0, -w - t);
     s.lineTo(0, w + t);
     s.lineTo(-0.1, w + t);
@@ -49,7 +50,9 @@
   // Walls shape: the two side walls, height -0.1 to -0.5
   const wallsShape = (() => {
     const s = new Shape();
-    const w = 2.5; const h = 0.5; const t = 0.2;
+    const w = 2.5;
+    const h = 0.5;
+    const t = 0.2;
     // Left wall
     s.moveTo(-0.1, w);
     s.lineTo(-0.1, w + t);
@@ -59,10 +62,12 @@
     // Move to Right wall (Shape can have multiple sub-paths using moveTo, or we can use two shapes? Wait, Shape with disjoint parts might not extrude well. Let's use two shapes or just one shape with a hole? No, just add two subpaths... actually ExtrudeGeometry might complain if a single Shape has disjoint contours. Better to use two separate shapes for the walls, or just one geometry for left and one for right.)
     return s;
   })();
-  
+
   const rightWallShape = (() => {
     const s = new Shape();
-    const w = 2.5; const h = 0.5; const t = 0.2;
+    const w = 2.5;
+    const h = 0.5;
+    const t = 0.2;
     s.moveTo(-0.1, -w - t);
     s.lineTo(-0.1, -w);
     s.lineTo(-h, -w);
@@ -99,7 +104,7 @@
   function disposeGeometry() {
     if (previousGeometry) {
       if (Array.isArray(previousGeometry)) {
-        previousGeometry.forEach(g => g?.dispose());
+        previousGeometry.forEach((g) => g?.dispose());
       } else {
         previousGeometry.dispose();
       }
@@ -124,9 +129,13 @@
       : null;
 
   $: startTangent =
-    controlPoints.length > 1 && curve ? curve.getTangentAt(0) : new Vector3(0, 0, 1);
+    controlPoints.length > 1 && curve
+      ? curve.getTangentAt(0)
+      : new Vector3(0, 0, 1);
   $: endTangent =
-    controlPoints.length > 1 && curve ? curve.getTangentAt(1) : new Vector3(0, 0, 1);
+    controlPoints.length > 1 && curve
+      ? curve.getTangentAt(1)
+      : new Vector3(0, 0, 1);
 </script>
 
 {#if noPhysics && baseGeo}
@@ -145,22 +154,28 @@
     </T.Mesh>
   </T.Group>
 {:else if baseGeo}
-  <AutoColliders shape="trimesh">
-    <T.Group>
+  <T.Group>
+    <AutoColliders shape="convexHull">
       <T.Mesh geometry={baseGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#888888" />
       </T.Mesh>
+    </AutoColliders>
+    <AutoColliders shape="convexHull">
       <T.Mesh geometry={tileGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#567D46" />
       </T.Mesh>
+    </AutoColliders>
+    <AutoColliders shape="convexHull">
       <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#8B5A2B" />
       </T.Mesh>
+    </AutoColliders>
+    <AutoColliders shape="convexHull">
       <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#8B5A2B" />
       </T.Mesh>
-    </T.Group>
-  </AutoColliders>
+    </AutoColliders>
+  </T.Group>
 {/if}
 
 {#if controlPoints.length > 0}
