@@ -40,12 +40,11 @@
 </script>
 
 <!-- Infinite ground plane — cheapest possible Rapier collider (halfspace) -->
-<RigidBody type="fixed">
-  <!-- Halfspace sits at Y = -1.0, its normal points up -->
+<RigidBody type="fixed" position={[0, -1, 0]}>
+  <!-- Halfspace normal points up (Y+) -->
   <Collider
     shape="halfspace"
-    params={[{ x: 0, y: 1, z: 0 }]}
-    position={[0, -1, 0]}
+    args={[{ x: 0, y: 1, z: 0 }]}
     on:contact={() => dispatch("outofbounds")}
   />
 </RigidBody>

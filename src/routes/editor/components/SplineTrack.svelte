@@ -6,9 +6,10 @@
     ExtrudeGeometry,
     BufferGeometry,
   } from "three";
+  import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
   import { onDestroy } from "svelte";
   import { T } from "@threlte/core";
-  import { AutoColliders } from "@threlte/rapier";
+  import { AutoColliders, RigidBody } from "@threlte/rapier";
   import TrackBlock from "../../../lib/scene/blocks/TrackBlock.svelte";
 
   export let controlPoints = [];
@@ -80,6 +81,7 @@
   let tileGeo = null;
   let leftWallGeo = null;
   let rightWallGeo = null;
+  let physicsGeo = null;
 
   $: {
     disposeGeometry();
@@ -89,14 +91,25 @@
         steps: Math.max(10, controlPoints.length * 10),
         bevelEnabled: false,
       };
-      baseGeo = new ExtrudeGeometry(baseShape, extrudeSettings);
-      tileGeo = new ExtrudeGeometry(tileShape, extrudeSettings);
-      leftWallGeo = new ExtrudeGeometry(wallsShape, extrudeSettings);
-      rightWallGeo = new ExtrudeGeometry(rightWallShape, extrudeSettings);
+
+      // ExtrudeGeometry creates indexed geometries.
+      // Rapier's trimesh collider requires non-indexed geometries,
+      // so we convert them immediately.
+      baseGeo = new ExtrudeGeometry(baseShape, extrudeSettings).toNonIndexed();
+      tileGeo = new ExtrudeGeometry(tileShape, extrudeSettings).toNonIndexed();
+      leftWallGeo = new ExtrudeGeometry(
+        wallsShape,
+        extrudeSettings,
+      ).toNonIndexed();
+      rightWallGeo = new ExtrudeGeometry(
+        rightWallShape,
+        extrudeSettings,
+      ).toNonIndexed();
+
       // store in previousGeometry to dispose later
       previousGeometry = [baseGeo, tileGeo, leftWallGeo, rightWallGeo];
     } else {
-      baseGeo = tileGeo = leftWallGeo = rightWallGeo = null;
+      baseGeo = tileGeo = leftWallGeo = rightWallGeo = physicsGeo = null;
       previousGeometry = null;
     }
   }
@@ -138,7 +151,8 @@
       : new Vector3(0, 0, 1);
 </script>
 
-{#if noPhysics && baseGeo}
+{#if baseGeo}
+  <!-- Visual meshes (always rendered regardless of physics mode) -->
   <T.Group>
     <T.Mesh geometry={baseGeo} castShadow receiveShadow>
       <T.MeshStandardMaterial color="#888888" />
@@ -153,35 +167,34 @@
       <T.MeshStandardMaterial color="#8B5A2B" />
     </T.Mesh>
   </T.Group>
-{:else if baseGeo}
-  <T.Group>
-    <AutoColliders shape="convexHull">
-      <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#888888" />
-      </T.Mesh>
-    </AutoColliders>
-    <AutoColliders shape="convexHull">
-      <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#567D46" />
-      </T.Mesh>
-    </AutoColliders>
-    <AutoColliders shape="convexHull">
-      <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#8B5A2B" />
-      </T.Mesh>
-    </AutoColliders>
-    <AutoColliders shape="convexHull">
-      <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#8B5A2B" />
-      </T.Mesh>
-    </AutoColliders>
-  </T.Group>
+
+  <!-- Physics collider (only in gameplay/test mode) -->
+  {#if !noPhysics}
+    <RigidBody type="fixed">
+      <AutoColliders shape="trimesh">
+        <T.Group>
+          <T.Mesh geometry={baseGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#888888" />
+          </T.Mesh>
+          <T.Mesh geometry={tileGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#567D46" />
+          </T.Mesh>
+          <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#8B5A2B" />
+          </T.Mesh>
+          <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#8B5A2B" />
+          </T.Mesh>
+        </T.Group>
+      </AutoColliders>
+    </RigidBody>
+  {/if}
 {/if}
 
 {#if controlPoints.length > 0}
   <TrackBlock
     type="start"
-    shape={controlPoints[0].shape || "square"}
+    shape={controlPoints[0].shape || "round"}
     position={startPos}
     tangent={startTangent}
     isEditor={noPhysics}
@@ -191,7 +204,7 @@
 {#if controlPoints.length > 0}
   <TrackBlock
     type="end"
-    shape={controlPoints[controlPoints.length - 1].shape || "square"}
+    shape={controlPoints[controlPoints.length - 1].shape || "round"}
     position={endPos}
     tangent={endTangent}
     isEditor={noPhysics}

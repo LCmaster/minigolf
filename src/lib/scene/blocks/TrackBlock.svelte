@@ -7,11 +7,11 @@
     CatmullRomCurve3,
     LineCurve3,
   } from "three";
-  import { AutoColliders } from "@threlte/rapier";
+  import { AutoColliders, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";
 
   export let type = "start"; // 'start' or 'end'
-  export let shape = "square"; // 'square' or 'rounded'
+  export let shape = "rounded"; // 'square' or 'rounded'
   export let position = [0, 0, 0];
   export let tangent = new Vector3(0, 0, 1); // direction the track is heading
   export let rotation = 0; // kept for back-compat but we use tangent now
@@ -169,33 +169,35 @@
       </T.Mesh>
     </T.Group>
   {:else}
-    <T.Group>
-      <AutoColliders shape="convexHull">
-        <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#888888" />
-        </T.Mesh>
-      </AutoColliders>
-      <AutoColliders shape="convexHull">
-        <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#567D46" />
-        </T.Mesh>
-      </AutoColliders>
-      <AutoColliders shape="convexHull">
-        <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      </AutoColliders>
-      <AutoColliders shape="convexHull">
-        <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      </AutoColliders>
-      <AutoColliders shape="convexHull">
-        <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      </AutoColliders>
-    </T.Group>
+    <RigidBody type="fixed">
+      <T.Group>
+        <AutoColliders shape="convexHull">
+          <T.Mesh geometry={baseGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#888888" />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders shape="convexHull">
+          <T.Mesh geometry={tileGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#567D46" />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders shape="convexHull">
+          <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#8B5A2B" />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders shape="convexHull">
+          <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#8B5A2B" />
+          </T.Mesh>
+        </AutoColliders>
+        <AutoColliders shape="convexHull">
+          <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
+            <T.MeshStandardMaterial color="#8B5A2B" />
+          </T.Mesh>
+        </AutoColliders>
+      </T.Group>
+    </RigidBody>
   {/if}
 {/if}
 

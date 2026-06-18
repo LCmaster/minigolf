@@ -9,20 +9,32 @@
   const GAP = 0.06; // gap between tiles (visual grid lines)
   const HALF = (GRID_SIZE * TILE_SIZE) / 2;
 
+  // Hex grid settings
+  const HEX_RADIUS = TILE_SIZE / Math.sqrt(3); // ensures comparable surface area
+  const HEX_WIDTH = 2 * HEX_RADIUS;
+  const HEX_HEIGHT = Math.sqrt(3) * HEX_RADIUS;
+  const COL_SPACING = HEX_RADIUS * 1.5;
+  const ROW_SPACING = HEX_HEIGHT;
+  const HALF_X = (GRID_SIZE * COL_SPACING) / 2;
+  const HALF_Z = (GRID_SIZE * ROW_SPACING) / 2;
+
   // Pre-build tile descriptors once
   const tiles = [];
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
-      const x = col * TILE_SIZE - HALF + TILE_SIZE / 2;
-      const z = row * TILE_SIZE - HALF + TILE_SIZE / 2;
-      // Checkerboard shade so the grid reads clearly
-      const isLight = (row + col) % 2 === 0;
-      tiles.push({ x, z, key: `${row}-${col}`, isLight });
+      const zOffset = (col % 2 === 1) ? ROW_SPACING / 2 : 0;
+      const x = col * COL_SPACING - HALF_X;
+      const z = row * ROW_SPACING + zOffset - HALF_Z;
+      
+      // 3-color coloring for hexes so no adjacent hexes share color
+      const colorIndex = (row + (col % 2 === 1 ? 1 : 0) + col * 2) % 3;
+      tiles.push({ x, z, key: `${row}-${col}`, colorIndex });
     }
   }
 
-  const COLOR_DARK = "#527a36";
-  const COLOR_LIGHT = "#5f8f3f";
+  const COLOR_1 = "#527a36";
+  const COLOR_2 = "#5f8f3f";
+  const COLOR_3 = "#4b7031";
   const COLOR_HOVER = "#8fcc55";
 
   // Hover & double-click state
@@ -71,13 +83,15 @@
     }}
     on:click={(e) => handleClick(e, tile)}
   >
-    <T.PlaneGeometry args={[TILE_SIZE - GAP, TILE_SIZE - GAP]} />
+    <T.CircleGeometry args={[HEX_RADIUS - GAP / 2, 6]} />
     <T.MeshStandardMaterial
       color={hoveredKey === tile.key
         ? COLOR_HOVER
-        : tile.isLight
-          ? COLOR_LIGHT
-          : COLOR_DARK}
+        : tile.colorIndex === 0
+          ? COLOR_1
+          : tile.colorIndex === 1
+            ? COLOR_2
+            : COLOR_3}
       roughness={0.85}
       metalness={0.0}
     />
