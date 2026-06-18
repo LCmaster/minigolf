@@ -2,12 +2,10 @@
   import {
     Shape,
     Vector3,
-    CurvePath,
-    LineCurve3,
-    ExtrudeGeometry,
+    Float32BufferAttribute,
     BufferGeometry,
+    DoubleSide,
   } from "three";
-  import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
   import { onDestroy } from "svelte";
   import { T } from "@threlte/core";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
@@ -61,7 +59,6 @@
     s.lineTo(-h, w + t);
     s.lineTo(-h, w);
     s.lineTo(-0.1, w);
-    // Move to Right wall (Shape can have multiple sub-paths using moveTo, or we can use two shapes? Wait, Shape with disjoint parts might not extrude well. Let's use two shapes or just one shape with a hole? No, just add two subpaths... actually ExtrudeGeometry might complain if a single Shape has disjoint contours. Better to use two separate shapes for the walls, or just one geometry for left and one for right.)
     return s;
   })();
 
@@ -78,39 +75,115 @@
     return s;
   })();
 
+  // Custom function to create geometry for a path of straight lines with miter joints
+  function createMiterGeometry(shape, points) {
+    if (points.length < 2) return new BufferGeometry();
+
+    const shapePoints = shape.getPoints();
+    const vertexCount = shapePoints.length * points.length;
+    const positions = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+    const indices = [];
+
+    let pathDist = 0;
+
+    for (let i = 0; i < points.length; i++) {
+      if (i > 0) {
+        pathDist += points[i].distanceTo(points[i - 1]);
+      }
+
+      let R = new Vector3();
+      let U = new Vector3();
+      let miterScaleX = 1;
+
+      if (i === 0) {
+        const d = new Vector3().subVectors(points[1], points[0]).normalize();
+        R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
+        U.crossVectors(R, d).normalize();
+      } else if (i === points.length - 1) {
+        const d = new Vector3().subVectors(points[i], points[i - 1]).normalize();
+        R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
+        U.crossVectors(R, d).normalize();
+      } else {
+        const d1 = new Vector3().subVectors(points[i], points[i - 1]).normalize();
+        const d2 = new Vector3().subVectors(points[i + 1], points[i]).normalize();
+
+        const n = new Vector3().addVectors(d1, d2).normalize();
+
+        if (n.lengthSq() < 0.001) {
+          // Fallback for 180 degree turns
+          R.crossVectors(d1, new Vector3(0, 1, 0)).normalize();
+          U.crossVectors(R, d1).normalize();
+        } else {
+          R.crossVectors(n, new Vector3(0, 1, 0)).normalize();
+          U.crossVectors(R, n).normalize();
+
+          const r1 = new Vector3().crossVectors(d1, new Vector3(0, 1, 0)).normalize();
+          const dot = R.dot(r1);
+          if (dot > 0.01) {
+            miterScaleX = 1 / dot;
+          }
+        }
+      }
+
+      for (let j = 0; j < shapePoints.length; j++) {
+        const sp = shapePoints[j];
+        // Based on original ExtrudeGeometry mapping: Shape X maps to UP, Shape Y maps to RIGHT
+        const pos = new Vector3()
+          .copy(points[i])
+          .addScaledVector(U, -sp.x)
+          .addScaledVector(R, -sp.y * miterScaleX);
+
+        const offset = (i * shapePoints.length + j) * 3;
+        positions[offset] = pos.x;
+        positions[offset + 1] = pos.y;
+        positions[offset + 2] = pos.z;
+
+        const uvOffset = (i * shapePoints.length + j) * 2;
+        uvs[uvOffset] = j / (shapePoints.length - 1 || 1);
+        uvs[uvOffset + 1] = pathDist;
+      }
+    }
+
+    for (let i = 0; i < points.length - 1; i++) {
+      for (let j = 0; j < shapePoints.length - 1; j++) {
+        const a = i * shapePoints.length + j;
+        const b = i * shapePoints.length + j + 1;
+        const c = (i + 1) * shapePoints.length + j;
+        const d = (i + 1) * shapePoints.length + j + 1;
+
+        indices.push(a, b, c);
+        indices.push(c, b, d);
+      }
+    }
+
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    geo.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+
+    return geo.toNonIndexed();
+  }
+
   let baseGeo = null;
   let tileGeo = null;
   let leftWallGeo = null;
   let rightWallGeo = null;
-  let physicsGeo = null;
 
   $: {
     disposeGeometry();
-    if (controlPoints.length > 1 && curve) {
-      const extrudeSettings = {
-        extrudePath: curve,
-        steps: Math.max(10, controlPoints.length * 10),
-        bevelEnabled: false,
-      };
-
-      // ExtrudeGeometry creates indexed geometries.
-      // Rapier's trimesh collider requires non-indexed geometries,
-      // so we convert them immediately.
-      baseGeo = new ExtrudeGeometry(baseShape, extrudeSettings).toNonIndexed();
-      tileGeo = new ExtrudeGeometry(tileShape, extrudeSettings).toNonIndexed();
-      leftWallGeo = new ExtrudeGeometry(
-        wallsShape,
-        extrudeSettings,
-      ).toNonIndexed();
-      rightWallGeo = new ExtrudeGeometry(
-        rightWallShape,
-        extrudeSettings,
-      ).toNonIndexed();
+    if (controlPoints.length > 1) {
+      const pts = controlPoints.map((p) => new Vector3(...p.position));
+      baseGeo = createMiterGeometry(baseShape, pts);
+      tileGeo = createMiterGeometry(tileShape, pts);
+      leftWallGeo = createMiterGeometry(wallsShape, pts);
+      rightWallGeo = createMiterGeometry(rightWallShape, pts);
 
       // store in previousGeometry to dispose later
       previousGeometry = [baseGeo, tileGeo, leftWallGeo, rightWallGeo];
     } else {
-      baseGeo = tileGeo = leftWallGeo = rightWallGeo = physicsGeo = null;
+      baseGeo = tileGeo = leftWallGeo = rightWallGeo = null;
       previousGeometry = null;
     }
   }
@@ -135,23 +208,23 @@
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
 
-  $: curve = (() => {
-    if (controlPoints.length <= 1) return null;
-    const path = new CurvePath();
-    const vecs = controlPoints.map((p) => new Vector3(...p.position));
-    for (let i = 0; i < vecs.length - 1; i++) {
-      path.add(new LineCurve3(vecs[i], vecs[i + 1]));
-    }
-    return path;
-  })();
-
   $: startTangent =
-    controlPoints.length > 1 && curve
-      ? curve.getTangentAt(0)
+    controlPoints.length > 1
+      ? new Vector3()
+          .subVectors(
+            new Vector3(...controlPoints[1].position),
+            new Vector3(...controlPoints[0].position),
+          )
+          .normalize()
       : new Vector3(0, 0, 1);
   $: endTangent =
-    controlPoints.length > 1 && curve
-      ? curve.getTangentAt(1)
+    controlPoints.length > 1
+      ? new Vector3()
+          .subVectors(
+            new Vector3(...controlPoints[controlPoints.length - 1].position),
+            new Vector3(...controlPoints[controlPoints.length - 2].position),
+          )
+          .normalize()
       : new Vector3(0, 0, 1);
 </script>
 
@@ -159,16 +232,16 @@
   <!-- Visual meshes (always rendered regardless of physics mode) -->
   <T.Group>
     <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#888888" />
+      <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
     </T.Mesh>
     <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#567D46" />
+      <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
     </T.Mesh>
     <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#8B5A2B" />
+      <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
     </T.Mesh>
     <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#8B5A2B" />
+      <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
     </T.Mesh>
   </T.Group>
 
@@ -178,16 +251,16 @@
       <AutoColliders shape="trimesh">
         <T.Group>
           <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#888888" />
+            <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
           </T.Mesh>
           <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#567D46" />
+            <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
           </T.Mesh>
           <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#8B5A2B" />
+            <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
           </T.Mesh>
           <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#8B5A2B" />
+            <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
           </T.Mesh>
         </T.Group>
       </AutoColliders>
