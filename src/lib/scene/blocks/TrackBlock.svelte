@@ -3,9 +3,8 @@
   import {
     Shape,
     ExtrudeGeometry,
-    Vector3,
-    CatmullRomCurve3,
     LineCurve3,
+    Vector3,
   } from "three";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";

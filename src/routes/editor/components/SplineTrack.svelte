@@ -2,7 +2,8 @@
   import {
     Shape,
     Vector3,
-    CatmullRomCurve3,
+    CurvePath,
+    LineCurve3,
     ExtrudeGeometry,
     BufferGeometry,
   } from "three";
@@ -134,12 +135,15 @@
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
 
-  $: curve =
-    controlPoints.length > 1
-      ? new CatmullRomCurve3(
-          controlPoints.map((p) => new Vector3(...p.position)),
-        )
-      : null;
+  $: curve = (() => {
+    if (controlPoints.length <= 1) return null;
+    const path = new CurvePath();
+    const vecs = controlPoints.map((p) => new Vector3(...p.position));
+    for (let i = 0; i < vecs.length - 1; i++) {
+      path.add(new LineCurve3(vecs[i], vecs[i + 1]));
+    }
+    return path;
+  })();
 
   $: startTangent =
     controlPoints.length > 1 && curve

@@ -3,7 +3,7 @@
   import { OrbitControls, Environment } from "@threlte/extras";
   import SplineTrack from "./SplineTrack.svelte";
   import { useEditor } from "../context";
-  import { CatmullRomCurve3, Vector3 } from "three";
+  import { Vector3 } from "three";
 
   const { controlPoints, stage } = useEditor();
 
