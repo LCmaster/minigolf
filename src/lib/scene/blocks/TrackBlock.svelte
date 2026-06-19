@@ -1,11 +1,6 @@
 <script>
   import { T } from "@threlte/core";
-  import {
-    Shape,
-    ExtrudeGeometry,
-    LineCurve3,
-    Vector3,
-  } from "three";
+  import { Shape, ExtrudeGeometry, LineCurve3, Vector3 } from "three";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";
 
@@ -149,7 +144,7 @@
 </script>
 
 {#if baseGeo}
-  {#if isEditor}
+  <!-- {#if isEditor}
     <T.Group>
       <T.Mesh geometry={baseGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#888888" />
@@ -167,37 +162,37 @@
         <T.MeshStandardMaterial color="#8B5A2B" />
       </T.Mesh>
     </T.Group>
-  {:else}
-    <RigidBody type="fixed">
-      <T.Group>
-        <AutoColliders shape="convexHull">
-          <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#888888" />
-          </T.Mesh>
-        </AutoColliders>
-        <AutoColliders shape="convexHull">
-          <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#567D46" />
-          </T.Mesh>
-        </AutoColliders>
-        <AutoColliders shape="convexHull">
-          <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#8B5A2B" />
-          </T.Mesh>
-        </AutoColliders>
-        <AutoColliders shape="convexHull">
-          <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#8B5A2B" />
-          </T.Mesh>
-        </AutoColliders>
-        <AutoColliders shape="convexHull">
-          <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
-            <T.MeshStandardMaterial color="#8B5A2B" />
-          </T.Mesh>
-        </AutoColliders>
-      </T.Group>
-    </RigidBody>
-  {/if}
+  {:else} -->
+  <RigidBody type="fixed">
+    <T.Group>
+      <AutoColliders shape="convexHull">
+        <T.Mesh geometry={baseGeo} castShadow receiveShadow>
+          <T.MeshStandardMaterial color="#888888" />
+        </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
+        <T.Mesh geometry={tileGeo} castShadow receiveShadow>
+          <T.MeshStandardMaterial color="#567D46" />
+        </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
+        <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
+          <T.MeshStandardMaterial color="#8B5A2B" />
+        </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
+        <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
+          <T.MeshStandardMaterial color="#8B5A2B" />
+        </T.Mesh>
+      </AutoColliders>
+      <AutoColliders shape="convexHull">
+        <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
+          <T.MeshStandardMaterial color="#8B5A2B" />
+        </T.Mesh>
+      </AutoColliders>
+    </T.Group>
+  </RigidBody>
+  <!-- {/if} -->
 {/if}
 
 <!-- Indicators -->

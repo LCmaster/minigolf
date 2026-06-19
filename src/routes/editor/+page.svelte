@@ -49,25 +49,25 @@
     {/if}
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
-    {#if $testing}
-      <World gravity={[0, -15, 0]}>
-        <Debug />
+    <World gravity={[0, -15, 0]}>
+      <Debug />
+      {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
-      </World>
-    {:else if $previewing}
-      <Environment
-        path={`/skybox/${$stage.skybox}/`}
-        files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-        isBackground={true}
-      />
-      <PreviewScene />
-    {:else}
-      <Environment
-        path={`/skybox/${$stage.skybox}/`}
-        files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-        isBackground={true}
-      />
-      <EditorScene />
-    {/if}
+      {:else if $previewing}
+        <Environment
+          path={`/skybox/${$stage.skybox}/`}
+          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
+          isBackground={true}
+        />
+        <PreviewScene />
+      {:else}
+        <Environment
+          path={`/skybox/${$stage.skybox}/`}
+          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
+          isBackground={true}
+        />
+        <EditorScene />
+      {/if}
+    </World>
   </Canvas>
 </AppShell>

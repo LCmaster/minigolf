@@ -38,7 +38,7 @@
     controlPoints && controlPoints.length > 0
       ? [...controlPoints[0].position]
       : [0, 0, 0];
-  spawn[1] += 0.28;
+  spawn[1] += 0.35;
 
   let player;
   let respawnPoints = [[...spawn]];
