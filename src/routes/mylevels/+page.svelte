@@ -1,6 +1,5 @@
 <script>
-  import { user } from "$lib/authStore";
-  import { getMyLevels } from "$lib/firestore";
+  import { user, getMyLevels } from "$lib/firebase";
   import { goto } from "$app/navigation";
 
   let levels = [];

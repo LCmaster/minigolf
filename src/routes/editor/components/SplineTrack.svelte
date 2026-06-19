@@ -11,7 +11,8 @@
   import { T } from "@threlte/core";
   import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
   import TrackBlock from "$lib/scene/blocks/TrackBlock.svelte";
-  import { createMiterGeometry } from "$lib/createMiterGeometry";
+  import { createMiterGeometry, createSegmentHull, computeMiterPathData } from "$lib/trackGeometry";
+
 
   export let controlPoints = [];
   export let isEditor = false;
@@ -86,10 +87,11 @@
     disposeGeometry();
     if (controlPoints.length > 1) {
       const pts = controlPoints.map((p) => new Vector3(...p.position));
-      baseGeo = createMiterGeometry(baseShape, pts);
-      tileGeo = createMiterGeometry(tileShape, pts);
-      leftWallGeo = createMiterGeometry(wallsShape, pts);
-      rightWallGeo = createMiterGeometry(rightWallShape, pts);
+      const pathData = computeMiterPathData(pts);
+      baseGeo = createMiterGeometry(baseShape, pathData);
+      tileGeo = createMiterGeometry(tileShape, pathData);
+      leftWallGeo = createMiterGeometry(wallsShape, pathData);
+      rightWallGeo = createMiterGeometry(rightWallShape, pathData);
 
       // store in previousGeometry to dispose later
       previousGeometry = [baseGeo, tileGeo, leftWallGeo, rightWallGeo];
@@ -156,73 +158,7 @@
     const pts = controlPoints.map((p) => new Vector3(...p.position));
     const segments = [];
 
-    // Exactly match createMiterGeometry logic
-    const getPointData = (i) => {
-      let R = new Vector3();
-      let U = new Vector3();
-      let miterScaleX = 1;
-
-      if (i === 0) {
-        const d = new Vector3().subVectors(pts[1], pts[0]).normalize();
-        R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
-        U.crossVectors(R, d).normalize();
-      } else if (i === pts.length - 1) {
-        const d = new Vector3().subVectors(pts[i], pts[i - 1]).normalize();
-        R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
-        U.crossVectors(R, d).normalize();
-      } else {
-        const d1 = new Vector3().subVectors(pts[i], pts[i - 1]).normalize();
-        const d2 = new Vector3().subVectors(pts[i + 1], pts[i]).normalize();
-        const n = new Vector3().addVectors(d1, d2).normalize();
-
-        if (n.lengthSq() < 0.001) {
-          R.crossVectors(d1, new Vector3(0, 1, 0)).normalize();
-          U.crossVectors(R, d1).normalize();
-        } else {
-          R.crossVectors(n, new Vector3(0, 1, 0)).normalize();
-          U.crossVectors(R, n).normalize();
-          const r1 = new Vector3()
-            .crossVectors(d1, new Vector3(0, 1, 0))
-            .normalize();
-          const dot = R.dot(r1);
-          if (dot > 0.01) {
-            miterScaleX = 1 / dot;
-          }
-        }
-      }
-      return { p: pts[i], R, U, miterScaleX };
-    };
-
-    const pointData = pts.map((_, i) => getPointData(i));
-
-    // Helper to generate a convex hull Float32Array for a given shape along a segment
-    const createSegmentHull = (shape, d0, d1) => {
-      const sps = shape.getPoints();
-      const verts = new Float32Array(sps.length * 2 * 3);
-
-      let idx = 0;
-      // Points for start of segment
-      for (let j = 0; j < sps.length; j++) {
-        const pos = d0.p
-          .clone()
-          .addScaledVector(d0.U, -sps[j].x)
-          .addScaledVector(d0.R, -sps[j].y * d0.miterScaleX);
-        verts[idx++] = pos.x;
-        verts[idx++] = pos.y;
-        verts[idx++] = pos.z;
-      }
-      // Points for end of segment
-      for (let j = 0; j < sps.length; j++) {
-        const pos = d1.p
-          .clone()
-          .addScaledVector(d1.U, -sps[j].x)
-          .addScaledVector(d1.R, -sps[j].y * d1.miterScaleX);
-        verts[idx++] = pos.x;
-        verts[idx++] = pos.y;
-        verts[idx++] = pos.z;
-      }
-      return verts;
-    };
+    const pointData = computeMiterPathData(pts);
 
     for (let i = 0; i < pts.length - 1; i++) {
       const d0 = pointData[i];

@@ -3,9 +3,8 @@
   import { inject } from "@vercel/analytics";
 
   import { onMount } from "svelte";
-  import { auth } from "$lib/firebase";
+  import { auth, user } from "$lib/firebase";
   import { onAuthStateChanged } from "firebase/auth";
-  import { user } from "$lib/authStore";
 
   import { Modal, Drawer, initializeStores } from "@skeletonlabs/skeleton";
   import EditorDrawer from "./editor/components/EditorDrawer.svelte";

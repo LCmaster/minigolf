@@ -3,8 +3,7 @@
   import { saveAs } from "file-saver";
   import { getModalStore, getDrawerStore } from "@skeletonlabs/skeleton";
   import { goto } from "$app/navigation";
-  import { saveLevel } from "$lib/firestore";
-  import { user } from "$lib/authStore";
+  import { saveLevel, user } from "$lib/firebase";
   import { getContext } from "svelte";
   import { writable } from "svelte/store";
 

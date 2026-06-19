@@ -3,7 +3,7 @@
   import { getModalStore } from "@skeletonlabs/skeleton";
   import Button from "../lib/component/Button.svelte";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
-  import { user } from "$lib/authStore";
+  import { user } from "$lib/firebase";
 
   const modalStore = getModalStore();
 

@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { writable } from "svelte/store";
 import {
   PUBLIC_FIREBASE_API_KEY,
   PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -26,3 +27,68 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Svelte auth user store
+export const user = writable(undefined);
+
+/**
+ * Saves a level configuration and upload its thumbnail to Firebase.
+ *
+ * @param {string} uid - User ID
+ * @param {Object} stage - Stage config details
+ * @param {Array} blocks - Blocks layout array
+ * @param {string} thumbnailDataUrl - Data URL representation of thumbnail image
+ * @returns {Promise<string>} Saved level Firestore document ID
+ */
+export async function saveLevel(uid, stage, blocks, thumbnailDataUrl) {
+  try {
+    // 1. Upload thumbnail
+    let thumbnailUrl = null;
+    try {
+      const thumbnailId = crypto.randomUUID();
+      const storageRef = ref(storage, `thumbnails/${uid}/${thumbnailId}.png`);
+      await uploadString(storageRef, thumbnailDataUrl, 'data_url');
+      thumbnailUrl = await getDownloadURL(storageRef);
+    } catch (uploadError) {
+      console.warn("Thumbnail upload failed, skipping...", uploadError);
+    }
+
+    // 2. Save document to firestore
+    const levelsCol = collection(db, "levels");
+    const docRef = await addDoc(levelsCol, {
+      uid,
+      name: stage.name || "Untitled Level",
+      skybox: stage.skybox || "default",
+      par: stage.par || 2,
+      blocks,
+      thumbnailUrl,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving level: ", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all levels belonging to a specific user.
+ *
+ * @param {string} uid - User ID
+ * @returns {Promise<Array>} List of user levels
+ */
+export async function getMyLevels(uid) {
+  try {
+    const levelsCol = collection(db, "levels");
+    const q = query(levelsCol, where("uid", "==", uid), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const levels = [];
+    querySnapshot.forEach((doc) => {
+      levels.push({ id: doc.id, ...doc.data() });
+    });
+    return levels;
+  } catch (error) {
+    console.error("Error getting levels: ", error);
+    throw error;
+  }
+}
