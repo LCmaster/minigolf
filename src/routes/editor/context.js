@@ -3,11 +3,16 @@ import { writable } from "svelte/store";
 import { createHistoryStore } from "./historyStore";
 import { snapToGrid } from "$lib/gridUtils";
 
+export const activeEditor = {
+  controlPoints: null,
+  stage: null,
+};
+
 export const setEditor = () => {
   const startId = crypto.randomUUID();
   const secondId = crypto.randomUUID();
 
-  return setContext("minigolfmania/editor/context", {
+  const ctx = {
     testing: writable(false),
     previewing: writable(false),
     controlPoints: createHistoryStore([
@@ -37,7 +42,12 @@ export const setEditor = () => {
       wallFriction: 0.75,
       wallRestitution: 0.95,
     }),
-  });
+  };
+
+  activeEditor.controlPoints = ctx.controlPoints;
+  activeEditor.stage = ctx.stage;
+
+  return setContext("minigolfmania/editor/context", ctx);
 };
 
 export const useEditor = () => {

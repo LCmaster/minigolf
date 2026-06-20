@@ -42,8 +42,8 @@
           </div>
           <hr class="opacity-50" />
           <footer class="p-4 flex justify-end space-x-2">
-            <button class="btn variant-filled-primary" disabled>Play</button>
-            <button class="btn variant-filled-surface" disabled>Edit</button>
+            <button class="btn variant-filled-primary" on:click={() => goto(`/game?courseId=${level.id}`)}>Play</button>
+            <button class="btn variant-filled-surface" on:click={() => goto(`/editor?courseId=${level.id}`)}>Edit</button>
           </footer>
         </div>
       {/each}

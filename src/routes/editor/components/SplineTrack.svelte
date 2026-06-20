@@ -84,23 +84,31 @@
   let rightWallGeo = null;
   let wallMeshes = [];
 
-  $: {
+  $: updateGeometry(controlPoints);
+
+  function updateGeometry(points) {
     disposeGeometry();
-    if (controlPoints.length > 1) {
-      const pts = controlPoints.map((p) => new Vector3(...p.position));
+    if (points.length > 1) {
+      const pts = points.map((p) => new Vector3(...p.position));
       const pathData = computeMiterPathData(pts);
-      baseGeo = createMiterGeometry(baseShape, pathData);
-      tileGeo = createMiterGeometry(tileShape, pathData);
-      leftWallGeo = createMiterGeometry(leftWallShape, pathData);
-      rightWallGeo = createMiterGeometry(rightWallShape, pathData);
+      
+      const bGeo = createMiterGeometry(baseShape, pathData);
+      const tGeo = createMiterGeometry(tileShape, pathData);
+      const lwGeo = createMiterGeometry(leftWallShape, pathData);
+      const rwGeo = createMiterGeometry(rightWallShape, pathData);
+
+      baseGeo = bGeo;
+      tileGeo = tGeo;
+      leftWallGeo = lwGeo;
+      rightWallGeo = rwGeo;
 
       wallMeshes = [
-        { geo: leftWallGeo, color: "#8B5A2B" },
-        { geo: rightWallGeo, color: "#8B5A2B" },
+        { geo: lwGeo, color: "#8B5A2B" },
+        { geo: rwGeo, color: "#8B5A2B" },
       ];
 
       // store in previousGeometry to dispose later
-      previousGeometry = [baseGeo, tileGeo, leftWallGeo, rightWallGeo];
+      previousGeometry = [bGeo, tGeo, lwGeo, rwGeo];
     } else {
       baseGeo = tileGeo = leftWallGeo = rightWallGeo = null;
       wallMeshes = [];
@@ -128,31 +136,36 @@
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
 
-  $: startTangent =
-    controlPoints.length > 1
-      ? new Vector3()
-          .subVectors(
-            new Vector3(...controlPoints[1].position),
-            new Vector3(...controlPoints[0].position),
-          )
-          .normalize()
-      : new Vector3(0, 0, 1);
-  $: endTangent =
-    controlPoints.length > 1
-      ? new Vector3()
-          .subVectors(
-            new Vector3(...controlPoints[controlPoints.length - 1].position),
-            new Vector3(...controlPoints[controlPoints.length - 2].position),
-          )
-          .normalize()
-      : new Vector3(0, 0, 1);
+  $: startTangent = (() => {
+    if (controlPoints.length < 2) return new Vector3(0, 0, 1);
+    const v = new Vector3().subVectors(
+      new Vector3(...controlPoints[1].position),
+      new Vector3(...controlPoints[0].position),
+    );
+    return v.lengthSq() > 0.0001 ? v.normalize() : new Vector3(0, 0, 1);
+  })();
+
+  $: endTangent = (() => {
+    if (controlPoints.length < 2) return new Vector3(0, 0, 1);
+    const v = new Vector3().subVectors(
+      new Vector3(...controlPoints[controlPoints.length - 1].position),
+      new Vector3(...controlPoints[controlPoints.length - 2].position),
+    );
+    return v.lengthSq() > 0.0001 ? v.normalize() : new Vector3(0, 0, 1);
+  })();
 
   // (Dead WALL constants removed during refactor)
 
-  // Per-segment exact convex hull colliders
-  $: colliders = (() => {
-    if (controlPoints.length < 2) return [];
-    const pts = controlPoints.map((p) => new Vector3(...p.position));
+  let colliders = [];
+
+  $: updateColliders(controlPoints);
+
+  function updateColliders(points) {
+    if (points.length < 2) {
+      colliders = [];
+      return;
+    }
+    const pts = points.map((p) => new Vector3(...p.position));
     const segments = [];
 
     const pointData = computeMiterPathData(pts);
@@ -167,8 +180,8 @@
       segments.push(createSegmentHull(rightWallShape, d0, d1));
     }
 
-    return segments;
-  })();
+    colliders = segments;
+  }
 </script>
 
 {#if baseGeo}

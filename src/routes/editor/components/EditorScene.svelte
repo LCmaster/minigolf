@@ -28,8 +28,7 @@
     }
   }
 
-  // Drives {#key} so all sphere meshes are fully remounted on ID change.
-  $: pointIds = $controlPoints.map((p) => p.id).join(",");
+  // Drive {#each} using $controlPoints directly (we removed {#key} to prevent raycaster unmount crashes)
 
   function selectPoint(id) {
     $pointSelected = id;
@@ -62,9 +61,8 @@
   <OrbitControls />
 </T.PerspectiveCamera>
 
-{#key pointIds}
   {#each $controlPoints as point, i (point.id)}
-    <!-- Sphere mesh first — bind:ref must fire before TransformControls mounts -->
+    <!-- Sphere mesh for control points -->
     <T.Mesh
       position={[point.position[0], point.position[1] + 1.5, point.position[2]]}
       bind:ref={meshRefs[point.id]}
@@ -99,7 +97,6 @@
       />
     </T.Mesh>
   {/each}
-{/key}
 
 <EditorFloor />
 

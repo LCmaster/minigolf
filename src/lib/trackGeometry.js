@@ -23,22 +23,49 @@ export function computeMiterPathData(points) {
     let miterScaleX = 1;
 
     if (i === 0) {
-      const d = new Vector3().subVectors(points[1], points[0]).normalize();
-      R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
-      U.crossVectors(R, d).normalize();
+      const d = new Vector3().subVectors(points[1], points[0]);
+      if (d.lengthSq() < 0.0001) d.set(0, 0, 1);
+      d.normalize();
+      
+      R.crossVectors(d, new Vector3(0, 1, 0));
+      if (R.lengthSq() < 0.0001) R.set(1, 0, 0);
+      R.normalize();
+      
+      U.crossVectors(R, d);
+      if (U.lengthSq() < 0.0001) U.set(0, 1, 0);
+      U.normalize();
     } else if (i === points.length - 1) {
-      const d = new Vector3().subVectors(points[i], points[i - 1]).normalize();
-      R.crossVectors(d, new Vector3(0, 1, 0)).normalize();
-      U.crossVectors(R, d).normalize();
+      const d = new Vector3().subVectors(points[i], points[i - 1]);
+      if (d.lengthSq() < 0.0001) d.set(0, 0, 1);
+      d.normalize();
+      
+      R.crossVectors(d, new Vector3(0, 1, 0));
+      if (R.lengthSq() < 0.0001) R.set(1, 0, 0);
+      R.normalize();
+      
+      U.crossVectors(R, d);
+      if (U.lengthSq() < 0.0001) U.set(0, 1, 0);
+      U.normalize();
     } else {
-      const d1 = new Vector3().subVectors(points[i], points[i - 1]).normalize();
-      const d2 = new Vector3().subVectors(points[i + 1], points[i]).normalize();
+      const d1 = new Vector3().subVectors(points[i], points[i - 1]);
+      if (d1.lengthSq() < 0.0001) d1.set(0, 0, 1);
+      d1.normalize();
+      
+      const d2 = new Vector3().subVectors(points[i + 1], points[i]);
+      if (d2.lengthSq() < 0.0001) d2.copy(d1);
+      d2.normalize();
+      
       const n = new Vector3().addVectors(d1, d2).normalize();
 
       if (n.lengthSq() < 0.001) {
-        // Fallback for 180 degree turns
-        R.crossVectors(d1, new Vector3(0, 1, 0)).normalize();
-        U.crossVectors(R, d1).normalize();
+        // Fallback for 180 degree turns or degenerate identical points
+        R.crossVectors(d1, new Vector3(0, 1, 0));
+        if (R.lengthSq() < 0.0001) R.set(1, 0, 0);
+        R.normalize();
+        
+        U.crossVectors(R, d1);
+        if (U.lengthSq() < 0.0001) U.set(0, 1, 0);
+        U.normalize();
       } else {
         R.crossVectors(n, new Vector3(0, 1, 0)).normalize();
         U.crossVectors(R, n).normalize();

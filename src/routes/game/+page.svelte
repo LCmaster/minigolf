@@ -4,10 +4,28 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
 
+  import { page } from "$app/stores";
+  import { getLevel } from "$lib/firebase";
+  import { onMount } from "svelte";
+
   export let data;
   let current = 0;
 
   const { course, current: currentHole, shots } = useGame();
+
+  onMount(async () => {
+    const courseId = $page.url.searchParams.get("courseId");
+    if (courseId) {
+      try {
+        const loadedCourse = await getLevel(courseId);
+        $course = loadedCourse;
+        $currentHole = 0;
+        $shots = loadedCourse.holes.map((_) => 0);
+      } catch (e) {
+        console.error("Failed to load custom course", e);
+      }
+    }
+  });
 
   function startGame() {
     $currentHole = 0;
@@ -19,6 +37,10 @@
     $currentHole = null;
     $course = null;
     $shots = null;
+    // Remove courseId from URL so we go back to the select screen
+    if ($page.url.searchParams.has("courseId")) {
+      goto("/game", { replaceState: true });
+    }
   }
 </script>
 

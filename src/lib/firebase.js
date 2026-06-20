@@ -36,11 +36,11 @@ export const user = writable(undefined);
  *
  * @param {string} uid - User ID
  * @param {Object} stage - Stage config details
- * @param {Array} blocks - Blocks layout array
+ * @param {Array} controlPoints - Spline track control points array
  * @param {string} thumbnailDataUrl - Data URL representation of thumbnail image
  * @returns {Promise<string>} Saved level Firestore document ID
  */
-export async function saveLevel(uid, stage, blocks, thumbnailDataUrl) {
+export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl) {
   try {
     // 1. Upload thumbnail
     let thumbnailUrl = null;
@@ -59,8 +59,13 @@ export async function saveLevel(uid, stage, blocks, thumbnailDataUrl) {
       uid,
       name: stage.name || "Untitled Level",
       skybox: stage.skybox || "default",
-      par: stage.par || 2,
-      blocks,
+      difficulty: "Custom",
+      holes: [
+        {
+          par: stage.par || 2,
+          controlPoints
+        }
+      ],
       thumbnailUrl,
       createdAt: serverTimestamp()
     });
@@ -89,6 +94,28 @@ export async function getMyLevels(uid) {
     return levels;
   } catch (error) {
     console.error("Error getting levels: ", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches a specific level by document ID.
+ *
+ * @param {string} levelId - Level Document ID
+ * @returns {Promise<Object>} Level data
+ */
+export async function getLevel(levelId) {
+  try {
+    const { doc, getDoc } = await import("firebase/firestore");
+    const docRef = doc(db, "levels", levelId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    } else {
+      throw new Error("No such level found!");
+    }
+  } catch (error) {
+    console.error("Error fetching level: ", error);
     throw error;
   }
 }

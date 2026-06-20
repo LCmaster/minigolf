@@ -11,7 +11,32 @@
   import InspectorPanel from "./components/InspectorPanel.svelte";
 
   import { setEditor } from "./context";
+  import { onMount } from "svelte";
+  import { page } from "$app/stores";
+  import { getLevel } from "$lib/firebase";
+
   let { testing, previewing, controlPoints, stage } = setEditor();
+
+  onMount(async () => {
+    const courseId = $page.url.searchParams.get("courseId");
+    if (courseId) {
+      try {
+        const loadedCourse = await getLevel(courseId);
+        // The loadedCourse has `{ name, skybox, holes: [{ par, controlPoints }] }`
+        if (loadedCourse.holes && loadedCourse.holes.length > 0) {
+          controlPoints.commit(); // Push current state to history before overwriting
+          $controlPoints = loadedCourse.holes[0].controlPoints;
+          $stage = {
+            name: loadedCourse.name,
+            skybox: loadedCourse.skybox,
+            par: loadedCourse.holes[0].par
+          };
+        }
+      } catch (e) {
+        console.error("Failed to load custom level for editing", e);
+      }
+    }
+  });
 
   function handleKeydown(e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
