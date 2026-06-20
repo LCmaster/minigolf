@@ -50,8 +50,8 @@
     return s;
   })();
 
-  // Walls shape: the two side walls, height -0.1 to -0.5
-  const wallsShape = (() => {
+  // Left wall shape: height -0.1 to -0.5
+  const leftWallShape = (() => {
     const s = new Shape();
     const w = 2.5;
     const h = 0.5;
@@ -82,6 +82,7 @@
   let tileGeo = null;
   let leftWallGeo = null;
   let rightWallGeo = null;
+  let wallMeshes = [];
 
   $: {
     disposeGeometry();
@@ -90,13 +91,19 @@
       const pathData = computeMiterPathData(pts);
       baseGeo = createMiterGeometry(baseShape, pathData);
       tileGeo = createMiterGeometry(tileShape, pathData);
-      leftWallGeo = createMiterGeometry(wallsShape, pathData);
+      leftWallGeo = createMiterGeometry(leftWallShape, pathData);
       rightWallGeo = createMiterGeometry(rightWallShape, pathData);
+
+      wallMeshes = [
+        { geo: leftWallGeo, color: "#8B5A2B" },
+        { geo: rightWallGeo, color: "#8B5A2B" },
+      ];
 
       // store in previousGeometry to dispose later
       previousGeometry = [baseGeo, tileGeo, leftWallGeo, rightWallGeo];
     } else {
       baseGeo = tileGeo = leftWallGeo = rightWallGeo = null;
+      wallMeshes = [];
       previousGeometry = null;
     }
   }
@@ -140,17 +147,7 @@
           .normalize()
       : new Vector3(0, 0, 1);
 
-  // Wall geometry constants (must match the Shape definitions above)
-  const WALL_W = 2.5; // half-width of track surface
-  const WALL_H = 0.5; // total wall height (Y goes from -0.1 to -0.5 in shape space)
-  const WALL_T = 0.2; // wall thickness
-  // In world space (shape.x → -U, shape.y → -R):
-  //   vertical center = (0.1 + 0.5) / 2 = 0.3  (along +U)
-  //   lateral center  = ±(w + t/2) = ±2.6       (along ±R)
-  const WALL_U_CENTER = (0.1 + WALL_H) / 2; // 0.3
-  const WALL_HALF_H = (WALL_H - 0.1) / 2; // 0.2
-  const WALL_HALF_T = WALL_T / 2; // 0.1
-  const WALL_R_OFFSET = WALL_W + WALL_T / 2; // 2.6
+  // (Dead WALL constants removed during refactor)
 
   // Per-segment exact convex hull colliders
   $: colliders = (() => {
@@ -166,7 +163,7 @@
 
       // Add exact convex hulls for wall segments only
       // (base and tile use a single trimesh to avoid seam-jumping)
-      segments.push(createSegmentHull(wallsShape, d0, d1));
+      segments.push(createSegmentHull(leftWallShape, d0, d1));
       segments.push(createSegmentHull(rightWallShape, d0, d1));
     }
 
@@ -175,24 +172,27 @@
 </script>
 
 {#if baseGeo}
-  <!-- Visual meshes (always rendered regardless of physics mode) -->
+  <!-- Visual meshes -->
   <T.Group>
-    <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
-    </T.Mesh>
-    <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
-    </T.Mesh>
-    <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
-    </T.Mesh>
-    <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-      <T.MeshStandardMaterial color="#8B5A2B" side={DoubleSide} />
-    </T.Mesh>
+    <!-- Render floor visual meshes only if physics is disabled (to avoid duplicating AutoColliders rendering) -->
+    {#if noPhysics}
+      <T.Mesh geometry={baseGeo} castShadow receiveShadow>
+        <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
+      </T.Mesh>
+      <T.Mesh geometry={tileGeo} castShadow receiveShadow>
+        <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
+      </T.Mesh>
+    {/if}
+
+    {#each wallMeshes as { geo, color }}
+      <T.Mesh geometry={geo} castShadow receiveShadow>
+        <T.MeshStandardMaterial {color} side={DoubleSide} />
+      </T.Mesh>
+    {/each}
   </T.Group>
 
   <!-- Physics collider (only in gameplay/test mode) -->
-  <!-- {#if !noPhysics} -->
+  {#if !noPhysics}
   <RigidBody type="fixed">
     <!-- Floor colliders: single trimesh for seamless rolling -->
     <AutoColliders shape="trimesh">
@@ -208,7 +208,7 @@
       <Collider shape="convexHull" args={[hullVertices]} />
     {/each}
   </RigidBody>
-  <!-- {/if} -->
+  {/if}
 {/if}
 
 {#if controlPoints.length > 0}
