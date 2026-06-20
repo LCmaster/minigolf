@@ -108,13 +108,7 @@
 
 <T.Group {...$$restProps} bind:this={$component}>
   <Suspense on:load={() => console.log("Stage loaded")}>
-    <Ground
-      on:outofbounds={() => {
-        const pos = [...respawnPoints[respawnPoints.length - 1]];
-        player.moveTo(pos);
-        playerPosition = pos;
-      }}
-    />
+    <Ground />
 
     <!-- SplineTrack manages its own AutoColliders internally -->
     <SplineTrack {controlPoints} />
@@ -136,11 +130,17 @@
       </AutoColliders>
     </RigidBody>
 
-    <!-- Player ball -->
     <Player
       bind:this={player}
       size={ballSize}
       position={[...spawn]}
+      on:outofbounds={() => {
+        const pos = [...respawnPoints[respawnPoints.length - 1]];
+        pos[1] += 0.05; // drop slightly from above to avoid getting stuck in colliders
+        player.moveTo(pos);
+        playerPosition = pos;
+        canSelectPlayer = true;
+      }}
       on:moved={(ev) => {
         playerPosition = ev.detail;
         canSelectPlayer = false;

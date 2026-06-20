@@ -67,6 +67,12 @@
   useFrame(() => {
     if (!body || !enabled) return;
 
+    mesh.getWorldPosition(positionVector);
+    if (positionVector.y < -1) {
+      dispatch("outofbounds", position);
+      return;
+    }
+
     if (body.isMoving()) {
       framesAwake++;
       const linvel = body.linvel();
@@ -78,7 +84,6 @@
         body.setAngvel({ x: 0, y: 0, z: 0 }, true);
         body.sleep();
       } else {
-        mesh.getWorldPosition(positionVector);
         updatePosition();
         dispatch("moved", position);
       }
