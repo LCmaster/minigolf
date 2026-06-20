@@ -214,7 +214,7 @@
 {#if controlPoints.length > 0}
   <TrackBlock
     type="start"
-    shape={controlPoints[0].shape || "round"}
+    shape={controlPoints[0].shape || "rounded"}
     position={startPos}
     tangent={startTangent}
     isEditor={noPhysics}
@@ -224,7 +224,7 @@
 {#if controlPoints.length > 0}
   <TrackBlock
     type="end"
-    shape={controlPoints[controlPoints.length - 1].shape || "round"}
+    shape={controlPoints[controlPoints.length - 1].shape || "rounded"}
     position={endPos}
     tangent={endTangent}
     isEditor={noPhysics}
