@@ -73,8 +73,9 @@
   })();
 
   // ── Geometry builders ────────────────────────────────────────────────
-  let baseGeo, tileGeo, leftWallGeo, rightWallGeo, backWallGeo;
+  let baseGeo, tileGeo, wallGeo;
   let previousGeos = null;
+  let meshes = [];
 
   $: euler = (() => {
     const localZ = new Vector3(0, 0, 1);
@@ -93,82 +94,45 @@
     const tileShapeLocal = new Shape();
     const wallShapeLocal = new Shape();
 
-    if (currentType === "start") {
-      if (currentShape === "rounded") {
-        baseShapeLocal.moveTo(R_base, 0);
-        baseShapeLocal.absarc(0, 0, R_base, 0, Math.PI, false); // CCW
-        baseShapeLocal.lineTo(R_base, 0);
+    const zMult = currentType === "start" ? -1 : 1;
+    const angleStart = currentType === "start" ? 0 : Math.PI;
 
-        tileShapeLocal.moveTo(R_tile, 0);
-        tileShapeLocal.absarc(0, 0, R_tile, 0, Math.PI, false); // CCW
-        tileShapeLocal.lineTo(R_tile, 0);
+    if (currentShape === "rounded") {
+      baseShapeLocal.moveTo(-R_base * zMult, 0);
+      baseShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false); // CCW
+      baseShapeLocal.lineTo(-R_base * zMult, 0);
 
-        wallShapeLocal.moveTo(R_base, 0);
-        wallShapeLocal.absarc(0, 0, R_base, 0, Math.PI, false); // CCW outer
-        wallShapeLocal.lineTo(-R_tile, 0); // inward
-        wallShapeLocal.absarc(0, 0, R_tile, Math.PI, 0, true); // CW inner
-        wallShapeLocal.lineTo(R_base, 0); // close
-      } else {
-        baseShapeLocal.moveTo(R_base, 0);
-        baseShapeLocal.lineTo(R_base, blockLength);
-        baseShapeLocal.lineTo(-R_base, blockLength);
-        baseShapeLocal.lineTo(-R_base, 0);
-        baseShapeLocal.lineTo(R_base, 0);
+      tileShapeLocal.moveTo(-R_tile * zMult, 0);
+      tileShapeLocal.absarc(0, 0, R_tile, angleStart, angleStart + Math.PI, false); // CCW
+      tileShapeLocal.lineTo(-R_tile * zMult, 0);
 
-        tileShapeLocal.moveTo(R_tile, 0);
-        tileShapeLocal.lineTo(R_tile, blockLength - t);
-        tileShapeLocal.lineTo(-R_tile, blockLength - t);
-        tileShapeLocal.lineTo(-R_tile, 0);
-        tileShapeLocal.lineTo(R_tile, 0);
-
-        wallShapeLocal.moveTo(R_base, 0);
-        wallShapeLocal.lineTo(R_base, blockLength);
-        wallShapeLocal.lineTo(-R_base, blockLength);
-        wallShapeLocal.lineTo(-R_base, 0);
-        wallShapeLocal.lineTo(-R_tile, 0);
-        wallShapeLocal.lineTo(-R_tile, blockLength - t);
-        wallShapeLocal.lineTo(R_tile, blockLength - t);
-        wallShapeLocal.lineTo(R_tile, 0);
-        wallShapeLocal.lineTo(R_base, 0);
-      }
+      wallShapeLocal.moveTo(-R_base * zMult, 0);
+      wallShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false); // CCW outer
+      wallShapeLocal.lineTo(R_tile * zMult, 0); // inward
+      wallShapeLocal.absarc(0, 0, R_tile, angleStart + Math.PI, angleStart, true); // CW inner
+      wallShapeLocal.lineTo(-R_base * zMult, 0); // close
     } else {
-      if (currentShape === "rounded") {
-        baseShapeLocal.moveTo(-R_base, 0);
-        baseShapeLocal.absarc(0, 0, R_base, Math.PI, 2 * Math.PI, false); // CCW
-        baseShapeLocal.lineTo(-R_base, 0);
+      baseShapeLocal.moveTo(-R_base * zMult, 0);
+      baseShapeLocal.lineTo(-R_base * zMult, -blockLength * zMult);
+      baseShapeLocal.lineTo(R_base * zMult, -blockLength * zMult);
+      baseShapeLocal.lineTo(R_base * zMult, 0);
+      baseShapeLocal.lineTo(-R_base * zMult, 0);
 
-        tileShapeLocal.moveTo(-R_tile, 0);
-        tileShapeLocal.absarc(0, 0, R_tile, Math.PI, 2 * Math.PI, false); // CCW
-        tileShapeLocal.lineTo(-R_tile, 0);
+      tileShapeLocal.moveTo(-R_tile * zMult, 0);
+      tileShapeLocal.lineTo(-R_tile * zMult, (-blockLength + t) * zMult);
+      tileShapeLocal.lineTo(R_tile * zMult, (-blockLength + t) * zMult);
+      tileShapeLocal.lineTo(R_tile * zMult, 0);
+      tileShapeLocal.lineTo(-R_tile * zMult, 0);
 
-        wallShapeLocal.moveTo(-R_base, 0);
-        wallShapeLocal.absarc(0, 0, R_base, Math.PI, 2 * Math.PI, false); // CCW outer
-        wallShapeLocal.lineTo(R_tile, 0); // inward
-        wallShapeLocal.absarc(0, 0, R_tile, 2 * Math.PI, Math.PI, true); // CW inner
-        wallShapeLocal.lineTo(-R_base, 0); // close
-      } else {
-        baseShapeLocal.moveTo(-R_base, 0);
-        baseShapeLocal.lineTo(-R_base, -blockLength);
-        baseShapeLocal.lineTo(R_base, -blockLength);
-        baseShapeLocal.lineTo(R_base, 0);
-        baseShapeLocal.lineTo(-R_base, 0);
-
-        tileShapeLocal.moveTo(-R_tile, 0);
-        tileShapeLocal.lineTo(-R_tile, -blockLength + t);
-        tileShapeLocal.lineTo(R_tile, -blockLength + t);
-        tileShapeLocal.lineTo(R_tile, 0);
-        tileShapeLocal.lineTo(-R_tile, 0);
-
-        wallShapeLocal.moveTo(-R_base, 0);
-        wallShapeLocal.lineTo(-R_base, -blockLength);
-        wallShapeLocal.lineTo(R_base, -blockLength);
-        wallShapeLocal.lineTo(R_base, 0);
-        wallShapeLocal.lineTo(R_tile, 0);
-        wallShapeLocal.lineTo(R_tile, -blockLength + t);
-        wallShapeLocal.lineTo(-R_tile, -blockLength + t);
-        wallShapeLocal.lineTo(-R_tile, 0);
-        wallShapeLocal.lineTo(-R_base, 0);
-      }
+      wallShapeLocal.moveTo(-R_base * zMult, 0);
+      wallShapeLocal.lineTo(-R_base * zMult, -blockLength * zMult);
+      wallShapeLocal.lineTo(R_base * zMult, -blockLength * zMult);
+      wallShapeLocal.lineTo(R_base * zMult, 0);
+      wallShapeLocal.lineTo(R_tile * zMult, 0);
+      wallShapeLocal.lineTo(R_tile * zMult, (-blockLength + t) * zMult);
+      wallShapeLocal.lineTo(-R_tile * zMult, (-blockLength + t) * zMult);
+      wallShapeLocal.lineTo(-R_tile * zMult, 0);
+      wallShapeLocal.lineTo(-R_base * zMult, 0);
     }
 
     baseGeo = new ExtrudeGeometry(baseShapeLocal, {
@@ -186,18 +150,20 @@
     tileGeo.rotateX(-Math.PI / 2);
     tileGeo.translate(0, floorDepth, 0);
 
-    leftWallGeo = new ExtrudeGeometry(wallShapeLocal, {
+    wallGeo = new ExtrudeGeometry(wallShapeLocal, {
       depth: h - floorDepth,
       steps: 1,
       bevelEnabled: false,
     });
-    leftWallGeo.rotateX(-Math.PI / 2);
-    leftWallGeo.translate(0, floorDepth, 0);
+    wallGeo.rotateX(-Math.PI / 2);
+    wallGeo.translate(0, floorDepth, 0);
 
-    rightWallGeo = null;
-    backWallGeo = null;
-
-    previousGeos = [baseGeo, tileGeo, leftWallGeo].filter(Boolean);
+    previousGeos = [baseGeo, tileGeo, wallGeo].filter(Boolean);
+    meshes = [
+      { geo: baseGeo, color: "#888888" },
+      { geo: tileGeo, color: "#567D46" },
+      { geo: wallGeo, color: "#8B5A2B" },
+    ];
   }
 
   function disposeGeometries() {
@@ -246,24 +212,25 @@
       z: -r * Math.sin(angle) // Note: shape.y maps to world.-z in our rotateX(-PI/2) convention
     });
 
+    const zMult = type === "start" ? -1 : 1;
+
     if (shape === "square") {
-      if (type === "start") {
-        addBox(-R_base, R_base, -blockLength, 0, y0_base, y1_base); // base
-        addBox(-R_tile, R_tile, -blockLength + t, 0, y0_tile, y1_tile); // tile
-        addBox(-R_base, -R_tile, -blockLength, 0, y0_wall, y1_wall); // left wall
-        addBox(R_tile, R_base, -blockLength, 0, y0_wall, y1_wall); // right wall
-        addBox(-R_tile, R_tile, -blockLength, -blockLength + t, y0_wall, y1_wall); // back wall
-      } else {
-        addBox(-R_base, R_base, 0, blockLength, y0_base, y1_base); // base
-        addBox(-R_tile, R_tile, 0, blockLength - t, y0_tile, y1_tile); // tile
-        addBox(-R_base, -R_tile, 0, blockLength, y0_wall, y1_wall); // left wall
-        addBox(R_tile, R_base, 0, blockLength, y0_wall, y1_wall); // right wall
-        addBox(-R_tile, R_tile, blockLength - t, blockLength, y0_wall, y1_wall); // back wall
-      }
+      const z0 = Math.min(0, blockLength * zMult);
+      const z1 = Math.max(0, blockLength * zMult);
+      const zTile0 = Math.min(0, (blockLength - t) * zMult);
+      const zTile1 = Math.max(0, (blockLength - t) * zMult);
+      const zBack0 = zMult === -1 ? -blockLength : blockLength - t;
+      const zBack1 = zMult === -1 ? -blockLength + t : blockLength;
+
+      addBox(-R_base, R_base, z0, z1, y0_base, y1_base); // base
+      addBox(-R_tile, R_tile, zTile0, zTile1, y0_tile, y1_tile); // tile
+      addBox(-R_base, -R_tile, z0, z1, y0_wall, y1_wall); // left wall
+      addBox(R_tile, R_base, z0, z1, y0_wall, y1_wall); // right wall
+      addBox(-R_tile, R_tile, zBack0, zBack1, y0_wall, y1_wall); // back wall
     } else if (shape === "rounded") {
       const numSegments = 12;
       const angleStart = type === "start" ? 0 : Math.PI;
-      const angleEnd = type === "start" ? Math.PI : 2 * Math.PI;
+      const angleEnd = angleStart + Math.PI;
       const angleStep = (angleEnd - angleStart) / numSegments;
 
       for (let i = 0; i < numSegments; i++) {
@@ -288,31 +255,11 @@
 {#if baseGeo}
   <RigidBody type="fixed">
     <T.Group {position} rotation={[euler.x, euler.y, euler.z]}>
-      {#if baseGeo}
-        <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#888888" />
+      {#each meshes as {geo, color}}
+        <T.Mesh geometry={geo} castShadow receiveShadow>
+          <T.MeshStandardMaterial {color} />
         </T.Mesh>
-      {/if}
-      {#if tileGeo}
-        <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#567D46" />
-        </T.Mesh>
-      {/if}
-      {#if leftWallGeo}
-        <T.Mesh geometry={leftWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      {/if}
-      {#if rightWallGeo}
-        <T.Mesh geometry={rightWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      {/if}
-      {#if backWallGeo}
-        <T.Mesh geometry={backWallGeo} castShadow receiveShadow>
-          <T.MeshStandardMaterial color="#8B5A2B" />
-        </T.Mesh>
-      {/if}
+      {/each}
 
       <!-- Explicit precise convex hull colliders -->
       {#each colliders as hullVertices}
