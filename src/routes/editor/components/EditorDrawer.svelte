@@ -34,7 +34,7 @@
         activeEditor.stage.set({
           name: courseData.name || "Untitled Level",
           skybox: courseData.skybox || "default",
-          par: courseData.holes[0].par || 2
+          par: courseData.holes[0].par || 2,
         });
         alert("Level imported successfully!");
       } else if (courseData.controlPoints) {
@@ -75,7 +75,7 @@
               }
               const currentStage = get(activeEditor.stage);
               const currentCPs = get(activeEditor.controlPoints);
-              
+
               const canvas = document.querySelector("canvas");
               const thumbnailDataUrl = canvas.toDataURL("image/png");
               await saveLevel(
@@ -100,15 +100,17 @@
             if (!activeEditor.stage) return;
             const currentStage = get(activeEditor.stage);
             const currentCPs = get(activeEditor.controlPoints);
-            
+
             const zip = new JSZip();
             const courseData = {
               name: currentStage.name || "Untitled Level",
               skybox: currentStage.skybox || "default",
-              difficulty: "Custom",
+              difficulty: "Easy",
               holes: [
                 {
                   par: currentStage.par || 2,
+                  startShape: currentCPs[0]?.shape || "rounded",
+                  endShape: currentCPs[currentCPs.length - 1]?.shape || "rounded",
                   controlPoints: [...currentCPs],
                 },
               ],

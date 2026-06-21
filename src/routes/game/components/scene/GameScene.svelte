@@ -8,8 +8,8 @@
   interactivity();
 </script>
 
-{#each course.holes as hole, i (i)}
+{#each course.holes as level, i (i)}
   {#if i === current}
-    <Stage blocks={hole.blocks} skybox={"default"} on:completed on:hit />
+    <Stage controlPoints={level.holes[0].controlPoints} skybox={level.skybox || "default"} on:completed on:hit />
   {/if}
 {/each}

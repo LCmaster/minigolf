@@ -100,7 +100,7 @@
                   <span>Total par:</span>
                   <span>
                     {course.holes
-                      .map((h) => h.par)
+                      .map((level) => level.holes.reduce((sum, h) => sum + (h.par || 0), 0))
                       .reduce((prev, curr) => prev + curr, 0)}
                   </span>
                 </li>
