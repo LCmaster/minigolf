@@ -24,6 +24,7 @@
 
   export let groundFriction = 0.75;
   export let groundRestitution = 0.75;
+  export let tileColor = "#567D46";
 
   export let wallFriction = 0.75;
   export let wallRestitution = 0.95;
@@ -111,7 +112,7 @@
     <Ground />
 
     <!-- SplineTrack manages its own AutoColliders internally -->
-    <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} />
+    <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} {tileColor} />
 
     <!-- Hole sensor: triggers "completed" when ball enters -->
     <RigidBody type="fixed">

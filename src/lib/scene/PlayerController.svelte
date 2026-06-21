@@ -1,5 +1,5 @@
 <script>
-  import { T } from "@threlte/core";
+  import { T, useFrame } from "@threlte/core";
   import { createEventDispatcher } from "svelte";
   import { Group, Raycaster, Vector2, Vector3 } from "three";
   import ArrowIndicator from "./ArrowIndicator.svelte";
@@ -44,6 +44,19 @@
       dispatch("apply", point);
     }
   }
+
+  useFrame(({ clock }) => {
+    if (selectionSphere) {
+      if (!selected) {
+        // Pulse lightly by 10%
+        const scale = 1 + Math.sin(clock.elapsedTime * 5) * 0.1;
+        selectionSphere.scale.set(scale, scale, scale);
+      } else {
+        // Reset scale when interacting
+        selectionSphere.scale.set(1, 1, 1);
+      }
+    }
+  });
 </script>
 
 <T.Group bind:ref {position}>

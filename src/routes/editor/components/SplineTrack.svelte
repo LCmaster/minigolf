@@ -11,6 +11,8 @@
   import { T } from "@threlte/core";
   import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
   import TrackBlock from "$lib/scene/blocks/TrackBlock.svelte";
+  import WoodMaterial from "$lib/scene/materials/WoodMaterial.svelte";
+  import TileMaterial from "$lib/scene/materials/TileMaterial.svelte";
   import { createMiterGeometry, createSegmentHull, computeMiterPathData } from "$lib/trackGeometry";
 
 
@@ -22,6 +24,8 @@
   export let groundRestitution = 0.5;
   export let wallFriction = 0.5;
   export let wallRestitution = 0.5;
+  
+  export let tileColor = "#567D46";
 
   // No physics needed in both editor and preview modes
   $: noPhysics = isEditor || isPreview;
@@ -198,13 +202,13 @@
         <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
       </T.Mesh>
       <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
+        <TileMaterial color={tileColor} side={DoubleSide} />
       </T.Mesh>
     {/if}
 
     {#each wallMeshes as { geo, color }}
       <T.Mesh geometry={geo} castShadow receiveShadow>
-        <T.MeshStandardMaterial {color} side={DoubleSide} />
+        <WoodMaterial {color} side={DoubleSide} />
       </T.Mesh>
     {/each}
   </T.Group>
@@ -218,7 +222,7 @@
         <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
       </T.Mesh>
       <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#567D46" side={DoubleSide} />
+        <TileMaterial color={tileColor} side={DoubleSide} />
       </T.Mesh>
     </AutoColliders>
     <!-- Per-segment exact convex hull colliders -->
@@ -240,6 +244,7 @@
     {groundRestitution}
     {wallFriction}
     {wallRestitution}
+    {tileColor}
   />
 {/if}
 
@@ -254,5 +259,6 @@
     {groundRestitution}
     {wallFriction}
     {wallRestitution}
+    {tileColor}
   />
 {/if}

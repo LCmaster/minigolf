@@ -4,6 +4,8 @@
   import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";
   import { createMiterGeometry } from "$lib/trackGeometry";
+  import WoodMaterial from "$lib/scene/materials/WoodMaterial.svelte";
+  import TileMaterial from "$lib/scene/materials/TileMaterial.svelte";
 
   export let type = "start"; // 'start' or 'end'
   export let shape = "rounded"; // 'square' or 'rounded'
@@ -16,6 +18,7 @@
   export let groundRestitution = 0.5;
   export let wallFriction = 0.5;
   export let wallRestitution = 0.5;
+  export let tileColor = "#567D46";
 
   // Track cross-section dimensions (must match SplineTrack exactly)
   const w = 2.5; // half inner width
@@ -165,9 +168,9 @@
 
     previousGeos = [baseGeo, tileGeo, wallGeo].filter(Boolean);
     meshes = [
-      { geo: baseGeo, color: "#888888" },
-      { geo: tileGeo, color: "#567D46" },
-      { geo: wallGeo, color: "#8B5A2B" },
+      { geo: baseGeo, color: "#888888", meshType: "base" },
+      { geo: tileGeo, color: tileColor, meshType: "tile" },
+      { geo: wallGeo, color: "#8B5A2B", meshType: "wall" },
     ];
   }
 
@@ -260,9 +263,15 @@
 {#if baseGeo}
   <RigidBody type="fixed">
     <T.Group {position} rotation={[euler.x, euler.y, euler.z]}>
-      {#each meshes as {geo, color}}
+      {#each meshes as {geo, color, meshType}}
         <T.Mesh geometry={geo} castShadow receiveShadow>
-          <T.MeshStandardMaterial {color} />
+          {#if meshType === "wall"}
+            <WoodMaterial {color} />
+          {:else if meshType === "tile"}
+            <TileMaterial {color} />
+          {:else}
+            <T.MeshStandardMaterial {color} />
+          {/if}
         </T.Mesh>
       {/each}
 

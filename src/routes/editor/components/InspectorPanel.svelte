@@ -162,6 +162,10 @@
           <option value="default">Default</option>
         </select>
       </label>
+      <label class="label">
+        <span>Tile Color</span>
+        <input class="input h-10 w-full cursor-pointer p-1" type="color" bind:value={$stage.tileColor} />
+      </label>
 
       <hr class="opacity-50" />
       <h4 class="h4 text-sm uppercase tracking-wider opacity-70">Physics Materials</h4>

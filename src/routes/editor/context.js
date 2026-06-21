@@ -41,6 +41,7 @@ export const setEditor = () => {
       groundRestitution: 0.75,
       wallFriction: 0.75,
       wallRestitution: 0.95,
+      tileColor: "#567D46",
     }),
   };
 
