@@ -5,66 +5,34 @@
   export let current;
 </script>
 
-<table class="font-roboto variant-filled">
-  <thead
-    class="font-bold text-center uppercase drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
-  >
+<table class="w-full max-w-sm mx-auto table-auto border-collapse font-mono text-sm shadow-xl rounded-2xl overflow-hidden bg-surface-900/40 backdrop-blur-md border border-white/10">
+  <thead class="bg-surface-800/80 text-white/70 text-xs tracking-wider uppercase">
     <tr>
-      <td class="px-2">Hole</td>
-      <td class="px-2">Par</td>
-      <td class="px-2">Score</td>
+      <th class="px-4 py-3 text-left">Hole</th>
+      <th class="px-4 py-3 text-center">Par</th>
+      <th class="px-4 py-3 text-right">Score</th>
     </tr>
   </thead>
-  <tbody
-    class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)] border-y-2 border-y-solid border-y-white"
-  >
-    <tr>
-      <td />
-      <td />
-      <td />
-    </tr>
+  <tbody class="divide-y divide-white/10">
     {#each [...new Array(holes.length)] as _, i (i)}
-      <tr class={i === current ? "bg-[#7ACC52] " : ""}>
-        <td
-          class={i === current
-            ? "bg-[#7ACC52] rounded-l-full text-center"
-            : "text-center"}
-        >
-          <span class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
-            {holes[i]}
-          </span>
+      <tr class="transition-colors duration-200 {i === current ? 'bg-primary-500/30' : 'hover:bg-surface-700/30'}">
+        <td class="px-4 py-2 text-left font-bold {i === current ? 'text-primary-400' : 'text-white/80'}">
+          {holes[i]}
         </td>
-        <td class="text-center">
-          <span class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
-            {pars[i]}
-          </span>
+        <td class="px-4 py-2 text-center {i === current ? 'text-white' : 'text-white/60'}">
+          {pars[i]}
         </td>
-        <td
-          class={i === current
-            ? "bg-[#7ACC52] rounded-r-full text-center"
-            : "text-center"}
-        >
-          <span class="drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
-            {shots[i]}
-          </span>
+        <td class="px-4 py-2 text-right font-bold {i === current ? 'text-primary-400' : 'text-white/90'}">
+          {shots[i]}
         </td>
       </tr>
     {/each}
-    <tr>
-      <td />
-      <td />
-      <td />
-    </tr>
   </tbody>
-  <tfoot class=" drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]">
+  <tfoot class="bg-surface-800/80 border-t-2 border-white/20 text-white font-bold">
     <tr>
-      <td class="font-bold text-center">Total</td>
-      <td class="text-center">
-        {pars.reduce((prev, curr) => prev + curr, 0)}
-      </td>
-      <td class="text-center">
-        {shots.reduce((prev, curr) => prev + curr, 0)}
-      </td>
+      <td class="px-4 py-3 text-left uppercase tracking-wider text-xs">Total</td>
+      <td class="px-4 py-3 text-center">{pars.reduce((prev, curr) => prev + curr, 0)}</td>
+      <td class="px-4 py-3 text-right text-primary-400">{shots.reduce((prev, curr) => prev + curr, 0)}</td>
     </tr>
   </tfoot>
 </table>

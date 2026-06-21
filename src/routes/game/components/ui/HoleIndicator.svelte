@@ -4,15 +4,11 @@
   $: display = currentHole + "/" + totalHoleNumber;
 </script>
 
-<div class="flex items-center gap-[0px]">
-  <div
-    class="z-10 w-12 h-12 flex justify-center items-center rounded-lg bg-gradient-to-b from-[#9FF20D] to-[#4C9900] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)]"
-  >
-    <img src="/icons/hole.svg" alt="Ball" />
+<div class="flex items-center bg-surface-900/60 backdrop-blur-md rounded-full border border-white/10 shadow-lg p-1 pr-4 gap-3">
+  <div class="w-10 h-10 flex justify-center items-center rounded-full bg-gradient-to-br from-success-400 to-success-600 shadow-inner">
+    <img src="/icons/hole.svg" alt="Hole" class="w-6 h-6" />
   </div>
-  <div
-    class="z-0 -ml-[2px] p-2 font-mono font-bold text-white rounded-lg rounded-l-none bg-[#4A4A4A] drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]"
-  >
+  <div class="font-mono font-bold text-lg text-white drop-shadow-md">
     {display}
   </div>
 </div>

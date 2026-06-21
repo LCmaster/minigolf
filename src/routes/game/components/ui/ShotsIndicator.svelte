@@ -1,23 +1,19 @@
 <script>
+  import { scale } from "svelte/transition";
+  import { backOut } from "svelte/easing";
   export let shots = 0;
   $: display = shots < 10 ? "0" + shots : shots;
 </script>
 
-<div class="flex items-center gap-[0px]">
-  <div
-    class="z-0 p-2 font-mono font-bold text-white rounded-lg rounded-r-none bg-[#4A4A4A] drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]"
-  >
-    {display}
+<div class="flex items-center bg-surface-900/60 backdrop-blur-md rounded-full border border-white/10 shadow-lg p-1 pl-4 gap-3">
+  <div class="font-mono font-bold text-2xl text-white drop-shadow-md min-w-[2.5rem] text-center">
+    {#key shots}
+      <div in:scale={{ duration: 300, start: 0.5, easing: backOut }} class="inline-block">
+        {display}
+      </div>
+    {/key}
   </div>
-  <div
-    class="z-10 -ml-[2px] w-12 h-12 flex justify-center items-center rounded-lg bg-gradient-to-b from-[#F6A655] to-[#E57300] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)]"
-  >
-    <img src="/icons/ball.svg" alt="Ball" class="ball" />
+  <div class="w-12 h-12 flex justify-center items-center rounded-full bg-gradient-to-br from-warning-400 to-warning-600 shadow-inner">
+    <img src="/icons/ball.svg" alt="Ball" class="w-7 h-7 drop-shadow-md" />
   </div>
 </div>
-
-<style>
-  .ball {
-    height: 32px;
-  }
-</style>

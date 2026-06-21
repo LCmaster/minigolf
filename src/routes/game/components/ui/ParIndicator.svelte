@@ -3,21 +3,12 @@
   $: display = par < 10 ? "0" + par : par;
 </script>
 
-<div class="flex items-center gap-[0px]">
-  <div
-    class="z-10 w-9 h-9 flex flex-col justify-center items-center gap-1 rounded-lg bg-gradient-to-b from-[#9FF20D] to-[#4C9900] shadow-[inset_0_-2px_0_rgba(0,0,0,0.5)]"
-  >
-    <div
-      class="w-4 h-1 rounded-full bg-white drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]"
-    />
-    <div
-      class="w-4 h-1 rounded-full bg-white drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]"
-    />
-    <!-- <img src="/icons/par.svg" alt="Par" /> -->
+<div class="flex items-center bg-surface-900/60 backdrop-blur-md rounded-full border border-white/10 shadow-lg p-1 pr-3 gap-2">
+  <div class="w-8 h-8 flex flex-col justify-center items-center gap-[3px] rounded-full bg-gradient-to-br from-tertiary-400 to-tertiary-600 shadow-inner">
+    <div class="w-3 h-[3px] rounded-full bg-white shadow-sm" />
+    <div class="w-3 h-[3px] rounded-full bg-white shadow-sm" />
   </div>
-  <div
-    class="z-0 -ml-[2px] px-2 py-1 font-mono font-bold text-sm text-white rounded-lg rounded-l-none bg-[#4A4A4A] drop-shadow-[1px_1px_0_rgba(0,0,0,0.5)]"
-  >
-    {display}
+  <div class="font-mono font-bold text-sm text-white drop-shadow-md">
+    PAR {display}
   </div>
 </div>
