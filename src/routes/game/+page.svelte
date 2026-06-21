@@ -3,10 +3,11 @@
   import Button from "$lib/component/Button.svelte";
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
-
   import { page } from "$app/stores";
   import { getLevel } from "$lib/firebase";
   import { onMount } from "svelte";
+  import { scale, fly, fade } from "svelte/transition";
+  import { backOut } from "svelte/easing";
 
   export let data;
   let current = 0;
@@ -44,88 +45,100 @@
   }
 </script>
 
-<div class="w-screen min-h-screen bg-[#C4E9CC]">
-  {#if $course}
+{#if $course}
+  <div class="w-screen min-h-screen bg-[#C4E9CC]">
     <GameScreen on:quit={quitGame} />
-  {:else}
-    <div class="container mx-auto px-4 py-4">
-      <div class="flex justify-between">
+  </div>
+{:else}
+  <div class="w-screen min-h-screen bg-[#C4E9CC] flex flex-col relative overflow-hidden">
+    
+    <!-- Optional background decorative glowing orbs for extra premium feel -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+      <div class="absolute -top-32 -left-32 w-96 h-96 bg-white/20 rounded-full blur-[100px]"></div>
+      <div class="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-white/20 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 z-10 flex flex-col h-full">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-12">
         <button
-          on:click={() => {
-            goto("/");
-          }}
+          on:click={() => goto("/")}
+          class="w-12 h-12 flex justify-center items-center rounded-full bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-lg transition-all hover:-translate-x-1"
         >
-          <img src="/icons/back.svg" alt="Back" />
+          <img src="/icons/back.svg" alt="Back" class="w-6 h-6" />
         </button>
-        <h1
-          class="h1 font-acme text-center text-white drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
-        >
-          Select a course
+        <h1 class="h1 font-black italic tracking-widest text-[#4A4A4A] drop-shadow-[1px_1px_0px_rgba(255,255,255,0.8)]">
+          SELECT COURSE
         </h1>
-        <div />
+        <div class="w-12" /> <!-- Spacer -->
       </div>
 
-      <div
-        class="mt-8 grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr] gap-x-2 gap-y-4"
-      >
-        <div class="flex justify-end items-center">
-          <Button
-            on:click={() => (current = current === 0 ? 0 : current - 1)}
-            class="w-12 h-12"
+      <!-- Carousel Area -->
+      <div class="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full gap-8 relative">
+        
+        <!-- Svelte Key Block for smooth course transitioning -->
+        {#key current}
+          <div 
+            in:fly={{ x: 50, duration: 400, easing: backOut }}
+            out:fade={{ duration: 200 }}
+            class="w-full flex flex-col gap-6 p-8 rounded-3xl bg-white/50 backdrop-blur-lg border border-white/60 shadow-xl"
           >
-            <img src="/icons/arrow_left.svg" alt="Prev" />
-          </Button>
-        </div>
+            <h2 class="text-3xl font-black text-[#4A4A4A] text-center drop-shadow-sm">
+              {data.courses[current].name}
+            </h2>
 
-        {#each data.courses as course, i (i)}
-          {#if i === current}
-            <div
-              class="px-4 py-4 flex flex-col gap-4 rounded-md text-white variant-filled"
-            >
-              <h2
-                class="h2 font-acme text-2xl drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
-              >
-                {course.name}
-              </h2>
-              <div class="bg-zinc-400 w-40 h-36 rounded-md" />
-
-              <ul
-                class="list font-roboto font-bold drop-shadow-[1px_1px_0px_rgba(0,0,0,0.5)]"
-              >
-                <li>
-                  <span>Holes:</span>
-                  <span>{course.holes.length}</span>
-                </li>
-                <li>
-                  <span>Total par:</span>
-                  <span>
-                    {course.holes
-                      .map((level) => level.holes.reduce((sum, h) => sum + (h.par || 0), 0))
-                      .reduce((prev, curr) => prev + curr, 0)}
-                  </span>
-                </li>
-                <li>
-                  <span>Difficulty:</span>
-                  <span>{course.difficulty}</span>
-                </li>
-              </ul>
+            <!-- Polished Thumbnail Placeholder -->
+            <div class="w-full h-48 rounded-2xl bg-black/5 border border-black/5 shadow-inner flex justify-center items-center relative overflow-hidden">
+              <!-- Inner glowing ring -->
+              <div class="absolute w-32 h-32 bg-white/40 rounded-full blur-[40px]"></div>
+              <img src="/icons/hole.svg" class="w-16 h-16 opacity-30 drop-shadow-md" alt="Course Thumbnail" />
             </div>
-          {/if}
-        {/each}
-        <div class="flex justify-start items-center">
-          <Button
-            on:click={() =>
-              (current = current < data.courses.length - 1 ? current + 1 : 0)}
-            class="w-12 h-12"
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-3 gap-2 p-4 bg-white/40 rounded-xl border border-white/30">
+              <div class="flex flex-col items-center">
+                <span class="text-xs text-black/40 uppercase font-bold tracking-wider mb-1">Holes</span>
+                <span class="text-xl font-mono font-bold text-[#7ACC52] drop-shadow-sm">{data.courses[current].holes.length}</span>
+              </div>
+              <div class="flex flex-col items-center border-x border-black/10">
+                <span class="text-xs text-black/40 uppercase font-bold tracking-wider mb-1">Par</span>
+                <span class="text-xl font-mono font-bold text-[#4A4A4A] drop-shadow-sm">
+                  {data.courses[current].holes.map(l => l.holes.reduce((sum, h) => sum + (h.par || 0), 0)).reduce((a, b) => a + b, 0)}
+                </span>
+              </div>
+              <div class="flex flex-col items-center">
+                <span class="text-xs text-black/40 uppercase font-bold tracking-wider mb-1">Difficulty</span>
+                <span class="text-xl font-mono font-bold text-[#F6A655] drop-shadow-sm">{data.courses[current].difficulty || 'Normal'}</span>
+              </div>
+            </div>
+          </div>
+        {/key}
+
+        <!-- Navigation & Play Controls -->
+        <div class="w-full flex items-center justify-between gap-4 mt-4">
+          <button
+            on:click={() => (current = current === 0 ? data.courses.length - 1 : current - 1)}
+            class="w-14 h-14 flex justify-center items-center rounded-full bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
-            <img src="/icons/arrow_right.svg" alt="Next" />
-          </Button>
+            <img src="/icons/arrow_left.svg" alt="Prev" class="w-6 h-6" />
+          </button>
+
+          <button
+            class="flex-1 py-4 rounded-full font-black text-xl tracking-widest bg-gradient-to-b from-[#F6A655] to-[#E57300] text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer border-2 border-white/20"
+            on:click={startGame}
+          >
+            PLAY NOW
+          </button>
+
+          <button
+            on:click={() => (current = current < data.courses.length - 1 ? current + 1 : 0)}
+            class="w-14 h-14 flex justify-center items-center rounded-full bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          >
+            <img src="/icons/arrow_right.svg" alt="Next" class="w-6 h-6" />
+          </button>
         </div>
-        <Button
-          class="col-start-2 w-full from-[#F6A655] to-[#E57300]"
-          on:click={startGame}>Play</Button
-        >
+
       </div>
     </div>
-  {/if}
-</div>
+  </div>
+{/if}

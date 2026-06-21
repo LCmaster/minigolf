@@ -1,86 +1,83 @@
 <script lang="ts">
   import type { SvelteComponent } from "svelte";
-
   import { getModalStore } from "@skeletonlabs/skeleton";
+  import { fade, scale } from "svelte/transition";
+  import { backOut } from "svelte/easing";
 
-  // Props
-  /** Exposes parent props to this component. */
   export let parent: SvelteComponent;
 
   const modalStore = getModalStore();
-
-  // Base Classes
-  const cBase = "relative w-modal-wide shadow-xl rounded-md variant-filled";
-  const cButton =
-    "absolute -top-3 -right-3 z-1 btn-icon variant-filled border-2 border-solid border-white";
-  const cIframe =
-    "bg-black w-full aspect-video rounded-container-token overflow-hidden";
 </script>
 
 {#if $modalStore[0]}
-  <div class="modal-example-form {cBase}">
-    <button class={cButton} on:click={parent.onClose}>✕</button>
-    <div class="px-6 md:px-12 py-4 md:py-8 flex flex-col gap-4 text-white">
-      <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-2xl md:text-4xl">Rules</h2>
-        <p
-          class="font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
-        >
-          Put the ball into the hole with fewer shots possible.
+  <!-- Svelte transition for a bouncy entrance -->
+  <div 
+    in:scale={{ duration: 400, start: 0.9, easing: backOut }} 
+    out:fade={{ duration: 200 }}
+    class="relative w-[90vw] max-w-2xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl rounded-3xl overflow-hidden"
+  >
+    <!-- Header Area -->
+    <div class="relative bg-gradient-to-r from-[#C4E9CC] to-[#A3D9B1] py-4 px-8 text-center border-b border-white/40 shadow-sm">
+      <h2 class="text-3xl font-black italic tracking-widest text-[#4A4A4A] drop-shadow-sm">
+        HOW TO PLAY
+      </h2>
+      <button 
+        class="absolute top-1/2 right-4 -translate-y-1/2 w-10 h-10 flex justify-center items-center rounded-full bg-white/70 hover:bg-[#4A4A4A] hover:text-white border-2 border-white transition-all text-[#4A4A4A] font-bold shadow-md hover:scale-105 active:scale-95" 
+        on:click={parent.onClose}
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="p-6 md:p-10 flex flex-col gap-8 text-[#4A4A4A]">
+      
+      <!-- Rules Section -->
+      <div class="flex flex-col gap-3 bg-white/50 p-5 rounded-2xl border border-white/40 shadow-sm">
+        <h3 class="font-black text-xl text-[#7ACC52] tracking-wider uppercase">Rules</h3>
+        <p class="font-bold text-md leading-relaxed text-[#4A4A4A]/80">
+          Put the ball into the hole with the fewest shots possible!
         </p>
       </div>
-      <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-2xl md:text-4xl">How to play</h2>
-        <ol
-          class="list font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
-        >
-          <li>
-            <span> 1. </span>
-            <span>
-              Click/tap the white translucent ball over the golf ball.
-            </span>
+
+      <!-- Steps Section -->
+      <div class="flex flex-col gap-3 bg-white/50 p-5 rounded-2xl border border-white/40 shadow-sm">
+        <h3 class="font-black text-xl text-[#F6A655] tracking-wider uppercase">Controls</h3>
+        <ol class="flex flex-col gap-3 font-bold text-sm md:text-md text-[#4A4A4A]/80">
+          <li class="flex items-start gap-3">
+            <span class="w-6 h-6 flex justify-center items-center shrink-0 rounded-full bg-[#F6A655] text-white text-xs font-black shadow-inner mt-0.5">1</span>
+            <span>Click/tap the white translucent ball over the golf ball.</span>
           </li>
-          <li>
-            <span> 2. </span>
-            <span>
-              Drag in the oposite direction you want the ball to go.
-            </span>
+          <li class="flex items-start gap-3">
+            <span class="w-6 h-6 flex justify-center items-center shrink-0 rounded-full bg-[#F6A655] text-white text-xs font-black shadow-inner mt-0.5">2</span>
+            <span>Drag in the <strong>opposite</strong> direction you want the ball to go.</span>
           </li>
-          <li>
-            <span> 3. </span>
-            <span>
-              An indicator will appear showing the way the ball will be shot to.
-            </span>
+          <li class="flex items-start gap-3">
+            <span class="w-6 h-6 flex justify-center items-center shrink-0 rounded-full bg-[#F6A655] text-white text-xs font-black shadow-inner mt-0.5">3</span>
+            <span>An indicator will appear showing the trajectory.</span>
           </li>
-          <li>
-            <span> 4. </span>
-            <span>
-              The further you drag the arrow the harder you will hit the ball.
-            </span>
-          </li>
-          <li>
-            <span> 5. </span>
-            <span> Aim for the hole. </span>
+          <li class="flex items-start gap-3">
+            <span class="w-6 h-6 flex justify-center items-center shrink-0 rounded-full bg-[#F6A655] text-white text-xs font-black shadow-inner mt-0.5">4</span>
+            <span>The further you drag, the harder you will hit the ball!</span>
           </li>
         </ol>
       </div>
-      <div class="flex flex-col gap-2">
-        <h2 class="h2 font-acme text-2xl md:text-4xl">Tips</h2>
-        <ul
-          class="list font-roboto text-sm md:text-md tracking-wider md:tracking-normal"
-        >
-          <li>
-            <span> - </span>
-            <span>
-              To cancel the shot just drag the cursor back into the ball.
-            </span>
+
+      <!-- Tips Section -->
+      <div class="flex flex-col gap-3 bg-white/50 p-5 rounded-2xl border border-white/40 shadow-sm">
+        <h3 class="font-black text-xl text-[#E57300] tracking-wider uppercase">Tips</h3>
+        <ul class="flex flex-col gap-2 font-bold text-sm md:text-md text-[#4A4A4A]/80">
+          <li class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full bg-[#E57300] shadow-sm"></span>
+            <span>To cancel a shot, just drag the cursor back into the ball.</span>
           </li>
-          <li>
-            <span> - </span>
-            <span> Use the walls and obstacles to your advantage. </span>
+          <li class="flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full bg-[#E57300] shadow-sm"></span>
+            <span>Use the walls and obstacles to bounce to your advantage.</span>
           </li>
         </ul>
       </div>
+
     </div>
   </div>
 {/if}
