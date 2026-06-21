@@ -12,9 +12,14 @@
   export let rotation = 0; // kept for back-compat but we use tangent now
   export let isEditor = false;
 
+  export let groundFriction = 0.5;
+  export let groundRestitution = 0.5;
+  export let wallFriction = 0.5;
+  export let wallRestitution = 0.5;
+
   // Track cross-section dimensions (must match SplineTrack exactly)
   const w = 2.5; // half inner width
-  const t = 0.2; // wall thickness
+  const t = 0.5; // wall thickness
   const h = 0.5; // wall height (from top surface downward)
   const floorDepth = 0.1;
   const blockLength = 2.7; // half of totalWidth, how far the cap extends
@@ -263,7 +268,7 @@
 
       <!-- Explicit precise convex hull colliders -->
       {#each colliders as hullVertices}
-        <Collider shape="convexHull" args={[hullVertices]} />
+        <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} />
       {/each}
 
       <!-- Indicators -->

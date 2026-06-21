@@ -18,6 +18,11 @@
   export let isEditor = false;
   export let isPreview = false;
 
+  export let groundFriction = 0.5;
+  export let groundRestitution = 0.5;
+  export let wallFriction = 0.5;
+  export let wallRestitution = 0.5;
+
   // No physics needed in both editor and preview modes
   $: noPhysics = isEditor || isPreview;
 
@@ -29,7 +34,7 @@
   const baseShape = (() => {
     const s = new Shape();
     const w = 2.5;
-    const t = 0.2;
+    const t = 0.5;
     s.moveTo(0, -w - t);
     s.lineTo(0, w + t);
     s.lineTo(-0.1, w + t);
@@ -55,7 +60,7 @@
     const s = new Shape();
     const w = 2.5;
     const h = 0.5;
-    const t = 0.2;
+    const t = 0.5;
     // Left wall
     s.moveTo(-0.1, w);
     s.lineTo(-0.1, w + t);
@@ -69,7 +74,7 @@
     const s = new Shape();
     const w = 2.5;
     const h = 0.5;
-    const t = 0.2;
+    const t = 0.5;
     s.moveTo(-0.1, -w - t);
     s.lineTo(-0.1, -w);
     s.lineTo(-h, -w);
@@ -208,7 +213,7 @@
   {#if !noPhysics}
   <RigidBody type="fixed">
     <!-- Floor colliders: single trimesh for seamless rolling -->
-    <AutoColliders shape="trimesh">
+    <AutoColliders shape="trimesh" friction={groundFriction} restitution={groundRestitution}>
       <T.Mesh geometry={baseGeo} castShadow receiveShadow>
         <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
       </T.Mesh>
@@ -218,7 +223,7 @@
     </AutoColliders>
     <!-- Per-segment exact convex hull colliders -->
     {#each colliders as hullVertices}
-      <Collider shape="convexHull" args={[hullVertices]} />
+      <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} />
     {/each}
   </RigidBody>
   {/if}
@@ -231,6 +236,10 @@
     position={startPos}
     tangent={startTangent}
     isEditor={noPhysics}
+    {groundFriction}
+    {groundRestitution}
+    {wallFriction}
+    {wallRestitution}
   />
 {/if}
 
@@ -241,5 +250,9 @@
     position={endPos}
     tangent={endTangent}
     isEditor={noPhysics}
+    {groundFriction}
+    {groundRestitution}
+    {wallFriction}
+    {wallRestitution}
   />
 {/if}

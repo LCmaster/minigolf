@@ -111,7 +111,7 @@
     <Ground />
 
     <!-- SplineTrack manages its own AutoColliders internally -->
-    <SplineTrack {controlPoints} />
+    <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} />
 
     <!-- Hole sensor: triggers "completed" when ball enters -->
     <RigidBody type="fixed">
