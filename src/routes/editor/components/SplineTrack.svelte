@@ -5,7 +5,6 @@
     Matrix4,
     Quaternion,
     Euler,
-    DoubleSide,
   } from "three";
   import { onDestroy } from "svelte";
   import { T } from "@threlte/core";
@@ -51,11 +50,11 @@
   const tileShape = (() => {
     const s = new Shape();
     const w = 2.5;
-    s.moveTo(-0.1, -w);
-    s.lineTo(-0.1, w);
-    s.lineTo(-0.12, w);
-    s.lineTo(-0.12, -w);
+    s.moveTo(-0.1, w);
     s.lineTo(-0.1, -w);
+    s.lineTo(-0.12, -w);
+    s.lineTo(-0.12, w);
+    s.lineTo(-0.1, w);
     return s;
   })();
 
@@ -198,17 +197,17 @@
   <T.Group>
     <!-- Render floor visual meshes only if physics is disabled (to avoid duplicating AutoColliders rendering) -->
     {#if noPhysics}
-      <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
+      <T.Mesh geometry={baseGeo} receiveShadow>
+        <T.MeshStandardMaterial color="#888888" />
       </T.Mesh>
-      <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-        <TileMaterial color={tileColor} side={DoubleSide} />
+      <T.Mesh geometry={tileGeo} receiveShadow>
+        <TileMaterial color={tileColor} />
       </T.Mesh>
     {/if}
 
     {#each wallMeshes as { geo, color }}
       <T.Mesh geometry={geo} castShadow receiveShadow>
-        <WoodMaterial {color} side={DoubleSide} />
+        <WoodMaterial {color} />
       </T.Mesh>
     {/each}
   </T.Group>
@@ -218,11 +217,11 @@
   <RigidBody type="fixed">
     <!-- Floor colliders: single trimesh for seamless rolling -->
     <AutoColliders shape="trimesh" friction={groundFriction} restitution={groundRestitution}>
-      <T.Mesh geometry={baseGeo} castShadow receiveShadow>
-        <T.MeshStandardMaterial color="#888888" side={DoubleSide} />
+      <T.Mesh geometry={baseGeo} receiveShadow>
+        <T.MeshStandardMaterial color="#888888" />
       </T.Mesh>
-      <T.Mesh geometry={tileGeo} castShadow receiveShadow>
-        <TileMaterial color={tileColor} side={DoubleSide} />
+      <T.Mesh geometry={tileGeo} receiveShadow>
+        <TileMaterial color={tileColor} />
       </T.Mesh>
     </AutoColliders>
     <!-- Per-segment exact convex hull colliders -->

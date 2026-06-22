@@ -102,62 +102,116 @@ export function createMiterGeometry(shape, pointsOrPathData) {
     pathData = pointsOrPathData;
   }
 
-  const shapePoints = shape.getPoints();
-  const vertexCount = shapePoints.length * pathData.length;
-  const positions = new Float32Array(vertexCount * 3);
-  const uvs = new Float32Array(vertexCount * 2);
-  const indices = [];
+  let shapePoints = shape.getPoints();
 
-  for (let i = 0; i < pathData.length; i++) {
-    const { p, U, R, miterScaleX, pathDist } = pathData[i];
-
-    for (let j = 0; j < shapePoints.length; j++) {
-      const sp = shapePoints[j];
-      // Shape X maps to UP, Shape Y maps to RIGHT
-      const pos = new Vector3()
-        .copy(p)
-        .addScaledVector(U, -sp.x)
-        .addScaledVector(R, -sp.y * miterScaleX);
-
-      const offset = (i * shapePoints.length + j) * 3;
-      positions[offset] = pos.x;
-      positions[offset + 1] = pos.y;
-      positions[offset + 2] = pos.z;
-
-      const uvOffset = (i * shapePoints.length + j) * 2;
-      uvs[uvOffset] = j / (shapePoints.length - 1 || 1);
-      uvs[uvOffset + 1] = pathDist;
-    }
+  // Force all shapes to be Counter-Clockwise (CCW)
+  // This guarantees our mathematical normal (-dy * U + dx * R) always points strictly outward.
+  let area = 0;
+  for (let j = 0; j < shapePoints.length; j++) {
+    const p1 = shapePoints[j];
+    const p2 = shapePoints[(j + 1) % shapePoints.length];
+    area += (p2.x - p1.x) * (p2.y + p1.y);
+  }
+  if (area > 0) {
+    // Area > 0 means Clockwise in standard 2D coords
+    shapePoints = shapePoints.slice().reverse();
   }
 
-  for (let i = 0; i < pathData.length - 1; i++) {
-    for (let j = 0; j < shapePoints.length - 1; j++) {
-      const a = i * shapePoints.length + j;
-      const b = i * shapePoints.length + j + 1;
-      const c = (i + 1) * shapePoints.length + j;
-      const d = (i + 1) * shapePoints.length + j + 1;
+  const numQuadsPath = pathData.length - 1;
+  const numQuadsShape = shapePoints.length - 1;
+  const vertexCount = numQuadsPath * numQuadsShape * 6;
 
-      indices.push(a, b, c);
-      indices.push(c, b, d);
+  const positions = new Float32Array(vertexCount * 3);
+  const normals = new Float32Array(vertexCount * 3);
+  const uvs = new Float32Array(vertexCount * 2);
+
+  let offset = 0;
+
+  for (let i = 0; i < numQuadsPath; i++) {
+    const pd0 = pathData[i];
+    const pd1 = pathData[i + 1];
+
+    for (let j = 0; j < numQuadsShape; j++) {
+      const sp0 = shapePoints[j];
+      const sp1 = shapePoints[j + 1];
+
+      let dx = sp1.x - sp0.x;
+      let dy = sp1.y - sp0.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) {
+        dx /= len;
+        dy /= len;
+      }
+
+      // Normal formula for CCW mapping: -dy * U + dx * R
+      const n0 = new Vector3()
+        .copy(pd0.U).multiplyScalar(-dy)
+        .addScaledVector(pd0.R, dx)
+        .normalize();
+
+      const n1 = new Vector3()
+        .copy(pd1.U).multiplyScalar(-dy)
+        .addScaledVector(pd1.R, dx)
+        .normalize();
+
+      // Compute the 4 vertices of the quad
+      const pA = new Vector3().copy(pd0.p).addScaledVector(pd0.U, -sp0.x).addScaledVector(pd0.R, -sp0.y * pd0.miterScaleX);
+      const pB = new Vector3().copy(pd0.p).addScaledVector(pd0.U, -sp1.x).addScaledVector(pd0.R, -sp1.y * pd0.miterScaleX);
+      const pC = new Vector3().copy(pd1.p).addScaledVector(pd1.U, -sp0.x).addScaledVector(pd1.R, -sp0.y * pd1.miterScaleX);
+      const pD = new Vector3().copy(pd1.p).addScaledVector(pd1.U, -sp1.x).addScaledVector(pd1.R, -sp1.y * pd1.miterScaleX);
+
+      const uvA_x = j / numQuadsShape;
+      const uvB_x = (j + 1) / numQuadsShape;
+      const uvA_y = pd0.pathDist;
+      const uvC_y = pd1.pathDist;
+
+      // Triangle 1: A, B, C
+      positions.set([pA.x, pA.y, pA.z], offset * 3);
+      normals.set([n0.x, n0.y, n0.z], offset * 3);
+      uvs.set([uvA_x, uvA_y], offset * 2);
+      offset++;
+
+      positions.set([pB.x, pB.y, pB.z], offset * 3);
+      normals.set([n0.x, n0.y, n0.z], offset * 3);
+      uvs.set([uvB_x, uvA_y], offset * 2);
+      offset++;
+
+      positions.set([pC.x, pC.y, pC.z], offset * 3);
+      normals.set([n1.x, n1.y, n1.z], offset * 3);
+      uvs.set([uvA_x, uvC_y], offset * 2);
+      offset++;
+
+      // Triangle 2: C, B, D
+      positions.set([pC.x, pC.y, pC.z], offset * 3);
+      normals.set([n1.x, n1.y, n1.z], offset * 3);
+      uvs.set([uvA_x, uvC_y], offset * 2);
+      offset++;
+
+      positions.set([pB.x, pB.y, pB.z], offset * 3);
+      normals.set([n0.x, n0.y, n0.z], offset * 3);
+      uvs.set([uvB_x, uvA_y], offset * 2);
+      offset++;
+
+      positions.set([pD.x, pD.y, pD.z], offset * 3);
+      normals.set([n1.x, n1.y, n1.z], offset * 3);
+      uvs.set([uvB_x, uvC_y], offset * 2);
+      offset++;
     }
   }
 
   const geo = new BufferGeometry();
   geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setAttribute("normal", new Float32BufferAttribute(normals, 3));
   geo.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
-  geo.setIndex(indices);
-  const nonIndexedGeo = geo.toNonIndexed();
-  nonIndexedGeo.computeVertexNormals();
 
   // Rapier's trimesh collider builder strictly requires an index buffer
-  const positionCount = nonIndexedGeo.attributes.position.count;
-  const newIndices = new Uint32Array(positionCount);
-  for (let i = 0; i < positionCount; i++) {
+  const newIndices = new Uint32Array(vertexCount);
+  for (let i = 0; i < vertexCount; i++) {
     newIndices[i] = i;
   }
-  nonIndexedGeo.setIndex(new BufferAttribute(newIndices, 1));
+  geo.setIndex(new BufferAttribute(newIndices, 1));
 
-  return nonIndexedGeo;
+  return geo;
 }
 
 /**
