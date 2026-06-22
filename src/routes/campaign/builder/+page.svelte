@@ -1,7 +1,10 @@
 <script>
+  import JSZip from "jszip";
   import { user, getMyLevels, saveCampaign } from "$lib/firebase";
   import { goto } from "$app/navigation";
   import { themeOptions } from "$lib/scene/themes";
+
+  let fileInput;
 
   let levels = [];
   let playlist = [];
@@ -44,6 +47,47 @@
     const newPlaylist = [...playlist];
     [newPlaylist[index + 1], newPlaylist[index]] = [newPlaylist[index], newPlaylist[index + 1]];
     playlist = newPlaylist;
+  }
+
+  async function handleImport(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+      try {
+        const zip = new JSZip();
+        const loadedZip = await zip.loadAsync(file);
+        const configJson = await loadedZip.file("config.json").async("string");
+        const courseData = JSON.parse(configJson);
+
+        if (courseData.holes && courseData.holes.length > 0) {
+          // Wrap it in a structure compatible with our playlist
+          const importedLevel = {
+            name: courseData.name || "Imported Level",
+            par: courseData.holes[0].par || 2,
+            holes: courseData.holes,
+            thumbnailUrl: null // Local zip won't have a Firebase thumbnail
+          };
+          addToPlaylist(importedLevel);
+        } else if (courseData.controlPoints) {
+          // Fallback for older exports that only had controlPoints
+          const importedLevel = {
+            name: courseData.name || "Imported Level",
+            par: 2,
+            holes: [{ par: 2, controlPoints: courseData.controlPoints, blocks: [] }],
+            thumbnailUrl: null
+          };
+          addToPlaylist(importedLevel);
+        } else {
+          throw new Error("Invalid course data format.");
+        }
+      } catch (e) {
+        console.error(e);
+        alert(`Failed to import level from ZIP: ${file.name}`);
+      }
+    }
+    
+    event.target.value = "";
   }
 
   async function handleSave() {
@@ -98,8 +142,25 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
     <!-- Left Column: Available Levels -->
     <div class="card p-4 flex flex-col gap-4 bg-surface-800">
-      <h2 class="h2">Your Base Levels</h2>
-      <p class="opacity-75">Select single-hole levels to add to your campaign.</p>
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="h2">Your Base Levels</h2>
+          <p class="opacity-75">Select single-hole levels to add to your campaign.</p>
+        </div>
+        <div>
+          <input
+            type="file"
+            accept=".zip"
+            multiple
+            style="display: none;"
+            bind:this={fileInput}
+            on:change={handleImport}
+          />
+          <button class="btn variant-filled-secondary" on:click={() => fileInput.click()}>
+            Import ZIP
+          </button>
+        </div>
+      </div>
       
       {#if loading}
         <p>Loading...</p>
@@ -155,7 +216,11 @@
               <div class="flex items-center gap-4">
                 <span class="badge variant-filled-surface w-8 h-8 flex items-center justify-center font-bold text-lg">{i + 1}</span>
                 <div>
-                  <h4 class="h4">{item.name}</h4>
+                  <input 
+                    type="text" 
+                    class="input bg-transparent border-none p-0 h4 font-bold focus:ring-0 w-full" 
+                    bind:value={item.name} 
+                  />
                 </div>
               </div>
               <div class="flex gap-1">
