@@ -1,7 +1,14 @@
 <script>
-  import { Shape, ExtrudeGeometry, CatmullRomCurve3, Vector3, MeshStandardMaterial } from "three";
+  import {
+    Shape,
+    ExtrudeGeometry,
+    CatmullRomCurve3,
+    Vector3,
+    MeshStandardMaterial,
+  } from "three";
+  import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
   import { T } from "@threlte/core";
-  import { AutoColliders } from "@threlte/rapier";
+  import { AutoColliders, RigidBody } from "@threlte/rapier";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
@@ -9,96 +16,144 @@
 
   export let groundMaterial = new MeshStandardMaterial({ color: "#567D46" });
 
-  $: actualRotation = Array.isArray(rotation) ? rotation : [0, Math.PI * rotation, 0];
+  $: actualRotation = Array.isArray(rotation)
+    ? rotation
+    : [0, Math.PI * rotation, 0];
 
-  // 1. Create the Track Cross-Section Profile (Flat floor + Side walls)
-  const trackWidth = 2;
-  const wallHeight = 0.5;
-  const wallThickness = 0.2;
+  $: sharedLoopGeometry = (() => {
+    // 1. Create the Track Cross-Section Profile (Flat floor + Side walls)
+    const trackWidth = 2;
+    const wallHeight = 0.5;
+    const wallThickness = 0.2;
 
-  const shape = new Shape();
-  // Start bottom left
-  shape.moveTo(-trackWidth / 2 - wallThickness, -0.1);
-  // Bottom right
-  shape.lineTo(trackWidth / 2 + wallThickness, -0.1);
-  // Right wall up
-  shape.lineTo(trackWidth / 2 + wallThickness, wallHeight);
-  // Right wall inner
-  shape.lineTo(trackWidth / 2, wallHeight);
-  // Right wall down to floor
-  shape.lineTo(trackWidth / 2, 0);
-  // Floor to left wall
-  shape.lineTo(-trackWidth / 2, 0);
-  // Left wall up
-  shape.lineTo(-trackWidth / 2, wallHeight);
-  // Left wall outer
-  shape.lineTo(-trackWidth / 2 - wallThickness, wallHeight);
-  // Back to start
-  shape.lineTo(-trackWidth / 2 - wallThickness, -0.1);
+    const shape = new Shape();
+    // Start bottom left (thick floor)
+    shape.moveTo(-trackWidth / 2 - wallThickness, -0.5);
+    // Bottom right
+    shape.lineTo(trackWidth / 2 + wallThickness, -0.5);
+    // Right wall up
+    shape.lineTo(trackWidth / 2 + wallThickness, wallHeight);
+    // Right wall inner
+    shape.lineTo(trackWidth / 2, wallHeight);
+    // Right wall down to floor
+    shape.lineTo(trackWidth / 2, 0);
+    // Floor to left wall
+    shape.lineTo(-trackWidth / 2, 0);
+    // Left wall up
+    shape.lineTo(-trackWidth / 2, wallHeight);
+    // Left wall outer
+    shape.lineTo(-trackWidth / 2 - wallThickness, wallHeight);
 
-  // 2. Create the Loop Path
-  // Starts at Z=1 (entrance), loops around, ends at Z=-1 (exit)
-  const loopRadius = 2.0;
-  const loopWidth = 2.5; // Enough X-shift to prevent self-intersection
+    // Note: We DO NOT manually lineTo back to the starting point.
+    // Three.js automatically closes Shapes. Manually returning to the exact
+    // starting point creates a 0-length segment that generates degenerate
+    // triangles when extruded, causing Rapier's trimesh WASM to infinite loop!
 
-  // Create a teardrop loop. 
-  // It enters from Z=3, starts looping at Z=1, hits the top at Z=0, and exits at Z=-2
-  // X shifts continuously to avoid collision.
-  const curve = new CatmullRomCurve3([
-    new Vector3(-loopWidth / 2, 0, 4.0),
-    new Vector3(-loopWidth / 2, 0, 2.0),
-    // enter loop
-    new Vector3(-loopWidth * 0.3, loopRadius * 0.2, 0.5),
-    new Vector3(-loopWidth * 0.1, loopRadius * 1.0, -0.5),
-    // top of loop (upside down)
-    new Vector3(0, loopRadius * 2.0, 0.0),
-    // descending
-    new Vector3(loopWidth * 0.1, loopRadius * 1.0, 1.0),
-    new Vector3(loopWidth * 0.3, loopRadius * 0.2, 0.5),
-    // exit loop
-    new Vector3(loopWidth / 2, 0, -1.0),
-    new Vector3(loopWidth / 2, 0, -3.0),
-  ]);
+    // 2. Create the Loop Path
+    // Starts at Z=1 (entrance), loops around, ends at Z=-1 (exit)
+    const loopRadius = 2.0;
+    const loopWidth = 2.5; // Enough X-shift to prevent self-intersection
 
-  const steps = 64;
+    // Create a perfectly smooth clothoid-like loop curve using math
+    // This prevents CatmullRomCurve3 from pinching the geometry into a solid filled shape
+    const numLoopSegments = 40;
+    const curvePoints = [];
 
-  const frames = {
-    tangents: [],
-    normals: [],
-    binormals: []
-  };
+    // 1. Straight entrance
+    curvePoints.push(new Vector3(-loopWidth / 2, 0, 4.0));
+    curvePoints.push(new Vector3(-loopWidth / 2, 0, 2.0));
+    curvePoints.push(new Vector3(-loopWidth / 2, 0, 0.0));
 
-  for (let i = 0; i <= steps; i++) {
-    const u = i / steps;
-    const t = curve.getTangentAt(u).normalize();
-    frames.tangents.push(t);
+    // 2. Circular loop
+    for (let i = 1; i < numLoopSegments; i++) {
+      const t = i / numLoopSegments; // 0 to 1
+      const angle = t * Math.PI * 2;
 
-    // Force the "right" vector (binormal) to always be mostly along the X axis.
-    // This prevents the track from banking or twisting.
-    const right = new Vector3(1, 0, 0);
-    right.sub(t.clone().multiplyScalar(right.dot(t))).normalize();
-    // The up vector of the track is Right x Tangent
-    const up = new Vector3().crossVectors(right, t).normalize();
+      // Shift X smoothly from -loopWidth/2 to loopWidth/2
+      const x = -loopWidth / 2 + t * loopWidth;
 
-    // ExtrudeGeometry maps shape.x to normal and shape.y to binormal.
-    // Since our shape.x is the track width (horizontal), we push 'right' to normals.
-    // Since our shape.y is the track height (vertical), we push 'up' to binormals.
-    frames.normals.push(right);
-    frames.binormals.push(up);
-  }
+      // Y and Z form a perfect circle
+      const y = (1 - Math.cos(angle)) * loopRadius;
+      const z = -Math.sin(angle) * loopRadius;
 
-  const extrudeSettings = {
-    steps: steps,
-    extrudePath: curve,
-    frames: frames,
-    bevelEnabled: false,
-  };
+      curvePoints.push(new Vector3(x, y, z));
+    }
 
-  const geometry = new ExtrudeGeometry(shape, extrudeSettings);
+    // 3. Straight exit
+    curvePoints.push(new Vector3(loopWidth / 2, 0, 0.0));
+    curvePoints.push(new Vector3(loopWidth / 2, 0, -2.0));
+    curvePoints.push(new Vector3(loopWidth / 2, 0, -4.0));
+
+    // REVERSE the curve points so the tangent goes along +Z instead of -Z
+    // This perfectly aligns with a right-handed coordinate system without flipping axes
+    curvePoints.reverse();
+
+    const curve = new CatmullRomCurve3(curvePoints);
+
+    const steps = 64;
+
+    const frames = {
+      tangents: [],
+      normals: [],
+      binormals: [],
+    };
+
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const t = curve.getTangentAt(u).normalize();
+      frames.tangents.push(t);
+
+      // Force the "right" vector (binormal) to always be mostly along the X axis.
+      // This prevents the track from banking or twisting.
+      const right = new Vector3(1, 0, 0);
+      right.sub(t.clone().multiplyScalar(right.dot(t)));
+
+      // Safety fallback: if the curve tangent is exactly aligned with the X-axis,
+      // the 'right' vector becomes (0,0,0) resulting in NaN upon normalization.
+      if (right.lengthSq() < 0.0001) {
+        right.set(0, 0, 1);
+        right.sub(t.clone().multiplyScalar(right.dot(t)));
+      }
+
+      right.normalize();
+
+      // Since t is now along +Z, t x right = up (+Y)
+      const up = new Vector3().crossVectors(t, right).normalize();
+
+      // No negation needed! Right-handed system matches ExtrudeGeometry expectations perfectly.
+      frames.normals.push(right);
+      frames.binormals.push(up);
+    }
+
+    // Override the curve's computeFrenetFrames so ExtrudeGeometry uses our perfectly stable frames
+    // instead of its default Frenet-Serret frames which twist violently
+    curve.computeFrenetFrames = function () {
+      return frames;
+    };
+
+    const extrudeSettings = {
+      steps: steps,
+      extrudePath: curve,
+      bevelEnabled: false,
+    };
+
+    let geo = new ExtrudeGeometry(shape, extrudeSettings);
+    // Merge the vertices! ExtrudeGeometry generates unmerged polygon soup which crashes Rapier
+    geo = mergeVertices(geo);
+    geo.computeVertexNormals();
+    return geo;
+  })();
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <AutoColliders shape="trimesh">
-    <T.Mesh {geometry} material={groundMaterial} castShadow receiveShadow />
-  </AutoColliders>
+  <RigidBody type="fixed">
+    <AutoColliders shape="trimesh" friction={0.5} restitution={0.2}>
+      <T.Mesh
+        geometry={sharedLoopGeometry}
+        material={groundMaterial}
+        castShadow
+        receiveShadow
+      />
+    </AutoColliders>
+  </RigidBody>
 </T.Group>

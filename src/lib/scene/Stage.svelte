@@ -19,6 +19,7 @@
   import Bumper from "./obstacles/Bumper.svelte";
   import BoostPad from "./obstacles/BoostPad.svelte";
   import RampBlock from "./blocks/RampBlock.svelte";
+  import LoopBlock from "./blocks/LoopBlock.svelte";
   import IcePatch from "./obstacles/IcePatch.svelte";
   import SandTrap from "./obstacles/SandTrap.svelte";
   import WaterHazard from "./obstacles/WaterHazard.svelte";
@@ -146,6 +147,8 @@
             rotation={block.rotation}
             scale={block.scale}
           />
+        {:else if block.type === "loop"}
+          <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
         {:else if block.type === "ice"}
           <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
             on:iceenter={() => player.setDamping(0.0, 0.0)}
