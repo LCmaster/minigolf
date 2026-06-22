@@ -8,12 +8,12 @@
   interactivity();
 </script>
 
-{#each course.holes as level, i (i)}
+{#each course.holes as hole, i (i)}
   {#if i === current}
     <Stage 
-      controlPoints={level.holes[0].controlPoints} 
-      blocks={level.holes[0].blocks || []}
-      theme={level.theme || "clear"} 
+      controlPoints={hole.controlPoints} 
+      blocks={hole.blocks || []}
+      theme={course.theme || "clear"} 
       on:completed 
       on:hit 
     />

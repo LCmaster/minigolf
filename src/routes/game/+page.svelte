@@ -19,16 +19,6 @@
     if (courseId) {
       try {
         const loadedCourse = await getLevel(courseId);
-        
-        // JIT Normalization: Convert flat Firebase holes into nested Game Engine levels
-        if (loadedCourse.holes && !loadedCourse.holes[0].holes) {
-          loadedCourse.holes = loadedCourse.holes.map((hole, index) => ({
-            name: `Hole ${index + 1}`,
-            theme: loadedCourse.theme || "clear",
-            holes: [hole]
-          }));
-        }
-
         $course = loadedCourse;
         $currentHole = 0;
         $shots = loadedCourse.holes.map((_) => 0);
