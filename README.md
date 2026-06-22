@@ -75,6 +75,7 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 
 ## 🗺️ Roadmap & TODOs
 
+### Completed (v1.0.0)
 - [x] Core 3D Game mechanics & Physics
 - [x] Advanced Spline Level Editor
 - [x] Firebase User accounts and Cloud Saves
@@ -83,6 +84,16 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Moving blocks/dynamic obstacles (e.g. Windmill)
 - [x] Environment and Skybox customization
 - [x] Level bundling support (campaigns and 18-hole courses)
+
+### V2 Roadmap
+- [ ] **Community Discovery**: A public "Discover" page to browse and play community-created courses.
+- [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
+- [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
+- [ ] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
+- [ ] **Ambient Music**: Looping acoustic background music for the "Clear" theme.
+- [ ] **Mobile Touch Controls**: Responsive touch-and-drag/joystick controls for mobile and tablets.
+- [ ] **Async Multiplayer**: Turn-based challenges to compete asynchronously on campaigns.
+- [ ] **Real-time Lobbies**: Sync ball positions for up to 4 players simultaneously (no player-collision).
 
 ---
 
