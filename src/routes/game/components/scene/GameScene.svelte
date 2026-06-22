@@ -13,7 +13,7 @@
     <Stage 
       controlPoints={level.holes[0].controlPoints} 
       blocks={level.holes[0].blocks || []}
-      theme={level.theme || level.skybox || "clear"} 
+      theme={level.theme || "clear"} 
       on:completed 
       on:hit 
     />

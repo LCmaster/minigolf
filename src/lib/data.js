@@ -4,7 +4,7 @@ const stage_one = {
   name: "Hole 1",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
 
@@ -30,7 +30,7 @@ const stage_two = {
   name: "Hole 2",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -62,7 +62,7 @@ const stage_three = {
   name: "Hole 3",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -87,7 +87,7 @@ const stage_four = {
   name: "Hole 4",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -129,7 +129,7 @@ const stage_five = {
   name: "Hole 5",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -185,7 +185,7 @@ const stage_six = {
   name: "Hole 6",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -229,7 +229,7 @@ const stage_seven = {
   name: "Hole 7",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -284,7 +284,7 @@ const stage_eight = {
   name: "Hole 8",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: [0, 0, 0] },
   blocks: [
@@ -369,7 +369,7 @@ const stage_nine = {
   name: "Hole 9",
   par: 2,
   environement: {
-    skybox: "default",
+    theme: "clear",
   },
   ground: { shape: "cuboid", position: [0, 0, 0], rotation: 0 },
   blocks: [

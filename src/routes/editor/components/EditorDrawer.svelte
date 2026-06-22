@@ -39,7 +39,7 @@
         }
         activeEditor.stage.set({
           name: courseData.name || "Untitled Level",
-          skybox: courseData.skybox || "default",
+          theme: courseData.theme || courseData.skybox || "clear",
           par: courseData.holes[0].par || 2,
         });
         alert("Level imported successfully!");
@@ -112,7 +112,7 @@
             const zip = new JSZip();
             const courseData = {
               name: currentStage.name || "Untitled Level",
-              skybox: currentStage.skybox || "default",
+              theme: currentStage.theme || "clear",
               difficulty: "Easy",
               holes: [
                 {

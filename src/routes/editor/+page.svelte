@@ -67,7 +67,7 @@
     if (courseId) {
       try {
         const loadedCourse = await getLevel(courseId);
-        // The loadedCourse has `{ name, skybox, holes: [{ par, controlPoints }] }`
+        // The loadedCourse has `{ name, theme, holes: [{ par, controlPoints }] }`
         if (loadedCourse.holes && loadedCourse.holes.length > 0) {
           controlPoints.commit(); // Push current state to history before overwriting
           $controlPoints = loadedCourse.holes[0].controlPoints;
@@ -77,7 +77,7 @@
           }
           $stage = {
             name: loadedCourse.name,
-            theme: loadedCourse.theme || loadedCourse.skybox || "clear",
+            theme: loadedCourse.theme || "clear",
             par: loadedCourse.holes[0].par,
           };
         }
@@ -135,18 +135,8 @@
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
       {:else if $previewing}
-        <Environment
-          path={`/skybox/${$stage.skybox}/`}
-          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-          isBackground={true}
-        />
         <PreviewScene />
       {:else}
-        <Environment
-          path={`/skybox/${$stage.skybox}/`}
-          files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-          isBackground={true}
-        />
         <EditorScene />
       {/if}
     </World>
