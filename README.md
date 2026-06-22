@@ -89,12 +89,12 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [ ] **Community Discovery**: A public "Discover" page to browse and play community-created courses.
 - [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
 - [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
-- [ ] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
-- [ ] **Ambient Music**:
+- [x] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
+- [x] **Ambient Music**:
   - [x] "Clear Day" Theme (Acoustic)
-  - [ ] "Sunset" Theme (Lo-fi / Chillhop)
-  - [ ] "Night" Theme (Jazz / Atmospheric)
-  - [ ] "Vaporwave" Theme (Synthwave / Retrowave)
+  - [x] "Sunset" Theme (Lo-fi / Chillhop)
+  - [x] "Night" Theme (Jazz / Atmospheric)
+  - [x] "Vaporwave" Theme (Synthwave / Retrowave)
 - [ ] **Mobile Touch Controls**: Responsive touch-and-drag/joystick controls for mobile and tablets.
 - [ ] **Async Multiplayer**: Turn-based challenges to compete asynchronously on campaigns.
 - [ ] **Real-time Lobbies**: Sync ball positions for up to 4 players simultaneously (no player-collision).
