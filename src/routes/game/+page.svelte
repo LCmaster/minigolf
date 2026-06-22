@@ -11,12 +11,14 @@
 
   export let data;
   let current = 0;
+  let loading = false;
 
   const { course, current: currentHole, shots } = useGame();
 
   onMount(async () => {
     const courseId = $page.url.searchParams.get("courseId");
     if (courseId) {
+      loading = true;
       try {
         const loadedCourse = await getLevel(courseId);
         $course = loadedCourse;
@@ -24,6 +26,8 @@
         $shots = loadedCourse.holes.map((_) => 0);
       } catch (e) {
         console.error("Failed to load custom course", e);
+      } finally {
+        loading = false;
       }
     }
   });
@@ -45,7 +49,25 @@
   }
 </script>
 
-{#if $course}
+{#if loading}
+  <div class="w-screen min-h-screen bg-[#C4E9CC] flex flex-col justify-center items-center relative overflow-hidden">
+    <!-- Background decorative glowing orbs -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+      <div class="absolute -top-32 -left-32 w-96 h-96 bg-white/20 rounded-full blur-[100px]"></div>
+      <div class="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-white/20 rounded-full blur-[120px]"></div>
+    </div>
+    
+    <div class="z-10 flex flex-col items-center justify-center gap-8 bg-white/40 backdrop-blur-md rounded-3xl p-12 shadow-2xl border border-white/60">
+      <div class="relative w-24 h-24 flex items-center justify-center">
+        <!-- Bouncing Golf Ball -->
+        <div class="absolute w-12 h-12 bg-white rounded-full shadow-lg border border-black/10 animate-bounce z-20"></div>
+        <!-- Shadow -->
+        <div class="absolute bottom-0 w-12 h-3 bg-black/20 rounded-[100%] animate-pulse"></div>
+      </div>
+      <h2 class="text-3xl font-black tracking-widest text-[#4A4A4A] drop-shadow-sm animate-pulse">LOADING CAMPAIGN...</h2>
+    </div>
+  </div>
+{:else if $course}
   <div class="w-screen min-h-screen bg-[#C4E9CC]">
     <GameScreen on:quit={quitGame} />
   </div>
