@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 import { writable } from "svelte/store";
 import {
   PUBLIC_FIREBASE_API_KEY,
@@ -26,7 +25,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
 
 // Svelte auth user store
 export const user = writable(undefined);
@@ -43,18 +41,10 @@ export const user = writable(undefined);
  */
 export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blocks = []) {
   try {
-    // 1. Upload thumbnail
-    let thumbnailUrl = null;
-    try {
-      const thumbnailId = crypto.randomUUID();
-      const storageRef = ref(storage, `thumbnails/${uid}/${thumbnailId}.png`);
-      await uploadString(storageRef, thumbnailDataUrl, 'data_url');
-      thumbnailUrl = await getDownloadURL(storageRef);
-    } catch (uploadError) {
-      console.warn("Thumbnail upload failed, skipping...", uploadError);
-    }
-
-    // 2. Save document to firestore
+    // We now bypass Storage entirely and embed the thumbnail data directly.
+    let thumbnailUrl = thumbnailDataUrl;
+    
+    // Save document to firestore
     const levelsCol = collection(db, "levels");
     const cleanHoles = JSON.parse(JSON.stringify([
       {

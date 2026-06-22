@@ -84,7 +84,15 @@
               const currentBlocks = activeEditor.blocks ? get(activeEditor.blocks) : [];
 
               const canvas = document.querySelector("canvas");
-              const thumbnailDataUrl = canvas.toDataURL("image/png");
+              
+              // Compress the thumbnail down to a tiny 320x180 JPEG to fit in Firestore
+              const destCanvas = document.createElement("canvas");
+              destCanvas.width = 320;
+              destCanvas.height = 180;
+              const ctx = destCanvas.getContext("2d");
+              ctx.drawImage(canvas, 0, 0, 320, 180);
+              const thumbnailDataUrl = destCanvas.toDataURL("image/jpeg", 0.7);
+
               await saveLevel(
                 $user.uid,
                 currentStage,
