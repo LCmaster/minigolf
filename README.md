@@ -79,10 +79,10 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Advanced Spline Level Editor
 - [x] Firebase User accounts and Cloud Saves
 - [x] Level settings (Level Name, Par, Physics Materials)
-- [ ] Block creator (custom obstacles)
+- [x] Block creator (custom obstacles)
+- [x] Moving blocks/dynamic obstacles (e.g. Windmill)
 - [ ] Environment and Skybox customization
 - [ ] Level bundling support (campaigns and 18-hole courses)
-- [ ] Moving blocks/dynamic obstacles
 
 ---
 
