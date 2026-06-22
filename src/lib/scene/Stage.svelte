@@ -19,6 +19,12 @@
   import Bumper from "./obstacles/Bumper.svelte";
   import BoostPad from "./obstacles/BoostPad.svelte";
   import RampBlock from "./blocks/RampBlock.svelte";
+  import LoopBlock from "./blocks/LoopBlock.svelte";
+  import HalfPipeBlock from "./blocks/HalfPipeBlock.svelte";
+  import IcePatch from "./obstacles/IcePatch.svelte";
+  import SandTrap from "./obstacles/SandTrap.svelte";
+  import WaterHazard from "./obstacles/WaterHazard.svelte";
+  import PlinkoPegs from "./obstacles/PlinkoPegs.svelte";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
@@ -142,6 +148,27 @@
             rotation={block.rotation}
             scale={block.scale}
           />
+        {:else if block.type === "loop"}
+          <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
+        {:else if block.type === "halfpipe"}
+          <HalfPipeBlock position={block.position} rotation={block.rotation} scale={block.scale} />
+        {:else if block.type === "ice"}
+          <IcePatch position={block.position} rotation={block.rotation} scale={block.scale} />
+        {:else if block.type === "sand"}
+          <SandTrap position={block.position} rotation={block.rotation} scale={block.scale} />
+        {:else if block.type === "water"}
+          <!-- Catch waterhazard event from WaterHazard -->
+          <WaterHazard position={block.position} rotation={block.rotation} scale={block.scale} 
+            on:waterhazard={() => {
+              const pos = [...respawnPoints[respawnPoints.length - 1]];
+              pos[1] += 0.05;
+              player.moveTo(pos);
+              playerPosition = pos;
+              canSelectPlayer = true;
+            }} 
+          />
+        {:else if block.type === "plinko"}
+          <PlinkoPegs position={block.position} rotation={block.rotation} scale={block.scale} />
         {/if}
       {/each}
     {/if}

@@ -21,11 +21,17 @@
 
   let showingAssets = false;
 
-  const availableTypes = ["ramp", "bumper", "boost"];
+  const availableTypes = ["ramp", "bumper", "boost", "loop", "halfpipe", "ice", "sand", "water", "plinko"];
   const availableBlocks = [
     { type: "ramp", variation: 1 },
     { type: "bumper", variation: 1 },
     { type: "boost", variation: 1 },
+    { type: "loop", variation: 1 },
+    { type: "halfpipe", variation: 1 },
+    { type: "ice", variation: 1 },
+    { type: "sand", variation: 1 },
+    { type: "water", variation: 1 },
+    { type: "plinko", variation: 1 },
   ];
 
   function addBlock(detail) {

@@ -1,0 +1,32 @@
+# Minigolf Obstacle Ideas
+
+Here is a list of fun and interactive obstacles we could build for the minigolf game! Since we are now using programmatic Svelte components and Rapier physics, the possibilities for dynamic and moving obstacles are huge.
+
+### 🎡 Moving & Timing Obstacles
+- **Windmill:** The classic minigolf obstacle. A rotating set of blades blocking the path. The player must time their shot to pass through the gap.
+- **Pendulum Axe / Swinging Mallet:** A swinging pendulum that sweeps across the track back and forth, knocking the ball away if it gets hit.
+- **Drawbridge / Teeter-Totter:** A balanced platform that tips based on the weight (or position) of the ball, requiring enough speed to cross before it drops.
+- **Sliding Doors:** Doors that repeatedly open and close, requiring precise timing.
+
+### 🌪️ Physics & Force Obstacles
+- **Fan / Wind Tunnel:** A blowing fan that applies a constant sideways or backwards force to the ball while it's in a specific zone.
+- **Black Hole / Gravity Well:** A slight depression in the track (or an invisible physics attractor) that continuously pulls the ball toward its center.
+- **Conveyor Belt:** A moving floor segment that carries the ball forward, backward, or sideways.
+
+### 💥 Interactive & Interactive Elements
+- **Springboard / Jump Pad:** Similar to the boost pad, but it applies an upward impulse (`+Y`), launching the ball over gaps or walls into a different section of the track.
+- **Teleporter / Warp Pipe:** If the ball enters this hole, it instantly respawns at a linked exit point with its momentum preserved.
+- **Pinball Flippers:** Player-controlled (or auto-firing) flippers that smack the ball away.
+- **Breakable Glass/Blocks:** Walls or blocks that shatter when hit with enough speed, allowing access to secret shortcuts.
+
+### 🧩 Terrain & Shape Obstacles
+- **Sand Traps:** A zone with extremely high linear and angular damping (`friction`), stopping the ball almost immediately.
+- **Ice Patch:** A zone with zero friction where the ball slides infinitely until it hits a wall.
+- **Loop-de-Loop:** A 360-degree vertical loop that requires high speed to traverse (using continuous collision detection).
+- **Half-Pipe / Funnel:** A curved bowl where the ball circles the drain before dropping through a hole.
+
+### 👾 Hazards
+- **Water Hazard:** If the ball falls in, it respawns at the previous stroke position with a +1 penalty stroke.
+- **Pillars / Pegs (Plinko):** A dense cluster of cylindrical pegs that randomize the ball's bouncing path.
+
+Let me know which ones sound the most fun to build next! We have the physics engine set up perfectly for things like Windmills or Jump Pads.
