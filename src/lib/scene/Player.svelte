@@ -2,6 +2,7 @@
   import { Group, Vector3, DataTexture, RGBAFormat, NearestFilter } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { sfx } from "$lib/stores/audio";
 
   import { createEventDispatcher } from "svelte";
 
@@ -39,6 +40,11 @@
       .setY(0);
 
     body.applyImpulse(forceVector, true);
+    
+    // Play putt sound based on hit magnitude
+    const magnitude = forceVector.length();
+    const volume = Math.min(Math.max(magnitude / 20, 0.2), 1.0);
+    sfx.play("/sounds/putt.mp3", volume);
   }
 
   export function moveTo(pos) {
@@ -73,6 +79,14 @@
   }
 
   let framesAwake = 0;
+  let currentSpeed = 0;
+
+  function handleCollision() {
+    if (currentSpeed > 1.0) {
+      const volume = Math.min(currentSpeed / 10, 1.0);
+      sfx.play("/sounds/bounce.mp3", volume);
+    }
+  }
 
   useFrame(() => {
     if (!body || !enabled) return;
@@ -86,19 +100,24 @@
     if (body.isMoving()) {
       framesAwake++;
       const linvel = body.linvel();
-      const speed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
+      currentSpeed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
+      
+      sfx.setRollingVolume(currentSpeed);
 
       // Force stop if the ball is crawling very slowly, but give it a few frames to start falling first
-      if (framesAwake > 5 && speed < 0.1 && Math.abs(linvel.y) < 0.1) {
+      if (framesAwake > 5 && currentSpeed < 0.1 && Math.abs(linvel.y) < 0.1) {
         body.setLinvel({ x: 0, y: 0, z: 0 }, true);
         body.setAngvel({ x: 0, y: 0, z: 0 }, true);
         body.sleep();
+        sfx.setRollingVolume(0);
       } else {
         updatePosition();
         dispatch("moved", position);
       }
     } else {
       framesAwake = 0;
+      currentSpeed = 0;
+      sfx.setRollingVolume(0);
     }
   });
 </script>
@@ -112,7 +131,7 @@
     bind:rigidBody={body}
     on:sleep={() => dispatch("stopped", position)}
   >
-    <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
+    <AutoColliders shape={"ball"} {friction} {restitution} mass={1} on:collisionenter={handleCollision}>
       <T.Mesh bind:ref={mesh}>
         <T.IcosahedronGeometry args={[size, 4]} />
         <T.MeshToonMaterial {color} gradientMap={gradientMap} />
