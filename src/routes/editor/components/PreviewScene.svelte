@@ -1,7 +1,8 @@
 <script>
   import { T } from "@threlte/core";
-  import { OrbitControls, Environment, Suspense } from "@threlte/extras";
+  import { OrbitControls, Suspense } from "@threlte/extras";
   import { useEditor } from "../context";
+  import EnvironmentSettings from "$lib/scene/EnvironmentSettings.svelte";
   import { Vector3 } from "three";
   import SplineTrack from "./SplineTrack.svelte";
   import Bumper from "$lib/scene/obstacles/Bumper.svelte";
@@ -39,14 +40,7 @@
   $: camStart = [centroid[0], spread * 0.7, centroid[2] + spread * 0.8];
 </script>
 
-<T.AmbientLight intensity={0.6} />
-<T.DirectionalLight
-  position={[20, 30, 20]}
-  intensity={2.5}
-  castShadow
-  shadow.mapSize.width={2048}
-  shadow.mapSize.height={2048}
-/>
+<EnvironmentSettings theme={$stage.theme || 'clear'} />
 
 <T.PerspectiveCamera
   makeDefault

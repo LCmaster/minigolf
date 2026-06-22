@@ -39,7 +39,7 @@ export const setEditor = () => {
     stage: writable({
       name: "",
       par: 0,
-      skybox: "default",
+      theme: "clear",
       strokeLimit: 8,
       groundFriction: 0.75,
       groundRestitution: 0.75,

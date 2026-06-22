@@ -10,6 +10,12 @@
 
 {#each course.holes as level, i (i)}
   {#if i === current}
-    <Stage controlPoints={level.holes[0].controlPoints} skybox={level.skybox || "default"} on:completed on:hit />
+    <Stage 
+      controlPoints={level.holes[0].controlPoints} 
+      blocks={level.holes[0].blocks || []}
+      theme={level.theme || level.skybox || "clear"} 
+      on:completed 
+      on:hit 
+    />
   {/if}
 {/each}

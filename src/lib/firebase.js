@@ -59,7 +59,7 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
     const docRef = await addDoc(levelsCol, {
       uid,
       name: stage.name || "Untitled Level",
-      skybox: stage.skybox || "default",
+      theme: stage.theme || "clear",
       difficulty: "Custom",
       holes: [
         {

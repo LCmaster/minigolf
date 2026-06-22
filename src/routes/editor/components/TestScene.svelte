@@ -11,7 +11,7 @@
 <Stage 
   controlPoints={$controlPoints} 
   blocks={$blocks}
-  skybox={$stage.skybox} 
+  theme={$stage.theme} 
   groundFriction={$stage.groundFriction}
   groundRestitution={$stage.groundRestitution}
   wallFriction={$stage.wallFriction}

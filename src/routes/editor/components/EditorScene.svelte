@@ -8,6 +8,7 @@
   } from "@threlte/extras";
   import SplineTrack from "./SplineTrack.svelte";
   import EditorFloor from "./EditorFloor.svelte";
+  import EnvironmentSettings from "$lib/scene/EnvironmentSettings.svelte";
   import Bumper from "$lib/scene/obstacles/Bumper.svelte";
   import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
@@ -19,7 +20,7 @@
   import PlinkoPegs from "$lib/scene/obstacles/PlinkoPegs.svelte";
   import { useEditor } from "../context";
 
-  const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode } = useEditor();
+  const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode, stage } = useEditor();
 
   interactivity();
 
@@ -69,13 +70,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<T.AmbientLight color="#ffffff" intensity={1} />
-<T.DirectionalLight
-  color="#ffffff"
-  intensity={2}
-  position={[10, 10, 10]}
-  castShadow
-/>
+<EnvironmentSettings theme={$stage.theme || 'clear'} />
 <T.PerspectiveCamera
   makeDefault
   fov={70}

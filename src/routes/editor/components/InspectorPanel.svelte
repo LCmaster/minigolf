@@ -224,9 +224,12 @@
         <input class="input" type="number" min="1" bind:value={$stage.par} />
       </label>
       <label class="label">
-        <span>Skybox</span>
-        <select class="select" bind:value={$stage.skybox}>
-          <option value="default">Default</option>
+        <span>Theme</span>
+        <select class="select" bind:value={$stage.theme}>
+          <option value="clear">Clear Day</option>
+          <option value="sunset">Sunset</option>
+          <option value="night">Night</option>
+          <option value="vaporwave">Vaporwave</option>
         </select>
       </label>
       <label class="label">

@@ -77,7 +77,7 @@
           }
           $stage = {
             name: loadedCourse.name,
-            skybox: loadedCourse.skybox,
+            theme: loadedCourse.theme || loadedCourse.skybox || "clear",
             par: loadedCourse.holes[0].par,
           };
         }
@@ -132,7 +132,6 @@
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
     <World gravity={[0, -15, 0]}>
-      <Debug />
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
       {:else if $previewing}

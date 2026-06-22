@@ -26,11 +26,13 @@
   import WaterHazard from "./obstacles/WaterHazard.svelte";
   import PlinkoPegs from "./obstacles/PlinkoPegs.svelte";
 
+  import EnvironmentSettings from "./EnvironmentSettings.svelte";
+
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
   export let controlPoints;
   export let blocks = [];
-  export let skybox;
+  export let theme = "clear";
 
   export let groundFriction = 0.75;
   export let groundRestitution = 0.75;
@@ -65,21 +67,7 @@
       : [0, 0, 0];
 </script>
 
-<T.AmbientLight intensity={0.6} />
-<T.DirectionalLight
-  position={[20, 30, 20]}
-  intensity={2.5}
-  castShadow
-  shadow.mapSize.width={2048}
-  shadow.mapSize.height={2048}
-/>
-{#if skybox}
-  <Environment
-    path={`/skybox/${skybox}/`}
-    files={["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]}
-    isBackground={true}
-  />
-{/if}
+<EnvironmentSettings {theme} />
 
 <T.PerspectiveCamera
   makeDefault
