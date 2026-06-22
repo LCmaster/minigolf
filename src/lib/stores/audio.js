@@ -111,13 +111,13 @@ function createSfxStore() {
     setRollingVolume: (speed) => {
       if (typeof Audio === 'undefined') return;
       if (!rollingAudio) {
-        rollingAudio = new Audio("/sounds/rolling.mp3");
+        rollingAudio = new Audio("/sounds/rolling.wav");
         rollingAudio.loop = true;
         rollingAudio.volume = 0;
       }
 
       // Normalize speed (assuming max speed is around 15 for minigolf)
-      const targetVolume = Math.min(Math.max(speed / 15, 0), 0.5);
+      const targetVolume = Math.min(Math.max((speed - 0.5) / 15, 0), 0.08); // much quieter, only starts if speed > 0.5
 
       if (targetVolume > 0.01) {
         rollingAudio.volume = targetVolume;

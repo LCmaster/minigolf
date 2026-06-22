@@ -189,8 +189,9 @@
   }
   // Generate explicit convex hull colliders to avoid expensive trimeshes
   $: colliders = (() => {
-    const segments = [];
-    if (!shape || !type) return segments;
+    const floorSegments = [];
+    const wallSegments = [];
+    if (!shape || !type) return { floor: floorSegments, wall: wallSegments };
 
     const R_base = w + t; // 2.7
     const R_tile = w; // 2.5
@@ -201,15 +202,15 @@
     const y0_wall = floorDepth;
     const y1_wall = h;
 
-    const addBox = (x0, x1, z0, z1, y0, y1) => {
-      segments.push(new Float32Array([
+    const addBox = (target, x0, x1, z0, z1, y0, y1) => {
+      target.push(new Float32Array([
         x0, y0, z0,  x1, y0, z0,  x0, y1, z0,  x1, y1, z0,
         x0, y0, z1,  x1, y0, z1,  x0, y1, z1,  x1, y1, z1,
       ]));
     };
 
-    const addQuad = (p1, p2, p3, p4, y0, y1) => {
-      segments.push(new Float32Array([
+    const addQuad = (target, p1, p2, p3, p4, y0, y1) => {
+      target.push(new Float32Array([
         p1.x, y0, p1.z,  p2.x, y0, p2.z,  p3.x, y0, p3.z,  p4.x, y0, p4.z,
         p1.x, y1, p1.z,  p2.x, y1, p2.z,  p3.x, y1, p3.z,  p4.x, y1, p4.z,
       ]));
@@ -230,11 +231,11 @@
       const zBack0 = zMult === -1 ? -blockLength : blockLength - t;
       const zBack1 = zMult === -1 ? -blockLength + t : blockLength;
 
-      addBox(-R_base, R_base, z0, z1, y0_base, y1_base); // base
-      addBox(-R_tile, R_tile, zTile0, zTile1, y0_tile, y1_tile); // tile
-      addBox(-R_base, -R_tile, z0, z1, y0_wall, y1_wall); // left wall
-      addBox(R_tile, R_base, z0, z1, y0_wall, y1_wall); // right wall
-      addBox(-R_tile, R_tile, zBack0, zBack1, y0_wall, y1_wall); // back wall
+      addBox(floorSegments, -R_base, R_base, z0, z1, y0_base, y1_base); // base
+      addBox(floorSegments, -R_tile, R_tile, zTile0, zTile1, y0_tile, y1_tile); // tile
+      addBox(wallSegments, -R_base, -R_tile, z0, z1, y0_wall, y1_wall); // left wall
+      addBox(wallSegments, R_tile, R_base, z0, z1, y0_wall, y1_wall); // right wall
+      addBox(wallSegments, -R_tile, R_tile, zBack0, zBack1, y0_wall, y1_wall); // back wall
     } else if (shape === "rounded") {
       const numSegments = 12;
       const angleStart = type === "start" ? 0 : Math.PI;
@@ -251,12 +252,12 @@
         const t2 = getPoint(R_tile, a2);
 
         // For triangle wedges (base, tile), we can use a degenerate quad (p1=p4)
-        addQuad(origin, b1, b2, origin, y0_base, y1_base); // base
-        addQuad(origin, t1, t2, origin, y0_tile, y1_tile); // tile
-        addQuad(t1, b1, b2, t2, y0_wall, y1_wall); // wall
+        addQuad(floorSegments, origin, b1, b2, origin, y0_base, y1_base); // base
+        addQuad(floorSegments, origin, t1, t2, origin, y0_tile, y1_tile); // tile
+        addQuad(wallSegments, t1, b1, b2, t2, y0_wall, y1_wall); // wall
       }
     }
-    return segments;
+    return { floor: floorSegments, wall: wallSegments };
   })();
 </script>
 
@@ -276,8 +277,12 @@
       {/each}
 
       <!-- Explicit precise convex hull colliders -->
-      {#each colliders as hullVertices}
+      {#each colliders.floor as hullVertices}
         <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} />
+      {/each}
+      {#each colliders.wall as hullVertices}
+        <!-- Walls are in collision group 2 -->
+        <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} collisionGroups={0x0002FFFF} />
       {/each}
 
       <!-- Indicators -->

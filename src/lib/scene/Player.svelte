@@ -1,7 +1,7 @@
 <script>
   import { Group, Vector3, DataTexture, RGBAFormat, NearestFilter } from "three";
   import { T, useFrame } from "@threlte/core";
-  import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { AutoColliders, RigidBody, Collider } from "@threlte/rapier";
   import { sfx } from "$lib/stores/audio";
 
   import { createEventDispatcher } from "svelte";
@@ -44,7 +44,7 @@
     // Play putt sound based on hit magnitude
     const magnitude = forceVector.length();
     const volume = Math.min(Math.max(magnitude / 20, 0.2), 1.0);
-    sfx.play("/sounds/putt.mp3", volume);
+    sfx.play("/sounds/putt.wav", volume);
   }
 
   export function moveTo(pos) {
@@ -81,10 +81,10 @@
   let framesAwake = 0;
   let currentSpeed = 0;
 
-  function handleCollision() {
+  function handleSensorEnter(e) {
     if (currentSpeed > 1.0) {
       const volume = Math.min(currentSpeed / 10, 1.0);
-      sfx.play("/sounds/bounce.mp3", volume);
+      sfx.play("/sounds/bounce.wav", volume);
     }
   }
 
@@ -131,11 +131,22 @@
     bind:rigidBody={body}
     on:sleep={() => dispatch("stopped", position)}
   >
-    <AutoColliders shape={"ball"} {friction} {restitution} mass={1} on:collisionenter={handleCollision}>
+    <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
       <T.Mesh bind:ref={mesh}>
         <T.IcosahedronGeometry args={[size, 4]} />
         <T.MeshToonMaterial {color} gradientMap={gradientMap} />
       </T.Mesh>
     </AutoColliders>
+
+    <!-- Dedicated audio sensor, slightly larger than the physical ball.
+         collisionGroups: Membership 4 (Audio Sensor), Filter 2 (Walls only).
+         Bitmask: 0x00040002 -->
+    <Collider 
+      shape={"ball"} 
+      args={[size + 0.05]} 
+      sensor 
+      collisionGroups={0x00040002} 
+      on:sensorenter={handleSensorEnter} 
+    />
   </RigidBody>
 </T>
