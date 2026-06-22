@@ -2,7 +2,8 @@
   import { goto } from "$app/navigation";
   import { getModalStore } from "@skeletonlabs/skeleton";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
-  import { user } from "$lib/firebase";
+  import { user, auth } from "$lib/firebase";
+  import { signOut } from "firebase/auth";
 
   const modalStore = getModalStore();
 
@@ -12,6 +13,14 @@
       ref: HowToPlayModal,
     },
   };
+
+  async function handleSignout() {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 </script>
 
 <div class="w-screen min-h-screen bg-[#C4E9CC] flex flex-col relative overflow-hidden">
@@ -62,6 +71,12 @@
           class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
         >
           My Levels
+        </button>
+        <button
+          on:click={handleSignout}
+          class="w-full py-2 rounded-full font-bold text-sm tracking-wider bg-transparent hover:bg-white/20 border border-white/50 text-[#4A4A4A] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer mt-2"
+        >
+          Sign Out
         </button>
       {:else}
         <div class="flex items-center gap-4 w-full my-2">

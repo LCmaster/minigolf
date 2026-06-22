@@ -1,7 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
   import { auth, user } from "$lib/firebase";
-  import { signInWithEmailAndPassword, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+  import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
   import Button from "$lib/component/Button.svelte";
 
   let email = "";
@@ -33,11 +33,12 @@
     isSubmitting = true;
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
-      // The page will redirect, so we don't need goto("/") here.
+      await signInWithPopup(auth, provider);
+      goto("/");
     } catch (error) {
       console.log(error);
       errorMessage = "Google sign-in failed. Please try again.";
+    } finally {
       isSubmitting = false;
     }
   }

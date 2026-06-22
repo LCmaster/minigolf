@@ -6,4 +6,9 @@ export default defineConfig({
   ssr: {
     noExternal: ["three"],
   },
+  server: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    },
+  },
 });
