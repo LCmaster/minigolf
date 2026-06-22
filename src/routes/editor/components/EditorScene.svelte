@@ -8,8 +8,6 @@
   } from "@threlte/extras";
   import SplineTrack from "./SplineTrack.svelte";
   import EditorFloor from "./EditorFloor.svelte";
-
-  import Block from "$lib/scene/Block.svelte";
   import Bumper from "$lib/scene/obstacles/Bumper.svelte";
   import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
@@ -143,8 +141,6 @@
           <BoostPad boostForce={block.boostForce} />
         {:else if block.type === "ramp" || block.type === "slope"}
           <RampBlock type={block.type} variation={block.variation} />
-        {:else}
-          <Block type={block.type} variation={block.variation} />
         {/if}
       </T.Group>
 

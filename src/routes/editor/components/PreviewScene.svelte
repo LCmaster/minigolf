@@ -1,11 +1,9 @@
 <script>
   import { T } from "@threlte/core";
   import { OrbitControls, Environment, Suspense } from "@threlte/extras";
-  import SplineTrack from "./SplineTrack.svelte";
   import { useEditor } from "../context";
   import { Vector3 } from "three";
-
-  import Block from "$lib/scene/Block.svelte";
+  import SplineTrack from "./SplineTrack.svelte";
   import Bumper from "$lib/scene/obstacles/Bumper.svelte";
   import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
@@ -83,14 +81,6 @@
         />
       {:else if block.type === "ramp" || block.type === "slope"}
         <RampBlock 
-          type={block.type} 
-          variation={block.variation} 
-          position={block.position}
-          rotation={block.rotation}
-          scale={block.scale}
-        />
-      {:else}
-        <Block 
           type={block.type} 
           variation={block.variation} 
           position={block.position}

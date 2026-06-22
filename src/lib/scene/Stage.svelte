@@ -16,7 +16,6 @@
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
   import Ground from "./Ground.svelte";
-  import Block from "./Block.svelte";
   import Bumper from "./obstacles/Bumper.svelte";
   import BoostPad from "./obstacles/BoostPad.svelte";
   import RampBlock from "./blocks/RampBlock.svelte";
@@ -137,14 +136,6 @@
           />
         {:else if block.type === "ramp" || block.type === "slope"}
           <RampBlock 
-            type={block.type} 
-            variation={block.variation} 
-            position={block.position}
-            rotation={block.rotation}
-            scale={block.scale}
-          />
-        {:else}
-          <Block 
             type={block.type} 
             variation={block.variation} 
             position={block.position}
