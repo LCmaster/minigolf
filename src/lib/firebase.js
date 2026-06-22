@@ -79,6 +79,36 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
 }
 
 /**
+ * Saves a bundled campaign to Firebase.
+ *
+ * @param {string} uid - User ID
+ * @param {string} name - Campaign name
+ * @param {string} theme - Campaign theme
+ * @param {string} thumbnailUrl - Inherited thumbnail URL
+ * @param {Array} holes - Array of holes from selected levels
+ * @returns {Promise<string>} Saved campaign Firestore document ID
+ */
+export async function saveCampaign(uid, name, theme, thumbnailUrl, holes) {
+  try {
+    const levelsCol = collection(db, "levels");
+    const docRef = await addDoc(levelsCol, {
+      uid,
+      name: name || "Untitled Campaign",
+      theme: theme || "clear",
+      difficulty: "Campaign",
+      isCampaign: true,
+      holes,
+      thumbnailUrl,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving campaign: ", error);
+    throw error;
+  }
+}
+
+/**
  * Fetches all levels belonging to a specific user.
  *
  * @param {string} uid - User ID

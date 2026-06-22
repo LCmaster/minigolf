@@ -67,6 +67,11 @@
     if (courseId) {
       try {
         const loadedCourse = await getLevel(courseId);
+        if (loadedCourse.isCampaign) {
+          alert("Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.");
+          window.location.href = "/mylevels";
+          return;
+        }
         // The loadedCourse has `{ name, theme, holes: [{ par, controlPoints }] }`
         if (loadedCourse.holes && loadedCourse.holes.length > 0) {
           controlPoints.commit(); // Push current state to history before overwriting
