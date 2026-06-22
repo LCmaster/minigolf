@@ -17,16 +17,28 @@
   import { page } from "$app/stores";
   import { getLevel } from "$lib/firebase";
 
-  let { testing, previewing, controlPoints, stage, blocks, blockSelected } = setEditor();
+  let { testing, previewing, controlPoints, stage, blocks, blockSelected } =
+    setEditor();
 
   let showingAssets = false;
 
-  const availableTypes = ["ramp", "bumper", "boost", "loop", "ice", "sand", "water", "plinko"];
+  const availableTypes = [
+    "ramp",
+    "bumper",
+    "boost",
+    "loop",
+    "windmill",
+    "ice",
+    "sand",
+    "water",
+    "plinko",
+  ];
   const availableBlocks = [
     { type: "ramp", variation: 1 },
     { type: "bumper", variation: 1 },
     { type: "boost", variation: 1 },
     { type: "loop", variation: 1 },
+    { type: "windmill", variation: 1 },
     { type: "ice", variation: 1 },
     { type: "sand", variation: 1 },
     { type: "water", variation: 1 },
@@ -44,7 +56,7 @@
     };
     if (detail.type === "bumper") newBlock.restitution = 2.0;
     if (detail.type === "boost") newBlock.boostForce = 15;
-    
+
     blocks.commit();
     $blocks = [...$blocks, newBlock];
     $blockSelected = newBlock.id;
@@ -66,7 +78,7 @@
           $stage = {
             name: loadedCourse.name,
             skybox: loadedCourse.skybox,
-            par: loadedCourse.holes[0].par
+            par: loadedCourse.holes[0].par,
           };
         }
       } catch (e) {
@@ -120,6 +132,7 @@
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
     <World gravity={[0, -15, 0]}>
+      <Debug />
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
       {:else if $previewing}
@@ -145,32 +158,37 @@
   <!-- Backdrop -->
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div 
-    class="fixed inset-0 bg-surface-backdrop-token z-[9998]" 
-    on:click={() => showingAssets = false}
+  <div
+    class="fixed inset-0 bg-surface-backdrop-token z-[9998]"
+    on:click={() => (showingAssets = false)}
     transition:fade={{ duration: 200 }}
   ></div>
 
   <!-- Drawer -->
-  <div 
+  <div
     class="fixed top-0 left-0 h-full w-80 sm:w-96 bg-surface-100-800-token z-[9999] shadow-2xl border-r border-surface-500/30 flex flex-col"
     transition:fly={{ x: -384, duration: 300 }}
   >
-    <div class="p-4 flex justify-between items-center border-b border-surface-500/30">
+    <div
+      class="p-4 flex justify-between items-center border-b border-surface-500/30"
+    >
       <h3 class="h3 font-bold flex items-center gap-2">
         <img src="/editor/bricks.svg" alt="Blocks" class="w-6 h-6" />
         Asset Catalog
       </h3>
-      <button class="btn-icon btn-icon-sm variant-soft" on:click={() => showingAssets = false}>✕</button>
+      <button
+        class="btn-icon btn-icon-sm variant-soft"
+        on:click={() => (showingAssets = false)}>✕</button
+      >
     </div>
     <div class="p-4 overflow-y-auto flex-1">
-      <AssetsList 
-        types={availableTypes} 
-        blocks={availableBlocks} 
+      <AssetsList
+        types={availableTypes}
+        blocks={availableBlocks}
         on:assetSelected={(e) => {
           addBlock(e.detail);
           showingAssets = false;
-        }} 
+        }}
       />
     </div>
   </div>

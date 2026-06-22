@@ -8,6 +8,7 @@
   import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
   import LoopBlock from "$lib/scene/blocks/LoopBlock.svelte";
+  import WindmillBlock from "$lib/scene/blocks/WindmillBlock.svelte";
   import IcePatch from "$lib/scene/obstacles/IcePatch.svelte";
   import SandTrap from "$lib/scene/obstacles/SandTrap.svelte";
   import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
@@ -89,6 +90,8 @@
           position={block.position} rotation={block.rotation} scale={block.scale} />
       {:else if block.type === "loop"}
         <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
+      {:else if block.type === "windmill"}
+        <WindmillBlock position={block.position} rotation={block.rotation} scale={block.scale} />
       {:else if block.type === "ice"}
         <IcePatch position={block.position} rotation={block.rotation} scale={block.scale} />
       {:else if block.type === "sand"}
