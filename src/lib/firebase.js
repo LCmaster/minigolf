@@ -56,18 +56,20 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
 
     // 2. Save document to firestore
     const levelsCol = collection(db, "levels");
+    const cleanHoles = JSON.parse(JSON.stringify([
+      {
+        par: stage.par || 2,
+        controlPoints,
+        blocks
+      }
+    ]));
+
     const docRef = await addDoc(levelsCol, {
       uid,
       name: stage.name || "Untitled Level",
       theme: stage.theme || "clear",
       difficulty: "Custom",
-      holes: [
-        {
-          par: stage.par || 2,
-          controlPoints,
-          blocks
-        }
-      ],
+      holes: cleanHoles,
       thumbnailUrl,
       createdAt: serverTimestamp()
     });
@@ -91,13 +93,14 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
 export async function saveCampaign(uid, name, theme, thumbnailUrl, holes) {
   try {
     const levelsCol = collection(db, "levels");
+    const cleanHoles = JSON.parse(JSON.stringify(holes));
     const docRef = await addDoc(levelsCol, {
       uid,
       name: name || "Untitled Campaign",
       theme: theme || "clear",
       difficulty: "Campaign",
       isCampaign: true,
-      holes,
+      holes: cleanHoles,
       thumbnailUrl,
       createdAt: serverTimestamp()
     });
