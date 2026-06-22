@@ -12,6 +12,7 @@
     Environment,
   } from "@threlte/extras";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { sfx } from "$lib/stores/audio";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
@@ -174,6 +175,7 @@
         sensor
         on:sensorenter={() => {
           player.setEnabled(false);
+          sfx.play("/sounds/applause.wav", 1.0);
           dispatch("completed");
         }}
       >
