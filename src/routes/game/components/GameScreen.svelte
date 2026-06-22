@@ -1,5 +1,7 @@
 <script>
   import { page } from "$app/stores";
+  import { onMount, onDestroy } from "svelte";
+  import { bgm } from "$lib/stores/audio";
 
   import { T } from "@threlte/core";
   import GameScene from "./scene/GameScene.svelte";
@@ -14,6 +16,16 @@
   const debug = $page.url.searchParams.has("debug");
 
   let modal = "";
+
+  onMount(() => {
+    if ($course?.theme === "clear" || !$course?.theme) {
+      bgm.play("/sounds/clear_theme.mp3");
+    }
+  });
+
+  onDestroy(() => {
+    bgm.stop();
+  });
 </script>
 
 <Scene {debug}>
