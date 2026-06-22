@@ -78,9 +78,10 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
  * @param {string} theme - Campaign theme
  * @param {string} thumbnailUrl - Inherited thumbnail URL
  * @param {Array} holes - Array of holes from selected levels
+ * @param {Array} sourceLevelIds - Array of original level IDs used in this campaign
  * @returns {Promise<string>} Saved campaign Firestore document ID
  */
-export async function saveCampaign(uid, name, theme, thumbnailUrl, holes) {
+export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, sourceLevelIds = []) {
   try {
     const levelsCol = collection(db, "levels");
     const cleanHoles = JSON.parse(JSON.stringify(holes));
@@ -90,6 +91,7 @@ export async function saveCampaign(uid, name, theme, thumbnailUrl, holes) {
       theme: theme || "clear",
       difficulty: "Campaign",
       isCampaign: true,
+      sourceLevelIds,
       holes: cleanHoles,
       thumbnailUrl,
       createdAt: serverTimestamp()

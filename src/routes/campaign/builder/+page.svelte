@@ -113,6 +113,7 @@
     try {
       // Merge all holes from the playlist
       const mergedHoles = playlist.flatMap((level) => level.holes);
+      const sourceLevelIds = playlist.map((level) => level.id);
       const thumbnailUrl = playlist[0].thumbnailUrl; // Inherit first level's thumbnail
 
       await saveCampaign(
@@ -121,6 +122,7 @@
         campaignTheme,
         thumbnailUrl,
         mergedHoles,
+        sourceLevelIds
       );
 
       alert("Campaign saved successfully!");

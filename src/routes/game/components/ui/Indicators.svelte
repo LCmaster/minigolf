@@ -7,7 +7,7 @@
 
   const { course, current, shots: totalShots } = useGame();
 
-  $: par = $course ? $course.holes[$current].holes.reduce((sum, h) => sum + (h.par || 0), 0) : 0;
+  $: par = $course ? $course.holes[$current].par || 0 : 0;
   $: shots = $totalShots !== null ? $totalShots[$current] : 0;
   $: currentHole = $current !== null ? $current + 1 : 0;
   $: totalHoleNumber = $course ? $course.holes.length : 0;

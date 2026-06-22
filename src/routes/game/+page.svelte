@@ -103,7 +103,7 @@
               <div class="flex flex-col items-center border-x border-black/10">
                 <span class="text-xs text-black/40 uppercase font-bold tracking-wider mb-1">Par</span>
                 <span class="text-xl font-mono font-bold text-[#4A4A4A] drop-shadow-sm">
-                  {data.courses[current].holes.map(l => l.holes.reduce((sum, h) => sum + (h.par || 0), 0)).reduce((a, b) => a + b, 0)}
+                  {data.courses[current].holes.reduce((sum, h) => sum + (h.par || 0), 0)}
                 </span>
               </div>
               <div class="flex flex-col items-center">

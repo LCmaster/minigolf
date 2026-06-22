@@ -8,7 +8,7 @@
   const { course, current, shots } = useGame();
 
   let holes = $course.holes.map((_, index) => index + 1);
-  let pars = $course.holes.map((level) => level.holes.reduce((sum, h) => sum + (h.par || 0), 0));
+  let pars = $course.holes.map((hole) => hole.par || 0);
 
   const dispatch = createEventDispatcher();
 </script>

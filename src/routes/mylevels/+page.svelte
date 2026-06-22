@@ -22,6 +22,12 @@
   }
 
   async function handleDelete(levelId, levelName) {
+    const usedInCampaign = levels.find(l => l.isCampaign && l.sourceLevelIds?.includes(levelId));
+    if (usedInCampaign) {
+      alert(`Cannot delete this level because it is currently used in the campaign: "${usedInCampaign.name}".`);
+      return;
+    }
+
     if (confirm(`Are you sure you want to delete "${levelName}"? This cannot be undone.`)) {
       try {
         await deleteLevel(levelId);
