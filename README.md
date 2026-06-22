@@ -90,7 +90,7 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
 - [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
 - [ ] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
-- [ ] **Ambient Music**: Looping acoustic background music for the "Clear" theme.
+- [x] **Ambient Music**: Looping acoustic background music for the "Clear" theme.
 - [ ] **Mobile Touch Controls**: Responsive touch-and-drag/joystick controls for mobile and tablets.
 - [ ] **Async Multiplayer**: Turn-based challenges to compete asynchronously on campaigns.
 - [ ] **Real-time Lobbies**: Sync ball positions for up to 4 players simultaneously (no player-collision).
