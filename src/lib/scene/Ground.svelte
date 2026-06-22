@@ -45,6 +45,7 @@
   <Collider
     shape="halfspace"
     args={[{ x: 0, y: 1, z: 0 }]}
+    collisionGroups={0x0001FFFF}
     on:contact={() => dispatch("outofbounds")}
   />
 </RigidBody>

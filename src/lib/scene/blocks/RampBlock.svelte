@@ -46,7 +46,7 @@
 
 <T.Group {position} rotation={actualRotation} {scale}>
   <RigidBody type="fixed">
-    <AutoColliders shape="convexHull">
+    <AutoColliders shape="convexHull" collisionGroups={0x0001FFFF}>
       <T.Mesh
         {geometry}
         material={groundMaterial}

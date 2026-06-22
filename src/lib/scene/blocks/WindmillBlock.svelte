@@ -73,7 +73,7 @@
 
     <!-- Floor/Bridge connecting them -->
 
-    <AutoColliders shape="cuboid">
+    <AutoColliders shape="cuboid" collisionGroups={0x0001FFFF}>
       <T.Mesh
         position={[0, -0.1, 0]}
         material={brickMaterial}

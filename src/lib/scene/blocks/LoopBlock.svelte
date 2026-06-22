@@ -147,7 +147,7 @@
 
 <T.Group {position} rotation={actualRotation} {scale}>
   <RigidBody type="fixed">
-    <AutoColliders shape="trimesh" friction={0.5} restitution={0.2}>
+    <AutoColliders shape="trimesh" friction={0.5} restitution={0.2} collisionGroups={0x0001FFFF}>
       <T.Mesh
         geometry={sharedLoopGeometry}
         material={groundMaterial}

@@ -278,7 +278,8 @@
 
       <!-- Explicit precise convex hull colliders -->
       {#each colliders.floor as hullVertices}
-        <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} />
+        <!-- Floor is strictly in Group 1 -->
+        <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} collisionGroups={0x0001FFFF} />
       {/each}
       {#each colliders.wall as hullVertices}
         <!-- Walls are in collision group 2 -->

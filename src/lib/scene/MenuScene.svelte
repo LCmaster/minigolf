@@ -68,7 +68,7 @@
       </AutoColliders>
     </RigidBody>
     <RigidBody type="fixed">
-      <AutoColliders shape="cuboid">
+      <AutoColliders shape="cuboid" collisionGroups={0x0001FFFF}>
         <T.Mesh position={[0, -0.5001, 0]}>
           <T.BoxGeometry args={[50, 1, 50]} />
         </T.Mesh>
