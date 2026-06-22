@@ -4,19 +4,24 @@
     interactivity,
     OrbitControls,
     TransformControls,
+    Suspense
   } from "@threlte/extras";
   import SplineTrack from "./SplineTrack.svelte";
   import EditorFloor from "./EditorFloor.svelte";
 
+  import Block from "$lib/scene/Block.svelte";
+  import Bumper from "$lib/scene/obstacles/Bumper.svelte";
+  import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
+  import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
   import { useEditor } from "../context";
 
-  const { controlPoints, pointSelected, pointColors } = useEditor();
+  const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode } = useEditor();
 
   interactivity();
 
   // Mesh refs keyed by point id, used by TransformControls.
-  // Do NOT reset reactively — {#key} remount re-fires bind:ref automatically.
   let meshRefs = {};
+  let blockRefs = {};
 
   // Clear selection when the full set of IDs changes (e.g. random generation).
   let prevIds = $controlPoints.map((p) => p.id).join(",");
@@ -32,16 +37,33 @@
 
   function selectPoint(id) {
     $pointSelected = id;
+    $blockSelected = null;
   }
 
-  function onTransformChange(e, i) {
-    const pos = e.target.object.position;
-    $controlPoints[i].position = [pos.x, pos.y, pos.z];
-    $controlPoints = [...$controlPoints];
+  function selectBlock(id) {
+    $blockSelected = id;
+    $pointSelected = null;
+  }
+
+  function onBlockTransform(e, i) {
+    const obj = e.target.object;
+    $blocks[i].position = [obj.position.x, obj.position.y, obj.position.z];
+    $blocks[i].rotation = [obj.rotation.x, obj.rotation.y, obj.rotation.z];
+    $blocks[i].scale = [obj.scale.x, obj.scale.y, obj.scale.z];
+    $blocks = [...$blocks];
+  }
+
+  function handleKeydown(e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === 't') $transformMode = "translate";
+    if (e.key === 'r') $transformMode = "rotate";
+    if (e.key === 'e') $transformMode = "scale";
   }
 
   $: colors = $pointColors;
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <T.AmbientLight color="#ffffff" intensity={1} />
 <T.DirectionalLight
@@ -101,3 +123,39 @@
 <EditorFloor />
 
 <SplineTrack controlPoints={$controlPoints} isEditor={true} />
+
+{#if $blocks}
+  <Suspense>
+    {#each $blocks as block, i (block.id)}
+      <T.Group
+        position={block.position}
+        rotation={block.rotation}
+        scale={block.scale}
+        bind:ref={blockRefs[block.id]}
+        on:click={(e) => {
+          e.stopPropagation();
+          selectBlock(block.id);
+        }}
+      >
+        {#if block.type === "bumper"}
+          <Bumper restitution={block.restitution} />
+        {:else if block.type === "boost"}
+          <BoostPad boostForce={block.boostForce} />
+        {:else if block.type === "ramp" || block.type === "slope"}
+          <RampBlock type={block.type} variation={block.variation} />
+        {:else}
+          <Block type={block.type} variation={block.variation} />
+        {/if}
+      </T.Group>
+
+      {#if block.id === $blockSelected && blockRefs[block.id]}
+        <TransformControls
+          object={blockRefs[block.id]}
+          mode={$transformMode}
+          on:objectChange={(e) => onBlockTransform(e, i)}
+          on:mouseUp={() => blocks.commit()}
+        />
+      {/if}
+    {/each}
+  </Suspense>
+{/if}

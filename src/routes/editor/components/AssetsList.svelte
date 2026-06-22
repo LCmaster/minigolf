@@ -43,10 +43,11 @@
             >
               <span>
                 <img
-                  src={`/block/${type}/${i + 1}.png`}
-                  alt="Extension"
+                  src={`/block/${type}/${block.variation}.png`}
+                  alt={block.type}
                   width="64"
                   height="64"
+                  on:error={(e) => (e.target.src = "/editor/bricks.svg")}
                 />
               </span>
               <span class="flex-auto capitalize"

@@ -38,9 +38,10 @@ export const user = writable(undefined);
  * @param {Object} stage - Stage config details
  * @param {Array} controlPoints - Spline track control points array
  * @param {string} thumbnailDataUrl - Data URL representation of thumbnail image
+ * @param {Array} blocks - Custom obstacles array
  * @returns {Promise<string>} Saved level Firestore document ID
  */
-export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl) {
+export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blocks = []) {
   try {
     // 1. Upload thumbnail
     let thumbnailUrl = null;
@@ -63,7 +64,8 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl) {
       holes: [
         {
           par: stage.par || 2,
-          controlPoints
+          controlPoints,
+          blocks
         }
       ],
       thumbnailUrl,

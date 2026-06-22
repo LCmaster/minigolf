@@ -16,10 +16,15 @@
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
   import Ground from "./Ground.svelte";
+  import Block from "./Block.svelte";
+  import Bumper from "./obstacles/Bumper.svelte";
+  import BoostPad from "./obstacles/BoostPad.svelte";
+  import RampBlock from "./blocks/RampBlock.svelte";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
   export let controlPoints;
+  export let blocks = [];
   export let skybox;
 
   export let groundFriction = 0.75;
@@ -113,6 +118,42 @@
 
     <!-- SplineTrack manages its own AutoColliders internally -->
     <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} {tileColor} />
+
+    {#if blocks && blocks.length > 0}
+      {#each blocks as block (block.id)}
+        {#if block.type === "bumper"}
+          <Bumper 
+            position={block.position}
+            rotation={block.rotation}
+            scale={block.scale}
+            restitution={block.restitution}
+          />
+        {:else if block.type === "boost"}
+          <BoostPad 
+            position={block.position}
+            rotation={block.rotation}
+            scale={block.scale}
+            boostForce={block.boostForce}
+          />
+        {:else if block.type === "ramp" || block.type === "slope"}
+          <RampBlock 
+            type={block.type} 
+            variation={block.variation} 
+            position={block.position}
+            rotation={block.rotation}
+            scale={block.scale}
+          />
+        {:else}
+          <Block 
+            type={block.type} 
+            variation={block.variation} 
+            position={block.position}
+            rotation={block.rotation}
+            scale={block.scale}
+          />
+        {/if}
+      {/each}
+    {/if}
 
     <!-- Hole sensor: triggers "completed" when ball enters -->
     <RigidBody type="fixed">

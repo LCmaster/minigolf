@@ -2,10 +2,13 @@
   import { useEditor } from "../context";
   import { snapToGrid, TILE_SIZE } from "$lib/gridUtils";
 
-  const { controlPoints, pointSelected, stage } = useEditor();
+  const { controlPoints, pointSelected, stage, blocks, blockSelected, transformMode } = useEditor();
 
   $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
   $: selectedPoint = selectedIndex !== -1 ? $controlPoints[selectedIndex] : null;
+
+  $: selectedBlockIndex = $blocks ? $blocks.findIndex((b) => b.id === $blockSelected) : -1;
+  $: selectedBlock = selectedBlockIndex !== -1 ? $blocks[selectedBlockIndex] : null;
 
   /**
    * Move the selected point by `steps` tiles along the given axis.
@@ -143,6 +146,70 @@
           </label>
         </div>
       {/if}
+    </div>
+  {:else if selectedBlock}
+    <!-- Custom Block Inspector -->
+    <h3 class="h3 mb-4">Block Inspector</h3>
+    <div class="flex flex-col gap-4">
+      <div class="card p-4 variant-soft flex flex-col gap-3">
+        <h4 class="h4 text-sm uppercase tracking-wider opacity-70">Properties</h4>
+        <div class="text-sm">
+          <strong>Type:</strong> <span class="capitalize">{selectedBlock.type}</span>
+        </div>
+        
+
+
+        {#if selectedBlock.type === "bumper"}
+          <label class="label mt-2">
+            <span class="text-xs">Bounciness (Restitution)</span>
+            <input
+              class="input text-sm"
+              type="number"
+              step="0.1"
+              bind:value={selectedBlock.restitution}
+              on:change={(e) => {
+                blocks.commit();
+                $blocks[selectedBlockIndex].restitution = parseFloat(e.target.value);
+                $blocks = [...$blocks];
+              }}
+            />
+          </label>
+        {/if}
+
+        {#if selectedBlock.type === "boost"}
+          <label class="label mt-2">
+            <span class="text-xs">Boost Force</span>
+            <input
+              class="input text-sm"
+              type="number"
+              step="1"
+              bind:value={selectedBlock.boostForce}
+              on:change={(e) => {
+                blocks.commit();
+                $blocks[selectedBlockIndex].boostForce = parseFloat(e.target.value);
+                $blocks = [...$blocks];
+              }}
+            />
+          </label>
+        {/if}
+        
+        <h4 class="h4 text-sm uppercase tracking-wider opacity-70 mt-2">Gizmo Mode</h4>
+        <div class="flex gap-2">
+          <button 
+            class="btn btn-sm flex-1 { $transformMode === 'translate' ? 'variant-filled-primary' : 'variant-soft' }"
+            on:click={() => $transformMode = 'translate'}
+          >Move</button>
+          <button 
+            class="btn btn-sm flex-1 { $transformMode === 'rotate' ? 'variant-filled-primary' : 'variant-soft' }"
+            on:click={() => $transformMode = 'rotate'}
+          >Rotate</button>
+          <button 
+            class="btn btn-sm flex-1 { $transformMode === 'scale' ? 'variant-filled-primary' : 'variant-soft' }"
+            on:click={() => $transformMode = 'scale'}
+          >Scale</button>
+        </div>
+        <p class="text-xs opacity-50 mt-1">Shortcuts: T (Move), R (Rotate), E (Scale)</p>
+      </div>
     </div>
   {:else}
     <!-- Level Inspector -->

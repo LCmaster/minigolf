@@ -31,6 +31,12 @@
           activeEditor.controlPoints.commit();
         }
         activeEditor.controlPoints.set(courseData.holes[0].controlPoints);
+        if (courseData.holes[0].blocks) {
+          if (activeEditor.blocks) activeEditor.blocks.commit();
+          activeEditor.blocks.set(courseData.holes[0].blocks);
+        } else if (activeEditor.blocks) {
+          activeEditor.blocks.set([]);
+        }
         activeEditor.stage.set({
           name: courseData.name || "Untitled Level",
           skybox: courseData.skybox || "default",
@@ -75,6 +81,7 @@
               }
               const currentStage = get(activeEditor.stage);
               const currentCPs = get(activeEditor.controlPoints);
+              const currentBlocks = activeEditor.blocks ? get(activeEditor.blocks) : [];
 
               const canvas = document.querySelector("canvas");
               const thumbnailDataUrl = canvas.toDataURL("image/png");
@@ -83,6 +90,7 @@
                 currentStage,
                 currentCPs,
                 thumbnailDataUrl,
+                currentBlocks
               );
               alert("Level saved successfully!");
               drawerStore.close();
@@ -112,6 +120,7 @@
                   startShape: currentCPs[0]?.shape || "rounded",
                   endShape: currentCPs[currentCPs.length - 1]?.shape || "rounded",
                   controlPoints: [...currentCPs],
+                  blocks: activeEditor.blocks ? [...get(activeEditor.blocks)] : [],
                 },
               ],
             };

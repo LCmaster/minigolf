@@ -3,14 +3,17 @@
   import { useEditor } from "../context";
   import { CourseBuilder } from "$lib/CourseBuilder";
 
-  const { controlPoints, pointSelected } = useEditor();
+  const { controlPoints, pointSelected, blocks, blockSelected } = useEditor();
   const modalStore = getModalStore();
 
   $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
   $: selectedPoint =
     selectedIndex !== -1 ? $controlPoints[selectedIndex] : null;
 
-  const deleteModal = {
+  $: selectedBlockIndex = $blocks ? $blocks.findIndex((b) => b.id === $blockSelected) : -1;
+  $: selectedBlock = selectedBlockIndex !== -1 ? $blocks[selectedBlockIndex] : null;
+
+  const deletePointModal = {
     type: "confirm",
     title: "Delete Point",
     body: "Are you sure you wish to delete this control point?",
@@ -20,6 +23,20 @@
         $controlPoints.splice(selectedIndex, 1);
         $controlPoints = [...$controlPoints];
         $pointSelected = null;
+      }
+    },
+  };
+
+  const deleteBlockModal = {
+    type: "confirm",
+    title: "Delete Block",
+    body: "Are you sure you wish to delete this block?",
+    response: (r) => {
+      if (r && selectedBlockIndex !== -1) {
+        blocks.commit();
+        $blocks.splice(selectedBlockIndex, 1);
+        $blocks = [...$blocks];
+        $blockSelected = null;
       }
     },
   };
@@ -91,7 +108,10 @@
             class="btn w-full text-left justify-start {point.id === $pointSelected
               ? 'variant-filled-primary'
               : 'variant-soft'} {(index === 0 || index === $controlPoints.length - 1) ? 'flex items-center gap-2' : ''}"
-            on:click={() => ($pointSelected = point.id)}
+            on:click={() => {
+              $pointSelected = point.id;
+              $blockSelected = null;
+            }}
           >
             {#if index === 0}
               <img src="/editor/map-pin.svg" alt="Start" class="w-4 h-4" />
@@ -105,6 +125,25 @@
           </button>
         {/each}
       </div>
+
+      {#if $blocks && $blocks.length > 0}
+        <h4 class="h4 mb-4 mt-6">All Blocks</h4>
+        <div class="flex flex-col gap-2">
+          {#each $blocks as block, index (block.id)}
+            <button
+              class="btn w-full text-left justify-start {block.id === $blockSelected
+                ? 'variant-filled-primary'
+                : 'variant-soft'}"
+              on:click={() => {
+                $blockSelected = block.id;
+                $pointSelected = null;
+              }}
+            >
+              Block {index + 1} ({block.type || 'Custom'})
+            </button>
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
   <div
@@ -123,11 +162,12 @@
     <button
       class="w-full btn variant-filled-error"
       on:click={() => {
-        modalStore.trigger(deleteModal);
+        if ($pointSelected) modalStore.trigger(deletePointModal);
+        else if ($blockSelected) modalStore.trigger(deleteBlockModal);
       }}
-      disabled={!selectedPoint || selectedIndex === 0}
+      disabled={(!selectedPoint || selectedIndex === 0) && !selectedBlock}
     >
-      Delete Point
+      Delete Selected
     </button>
   </div>
 </div>

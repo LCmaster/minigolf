@@ -5,6 +5,8 @@
 
   const { testing, previewing, controlPoints, stage } = useEditor();
 
+  export let showingAssets = false;
+
   $: canUndo = controlPoints.canUndo;
   $: canRedo = controlPoints.canRedo;
 
@@ -60,6 +62,15 @@
       </div>
     {:else}
       <div class="flex gap-2">
+        <!-- Add Block -->
+        <button
+          type="button"
+          class="btn-icon btn-icon-sm variant-filled"
+          title="Add Block"
+          on:click={() => (showingAssets = !showingAssets)}
+        >
+          <img src="/editor/bricks.svg" alt="Add Block" class="w-4 h-4" />
+        </button>
         <!-- Undo -->
         <button
           type="button"

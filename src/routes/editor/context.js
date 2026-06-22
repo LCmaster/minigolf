@@ -6,6 +6,7 @@ import { snapToGrid } from "$lib/gridUtils";
 export const activeEditor = {
   controlPoints: null,
   stage: null,
+  blocks: null,
 };
 
 export const setEditor = () => {
@@ -26,6 +27,9 @@ export const setEditor = () => {
       },
     ]),
     pointSelected: writable(secondId),
+    blocks: createHistoryStore([]),
+    blockSelected: writable(null),
+    transformMode: writable("translate"),
     pointColors: writable({
       normal: "#3b82f6",        // blue-500
       hover: "#22d3ee",         // cyan-400
@@ -47,6 +51,7 @@ export const setEditor = () => {
 
   activeEditor.controlPoints = ctx.controlPoints;
   activeEditor.stage = ctx.stage;
+  activeEditor.blocks = ctx.blocks;
 
   return setContext("minigolfmania/editor/context", ctx);
 };

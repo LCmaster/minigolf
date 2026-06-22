@@ -1,11 +1,16 @@
 <script>
   import { T } from "@threlte/core";
-  import { OrbitControls, Environment } from "@threlte/extras";
+  import { OrbitControls, Environment, Suspense } from "@threlte/extras";
   import SplineTrack from "./SplineTrack.svelte";
   import { useEditor } from "../context";
   import { Vector3 } from "three";
 
-  const { controlPoints, stage } = useEditor();
+  import Block from "$lib/scene/Block.svelte";
+  import Bumper from "$lib/scene/obstacles/Bumper.svelte";
+  import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
+  import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
+
+  const { controlPoints, stage, blocks } = useEditor();
 
   // Auto-frame the camera on the track centroid
   $: centroid = (() => {
@@ -58,3 +63,41 @@
 
 <!-- Full track rendered without editor overlays, no physics -->
 <SplineTrack controlPoints={$controlPoints} isEditor={false} isPreview={true} />
+
+{#if $blocks && $blocks.length > 0}
+  <Suspense>
+    {#each $blocks as block (block.id)}
+      {#if block.type === "bumper"}
+        <Bumper 
+          position={block.position}
+          rotation={block.rotation}
+          scale={block.scale}
+          restitution={block.restitution}
+        />
+      {:else if block.type === "boost"}
+        <BoostPad 
+          position={block.position}
+          rotation={block.rotation}
+          scale={block.scale}
+          boostForce={block.boostForce}
+        />
+      {:else if block.type === "ramp" || block.type === "slope"}
+        <RampBlock 
+          type={block.type} 
+          variation={block.variation} 
+          position={block.position}
+          rotation={block.rotation}
+          scale={block.scale}
+        />
+      {:else}
+        <Block 
+          type={block.type} 
+          variation={block.variation} 
+          position={block.position}
+          rotation={block.rotation}
+          scale={block.scale}
+        />
+      {/if}
+    {/each}
+  </Suspense>
+{/if}
