@@ -1,5 +1,5 @@
 <script>
-  import { user, getMyLevels } from "$lib/firebase";
+  import { user, getMyLevels, deleteLevel } from "$lib/firebase";
   import { goto } from "$app/navigation";
 
   let levels = [];
@@ -8,12 +8,28 @@
   $: if ($user !== undefined) {
     if ($user) {
       getMyLevels($user.uid).then(res => {
-        levels = res;
+        levels = res.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
         loading = false;
+      }).catch(err => {
+        console.error("Failed to fetch levels:", err);
+        loading = false;
+        alert("Could not load levels. Please try again later.");
       });
     } else {
       loading = false;
       goto("/auth/signin");
+    }
+  }
+
+  async function handleDelete(levelId, levelName) {
+    if (confirm(`Are you sure you want to delete "${levelName}"? This cannot be undone.`)) {
+      try {
+        await deleteLevel(levelId);
+        levels = levels.filter(l => l.id !== levelId);
+      } catch (e) {
+        console.error(e);
+        alert("Failed to delete level.");
+      }
     }
   }
 </script>
@@ -34,13 +50,19 @@
       {#each levels as level}
         <div class="card card-hover overflow-hidden">
           <header>
-            <img src={level.thumbnailUrl} class="bg-black/50 w-full aspect-video object-cover" alt="thumbnail" />
+            {#if level.thumbnailUrl}
+              <img src={level.thumbnailUrl} class="bg-black/50 w-full aspect-video object-cover" alt="thumbnail" />
+            {:else}
+              <div class="bg-surface-800 w-full aspect-video flex items-center justify-center text-surface-500 font-bold">
+                No Image
+              </div>
+            {/if}
           </header>
           <div class="p-4 space-y-4">
             <h3 class="h3" data-toc-ignore>
               {level.name}
               {#if level.isCampaign || (level.holes && level.holes.length > 1)}
-                <span class="badge variant-filled-secondary ml-2">{level.holes.length} Holes</span>
+                <span class="badge variant-filled-secondary ml-2">{level.holes?.length || 0} Holes</span>
               {/if}
             </h3>
             {#if !level.isCampaign}
@@ -50,11 +72,14 @@
             {/if}
           </div>
           <hr class="opacity-50" />
-          <footer class="p-4 flex justify-end space-x-2">
-            <button class="btn variant-filled-primary" on:click={() => goto(`/game?courseId=${level.id}`)}>Play</button>
-            {#if !level.isCampaign}
-              <button class="btn variant-filled-surface" on:click={() => goto(`/editor?courseId=${level.id}`)}>Edit</button>
-            {/if}
+          <footer class="p-4 flex justify-between items-center">
+            <button class="btn btn-sm variant-filled-error" on:click={() => handleDelete(level.id, level.name)}>Delete</button>
+            <div class="flex space-x-2">
+              <button class="btn variant-filled-primary" on:click={() => goto(`/game?courseId=${level.id}`)}>Play</button>
+              {#if !level.isCampaign}
+                <button class="btn variant-filled-surface" on:click={() => goto(`/editor?courseId=${level.id}`)}>Edit</button>
+              {/if}
+            </div>
           </footer>
         </div>
       {/each}

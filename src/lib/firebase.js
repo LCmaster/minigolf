@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
 import { writable } from "svelte/store";
 import {
   PUBLIC_FIREBASE_API_KEY,
@@ -110,7 +110,7 @@ export async function saveCampaign(uid, name, theme, thumbnailUrl, holes) {
 export async function getMyLevels(uid) {
   try {
     const levelsCol = collection(db, "levels");
-    const q = query(levelsCol, where("uid", "==", uid), orderBy("createdAt", "desc"));
+    const q = query(levelsCol, where("uid", "==", uid));
     const querySnapshot = await getDocs(q);
     const levels = [];
     querySnapshot.forEach((doc) => {
@@ -141,6 +141,22 @@ export async function getLevel(levelId) {
     }
   } catch (error) {
     console.error("Error fetching level: ", error);
+    throw error;
+  }
+}
+
+/**
+ * Deletes a specific level by document ID.
+ *
+ * @param {string} levelId - Level Document ID
+ * @returns {Promise<void>}
+ */
+export async function deleteLevel(levelId) {
+  try {
+    const docRef = doc(db, "levels", levelId);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting level: ", error);
     throw error;
   }
 }
