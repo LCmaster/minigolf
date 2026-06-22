@@ -1,7 +1,3 @@
-# Minigolf Obstacle Ideas
-
-Here is a list of fun and interactive obstacles we could build for the minigolf game! Since we are now using programmatic Svelte components and Rapier physics, the possibilities for dynamic and moving obstacles are huge.
-
 ### 🎡 Moving & Timing Obstacles
 - **Windmill:** The classic minigolf obstacle. A rotating set of blades blocking the path. The player must time their shot to pass through the gap.
 - **Pendulum Axe / Swinging Mallet:** A swinging pendulum that sweeps across the track back and forth, knocking the ball away if it gets hit.
