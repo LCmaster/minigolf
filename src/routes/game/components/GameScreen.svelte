@@ -17,10 +17,25 @@
 
   let modal = "";
 
+  const THEME_MUSIC = {
+    clear: "/sounds/clear_theme.mp3",
+    sunset: "/sounds/clear_theme.mp3", // Using clear theme for all for the moment
+    night: "/sounds/clear_theme.mp3",
+    vaporwave: "/sounds/clear_theme.mp3",
+  };
+
+  const THEME_VOLUMES = {
+    clear: 0.4,
+    sunset: 0.15, // Sunset is louder, turn it down
+    night: 0.4,
+    vaporwave: 0.4,
+  };
+
   onMount(() => {
-    if ($course?.theme === "clear" || !$course?.theme) {
-      bgm.play("/sounds/clear_theme.mp3");
-    }
+    const theme = $course?.theme || "clear";
+    const bgmSrc = THEME_MUSIC[theme] || THEME_MUSIC["clear"];
+    const vol = THEME_VOLUMES[theme] || 0.4;
+    bgm.play(bgmSrc, vol);
   });
 
   onDestroy(() => {

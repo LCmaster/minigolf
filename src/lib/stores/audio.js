@@ -9,8 +9,9 @@ function createAudioStore() {
     /**
      * Plays a looping audio track, gracefully fading out any currently playing track.
      * @param {string} src The URL/path to the audio file
+     * @param {number} maxVolume Maximum volume (0.0 to 1.0), defaults to 0.4
      */
-    play: (src) => {
+    play: (src, maxVolume = 0.4) => {
       if (typeof Audio === 'undefined') return; // SSR check
 
       // If the same track is already playing, do nothing
@@ -44,9 +45,9 @@ function createAudioStore() {
         currentAudio.play().then(() => {
           let vol = 0;
           const fadeInInterval = setInterval(() => {
-            if (vol < 0.4) { // Max volume 0.4 for ambient music
+            if (vol < maxVolume) { 
               vol += 0.05;
-              if (vol > 0.4) vol = 0.4;
+              if (vol > maxVolume) vol = maxVolume;
               currentAudio.volume = vol;
             } else {
               clearInterval(fadeInInterval);
