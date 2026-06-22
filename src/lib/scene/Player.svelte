@@ -55,6 +55,16 @@
     body.setEnabled(value);
   }
 
+  let linearDamping = 0.35;
+  let angularDamping = 0.35;
+
+  export function setDamping(linear, angular) {
+    linearDamping = linear;
+    angularDamping = angular;
+    body.setLinearDamping(linear);
+    body.setAngularDamping(angular);
+  }
+
   function updatePosition() {
     position[0] = positionVector.x;
     position[1] = positionVector.y;
@@ -97,8 +107,8 @@
   <RigidBody
     ccd
     type="dynamic"
-    linearDamping={0.35}
-    angularDamping={0.35}
+    {linearDamping}
+    {angularDamping}
     bind:rigidBody={body}
     on:sleep={() => dispatch("stopped", position)}
   >

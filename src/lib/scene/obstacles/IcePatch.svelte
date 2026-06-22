@@ -1,10 +1,13 @@
 <script>
   import { T } from "@threlte/core";
   import { Collider, RigidBody } from "@threlte/rapier";
+  import { createEventDispatcher } from "svelte";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
+
+  const dispatch = createEventDispatcher();
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation) ? safeRotation : [0, Math.PI * safeRotation, 0];
@@ -33,6 +36,16 @@
       position={[0, 0.05, 0]} 
       friction={0.0} 
       restitution={0.2}
+    />
+
+    <!-- Sensor to apply sliding (low damping) to ball -->
+    <Collider 
+      shape="cuboid" 
+      args={[1, 0.5, 1]} 
+      position={[0, 0.5, 0]} 
+      sensor 
+      on:sensorenter={() => dispatch('iceenter')}
+      on:sensorexit={() => dispatch('iceexit')}
     />
   </RigidBody>
 </T.Group>

@@ -11,8 +11,6 @@
   import Bumper from "$lib/scene/obstacles/Bumper.svelte";
   import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
-  import LoopBlock from "$lib/scene/blocks/LoopBlock.svelte";
-  import HalfPipeBlock from "$lib/scene/blocks/HalfPipeBlock.svelte";
   import IcePatch from "$lib/scene/obstacles/IcePatch.svelte";
   import SandTrap from "$lib/scene/obstacles/SandTrap.svelte";
   import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
@@ -147,10 +145,6 @@
           <BoostPad boostForce={block.boostForce} />
         {:else if block.type === "ramp" || block.type === "slope"}
           <RampBlock type={block.type} variation={block.variation} />
-        {:else if block.type === "loop"}
-          <LoopBlock />
-        {:else if block.type === "halfpipe"}
-          <HalfPipeBlock />
         {:else if block.type === "ice"}
           <IcePatch />
         {:else if block.type === "sand"}

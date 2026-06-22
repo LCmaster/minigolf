@@ -7,31 +7,21 @@
   export let scale = [1, 1, 1];
 
   // Plinko pegs configuration
-  export let rows = 4;
-  export let cols = 4;
-  export let spacing = 0.5;
   export let pegRadius = 0.05;
   export let pegHeight = 0.5;
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation) ? safeRotation : [0, Math.PI * safeRotation, 0];
 
-  // Generate staggered peg positions
-  $: pegs = (() => {
-    let p = [];
-    const offsetX = (cols * spacing) / 2 - (spacing / 2);
-    const offsetZ = (rows * spacing) / 2 - (spacing / 2);
-    for (let r = 0; r < rows; r++) {
-      const stagger = (r % 2 === 0) ? 0 : spacing / 2;
-      for (let c = 0; c < cols; c++) {
-        p.push({
-          x: c * spacing - offsetX + stagger,
-          z: r * spacing - offsetZ
-        });
-      }
-    }
-    return p;
-  })();
+  // 5-pin layout (quincunx)
+  const d = 0.6; // distance from center
+  const pegs = [
+    { x: 0, z: 0 },
+    { x: -d, z: -d },
+    { x: d, z: -d },
+    { x: -d, z: d },
+    { x: d, z: d },
+  ];
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>

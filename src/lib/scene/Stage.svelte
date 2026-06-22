@@ -19,8 +19,6 @@
   import Bumper from "./obstacles/Bumper.svelte";
   import BoostPad from "./obstacles/BoostPad.svelte";
   import RampBlock from "./blocks/RampBlock.svelte";
-  import LoopBlock from "./blocks/LoopBlock.svelte";
-  import HalfPipeBlock from "./blocks/HalfPipeBlock.svelte";
   import IcePatch from "./obstacles/IcePatch.svelte";
   import SandTrap from "./obstacles/SandTrap.svelte";
   import WaterHazard from "./obstacles/WaterHazard.svelte";
@@ -148,14 +146,16 @@
             rotation={block.rotation}
             scale={block.scale}
           />
-        {:else if block.type === "loop"}
-          <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
-        {:else if block.type === "halfpipe"}
-          <HalfPipeBlock position={block.position} rotation={block.rotation} scale={block.scale} />
         {:else if block.type === "ice"}
-          <IcePatch position={block.position} rotation={block.rotation} scale={block.scale} />
+          <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
+            on:iceenter={() => player.setDamping(0.0, 0.0)}
+            on:iceexit={() => player.setDamping(0.35, 0.35)}
+          />
         {:else if block.type === "sand"}
-          <SandTrap position={block.position} rotation={block.rotation} scale={block.scale} />
+          <SandTrap position={block.position} rotation={block.rotation} scale={block.scale}
+            on:sandenter={() => player.setDamping(2.5, 2.5)}
+            on:sandexit={() => player.setDamping(0.35, 0.35)}
+          />
         {:else if block.type === "water"}
           <!-- Catch waterhazard event from WaterHazard -->
           <WaterHazard position={block.position} rotation={block.rotation} scale={block.scale} 
