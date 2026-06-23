@@ -1,5 +1,5 @@
 <script>
-  import { getMyLevels, deleteLevel } from "$lib/level";
+  import { getMyLevels, deleteLevel, getCampaigns, deleteCampaign } from "$lib/level";
   import { user } from "$lib/user";
   import { goto } from "$app/navigation";
 
@@ -8,11 +8,13 @@
 
   $: if ($user !== undefined) {
     if ($user) {
-      getMyLevels($user.uid).then(res => {
-        levels = res.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      Promise.all([getMyLevels($user.uid), getCampaigns($user.uid)]).then(([levelsRes, campaignsRes]) => {
+        const sortedLevels = levelsRes.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+        const sortedCampaigns = campaignsRes.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+        levels = [...sortedCampaigns, ...sortedLevels];
         loading = false;
       }).catch(err => {
-        console.error("Failed to fetch levels:", err);
+        console.error("Failed to fetch data:", err);
         loading = false;
         alert("Could not load levels. Please try again later.");
       });
@@ -22,17 +24,45 @@
     }
   }
 
-  async function handleDelete(levelId, levelName) {
-    const usedInCampaign = levels.find(l => l.isCampaign && l.sourceLevelIds?.includes(levelId));
+  let deletingCampaign = null;
+  let deleteInnerLevels = false;
+
+  function promptDelete(level) {
+    if (level.isCampaign) {
+      deletingCampaign = level;
+      deleteInnerLevels = false;
+    } else {
+      handleDeleteBaseLevel(level);
+    }
+  }
+
+  async function confirmDeleteCampaign() {
+    try {
+      await deleteCampaign(deletingCampaign.id, deleteInnerLevels);
+      levels = levels.filter(l => l.id !== deletingCampaign.id);
+      if (deleteInnerLevels) {
+         levels = levels.filter(l => l.campaignId !== deletingCampaign.id);
+      } else {
+         levels = levels.map(l => l.campaignId === deletingCampaign.id ? { ...l, campaignId: null } : l);
+      }
+      deletingCampaign = null;
+    } catch(e) {
+      console.error(e);
+      alert("Failed to delete campaign.");
+    }
+  }
+
+  async function handleDeleteBaseLevel(level) {
+    const usedInCampaign = levels.find(l => l.isCampaign && l.levelIds?.includes(level.id));
     if (usedInCampaign) {
       alert(`Cannot delete this level because it is currently used in the campaign: "${usedInCampaign.name}".`);
       return;
     }
 
-    if (confirm(`Are you sure you want to delete "${levelName}"? This cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete "${level.name}"? This cannot be undone.`)) {
       try {
-        await deleteLevel(levelId);
-        levels = levels.filter(l => l.id !== levelId);
+        await deleteLevel(level.id);
+        levels = levels.filter(l => l.id !== level.id);
       } catch (e) {
         console.error(e);
         alert("Failed to delete level.");
@@ -72,7 +102,7 @@
     <div class="flex flex-col gap-12">
       {#each [
         { title: "MY CAMPAIGNS", items: levels.filter(l => l.isCampaign) },
-        { title: "BASE LEVELS", items: levels.filter(l => !l.isCampaign) }
+        { title: "BASE LEVELS", items: levels.filter(l => !l.isCampaign && !l.campaignId) }
       ] as section}
         {#if section.items.length > 0}
           <div>
@@ -100,14 +130,14 @@
                     {#if !level.isCampaign}
                       <p class="font-bold opacity-75">Par: {level.par || (level.holes && level.holes[0]?.par) || "?"}</p>
                     {:else}
-                      <p class="font-bold text-[#F6A655]">Campaign</p>
+                      <p class="font-bold text-[#F6A655]">{level.difficulty || "Campaign"}</p>
                     {/if}
                   </div>
                   <hr class="border-white/50" />
                   <footer class="p-6 flex justify-between items-center bg-white/20">
                     <button 
                       class="py-2 px-4 rounded-full font-bold text-sm tracking-wider bg-red-400 hover:bg-red-500 border border-white/50 shadow-sm text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
-                      on:click={() => handleDelete(level.id, level.name)}
+                      on:click={() => promptDelete(level)}
                     >
                       Delete
                     </button>
@@ -129,7 +159,7 @@
                       {/if}
                       <button 
                         class="py-2 px-6 rounded-full font-black tracking-widest bg-gradient-to-b from-[#F6A655] to-[#E57300] border-2 border-white/50 shadow-lg text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
-                        on:click={() => goto(`/game?courseId=${level.id}`)}
+                        on:click={() => level.isCampaign ? goto(`/campaign/${level.id}`) : goto(`/game?courseId=${level.id}`)}
                       >
                         PLAY
                       </button>
@@ -145,3 +175,36 @@
   {/if}
   </div>
 </div>
+
+{#if deletingCampaign}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50 relative text-[#4A4A4A]">
+      <h2 class="text-2xl font-black mb-4 text-red-500">Delete Campaign</h2>
+      <p class="font-bold opacity-80 mb-6">
+        Are you sure you want to delete "{deletingCampaign.name}"? This cannot be undone.
+      </p>
+      
+      <label class="flex items-start gap-3 mb-8 cursor-pointer p-3 bg-red-50 rounded-xl border border-red-200">
+        <input type="checkbox" bind:checked={deleteInnerLevels} class="mt-1 w-5 h-5 text-red-500 rounded border-red-300 focus:ring-red-500" />
+        <span class="text-sm font-bold text-red-600">
+          Also permanently delete the {deletingCampaign.levelIds?.length || 0} base levels inside this campaign.
+        </span>
+      </label>
+
+      <div class="flex justify-end gap-3">
+        <button 
+          class="px-5 py-2 rounded-full font-bold bg-gray-200 hover:bg-gray-300 transition-colors"
+          on:click={() => deletingCampaign = null}
+        >
+          Cancel
+        </button>
+        <button 
+          class="px-5 py-2 rounded-full font-bold bg-red-500 hover:bg-red-600 text-white transition-colors"
+          on:click={confirmDeleteCampaign}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
