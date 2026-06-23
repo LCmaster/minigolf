@@ -67,6 +67,12 @@
           Level editor
         </button>
         <button
+          on:click={() => goto("/profile")}
+          class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+        >
+          My Profile
+        </button>
+        <button
           on:click={() => goto("/mylevels")}
           class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
         >
