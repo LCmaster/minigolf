@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
+import { userProfile } from "$lib/stores/profile";
 import {
   PUBLIC_FIREBASE_API_KEY,
   PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -175,7 +176,18 @@ export async function getLevel(levelId) {
     const docRef = doc(db, "levels", levelId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const data = docSnap.data();
+      
+      // Enforce privacy: Only the creator or an admin can load this level
+      const currentUser = get(user);
+      const profile = get(userProfile);
+      const isAdmin = profile?.role === 'super-admin' || profile?.role === 'admin';
+      
+      if (!isAdmin && data.uid !== currentUser?.uid) {
+        throw new Error("You do not have permission to view this level.");
+      }
+      
+      return { id: docSnap.id, ...data };
     } else {
       throw new Error("No such level found!");
     }

@@ -4,7 +4,7 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
   import { page } from "$app/stores";
-  import { getLevel } from "$lib/firebase";
+  import { getLevel, user } from "$lib/firebase";
   import { onMount } from "svelte";
   import { scale, fly, fade } from "svelte/transition";
   import { backOut } from "svelte/easing";
@@ -15,22 +15,24 @@
 
   const { course, current: currentHole, shots } = useGame();
 
-  onMount(async () => {
+  $: if ($user !== undefined && $page.url.searchParams.get("courseId") && !$course && !loading) {
     const courseId = $page.url.searchParams.get("courseId");
-    if (courseId) {
-      loading = true;
-      try {
-        const loadedCourse = await getLevel(courseId);
+    loading = true;
+    getLevel(courseId)
+      .then((loadedCourse) => {
         $course = loadedCourse;
         $currentHole = 0;
         $shots = loadedCourse.holes.map((_) => 0);
-      } catch (e) {
+      })
+      .catch((e) => {
         console.error("Failed to load custom course", e);
-      } finally {
+        alert(e.message || "Failed to load level.");
+        goto("/");
+      })
+      .finally(() => {
         loading = false;
-      }
-    }
-  });
+      });
+  }
 
   function startGame() {
     $currentHole = 0;

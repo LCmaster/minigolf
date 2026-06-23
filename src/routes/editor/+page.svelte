@@ -15,7 +15,7 @@
   import { onMount } from "svelte";
   import { fly, fade } from "svelte/transition";
   import { page } from "$app/stores";
-  import { getLevel } from "$lib/firebase";
+  import { getLevel, user } from "$lib/firebase";
 
   const {
     testing,
@@ -61,37 +61,33 @@
     };
   }
 
-  onMount(async () => {
+  $: if ($user !== undefined && $page.url.searchParams.get("courseId") && !$stage) {
     const courseId = $page.url.searchParams.get("courseId");
-    if (courseId) {
-      try {
-        const loadedCourse = await getLevel(courseId);
-        if (loadedCourse.isCampaign) {
-          alert(
-            "Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.",
-          );
-          window.location.href = "/mylevels";
-          return;
-        }
-        // The loadedCourse has `{ name, theme, holes: [{ par, controlPoints }] }`
-        if (loadedCourse.holes && loadedCourse.holes.length > 0) {
-          history.commit(); // Push current state to history before overwriting
-          history.update((h) => ({
-            ...h,
-            controlPoints: loadedCourse.holes[0].controlPoints,
-            blocks: loadedCourse.holes[0].blocks || [],
-          }));
-          $stage = {
-            name: loadedCourse.name,
-            theme: loadedCourse.theme || "clear",
-            par: loadedCourse.holes[0].par,
-          };
-        }
-      } catch (e) {
-        console.error("Failed to load custom level for editing", e);
+    getLevel(courseId).then((loadedCourse) => {
+      if (loadedCourse.isCampaign) {
+        alert("Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.");
+        window.location.href = "/mylevels";
+        return;
       }
-    }
-  });
+      if (loadedCourse.holes && loadedCourse.holes.length > 0) {
+        history.commit();
+        history.update((h) => ({
+          ...h,
+          controlPoints: loadedCourse.holes[0].controlPoints,
+          blocks: loadedCourse.holes[0].blocks || [],
+        }));
+        $stage = {
+          name: loadedCourse.name,
+          theme: loadedCourse.theme || "clear",
+          par: loadedCourse.holes[0].par,
+        };
+      }
+    }).catch(e => {
+      console.error("Failed to load custom level for editing", e);
+      alert(e.message || "Failed to load level.");
+      window.location.href = "/mylevels";
+    });
+  }
 
   function handleKeydown(e) {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
