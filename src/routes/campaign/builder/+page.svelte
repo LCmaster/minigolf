@@ -16,21 +16,24 @@
 
   let campaignName = "";
   let campaignTheme = "clear";
+  let campaignDifficulty = "Normal";
   let isOfficial = false;
 
   $: isAdmin = $userProfile?.role === 'super-admin' || $userProfile?.role === 'admin';
 
   $: if ($user !== undefined) {
     if ($user) {
+      const campaignId = $page.url.searchParams.get("campaignId");
       getMyLevels($user.uid).then((res) => {
-        // Filter out existing campaigns so you can only bundle base levels
-        levels = res.filter((l) => !l.isCampaign);
+        // Only show levels not bundled or bundled in the current campaign
+        levels = res.filter((l) => !l.isCampaign && (!l.campaignId || l.campaignId === campaignId));
         
         const campaignId = $page.url.searchParams.get("campaignId");
         if (campaignId) {
           getLevel(campaignId).then((campaign) => {
             campaignName = campaign.name;
             campaignTheme = campaign.theme;
+            campaignDifficulty = campaign.difficulty || "Normal";
             isOfficial = campaign.isOfficial || false;
             
             if (campaign.sourceLevelIds) {
@@ -97,48 +100,7 @@
     playlist = newPlaylist;
   }
 
-  async function handleImport(event) {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
 
-    for (const file of files) {
-      try {
-        const zip = new JSZip();
-        const loadedZip = await zip.loadAsync(file);
-        const configJson = await loadedZip.file("config.json").async("string");
-        const courseData = JSON.parse(configJson);
-
-        if (courseData.holes && courseData.holes.length > 0) {
-          // Wrap it in a structure compatible with our playlist
-          const importedLevel = {
-            name: courseData.name || "Imported Level",
-            par: courseData.holes[0].par || 2,
-            holes: courseData.holes,
-            thumbnailUrl: null, // Local zip won't have a Firebase thumbnail
-          };
-          addToPlaylist(importedLevel);
-        } else if (courseData.controlPoints) {
-          // Fallback for older exports that only had controlPoints
-          const importedLevel = {
-            name: courseData.name || "Imported Level",
-            par: 2,
-            holes: [
-              { par: 2, controlPoints: courseData.controlPoints, blocks: [] },
-            ],
-            thumbnailUrl: null,
-          };
-          addToPlaylist(importedLevel);
-        } else {
-          throw new Error("Invalid course data format.");
-        }
-      } catch (e) {
-        console.error(e);
-        alert(`Failed to import level from ZIP: ${file.name}`);
-      }
-    }
-
-    event.target.value = "";
-  }
 
   async function handleSave() {
     if (!$user) return;
@@ -153,8 +115,6 @@
 
     saving = true;
     try {
-      // Merge all holes from the playlist
-      const mergedHoles = playlist.flatMap((level) => level.holes);
       const sourceLevelIds = playlist.map((level) => level.id);
       const thumbnailUrl = playlist[0].thumbnailUrl; // Inherit first level's thumbnail
 
@@ -164,8 +124,8 @@
           campaignId,
           campaignName,
           campaignTheme,
+          campaignDifficulty,
           thumbnailUrl,
-          mergedHoles,
           sourceLevelIds,
           isAdmin ? isOfficial : false
         );
@@ -174,8 +134,8 @@
           $user.uid,
           campaignName,
           campaignTheme,
+          campaignDifficulty,
           thumbnailUrl,
-          mergedHoles,
           sourceLevelIds,
           isAdmin ? isOfficial : false
         );
@@ -243,22 +203,7 @@
               Select single-hole levels to add.
             </p>
           </div>
-          <div>
-            <input
-              type="file"
-              accept=".zip"
-              multiple
-              style="display: none;"
-              bind:this={fileInput}
-              on:change={handleImport}
-            />
-            <button
-              class="py-2 px-4 rounded-full font-bold text-sm tracking-wider bg-white/70 hover:bg-white backdrop-blur-md border border-white/50 shadow-sm text-[#4A4A4A] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-              on:click={() => fileInput.click()}
-            >
-              Import ZIP
-            </button>
-          </div>
+
         </div>
 
         {#if loading}
@@ -330,6 +275,18 @@
               {#each themeOptions as opt}
                 <option value={opt.id}>{opt.name}</option>
               {/each}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="font-bold text-sm tracking-wider">Difficulty</span>
+            <select
+              class="w-full px-4 py-2 rounded-xl border border-white/50 bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F6A655] transition-colors"
+              bind:value={campaignDifficulty}
+            >
+              <option value="Easy">Easy</option>
+              <option value="Normal">Normal</option>
+              <option value="Hard">Hard</option>
+              <option value="Expert">Expert</option>
             </select>
           </label>
           {#if isAdmin}
