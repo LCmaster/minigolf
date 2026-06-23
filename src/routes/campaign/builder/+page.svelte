@@ -1,8 +1,10 @@
 <script>
   import JSZip from "jszip";
-  import { getMyLevels, saveCampaign } from "$lib/level";
+  import { getMyLevels, saveCampaign, getLevel, updateCampaign } from "$lib/level";
   import { user } from "$lib/user";
+  import { userProfile } from "$lib/stores/profile";
   import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
   import { themeOptions } from "$lib/scene/themes";
 
   let fileInput;
@@ -14,13 +16,52 @@
 
   let campaignName = "";
   let campaignTheme = "clear";
+  let isOfficial = false;
+
+  $: isAdmin = $userProfile?.role === 'super-admin' || $userProfile?.role === 'admin';
 
   $: if ($user !== undefined) {
     if ($user) {
       getMyLevels($user.uid).then((res) => {
         // Filter out existing campaigns so you can only bundle base levels
         levels = res.filter((l) => !l.isCampaign);
-        loading = false;
+        
+        const campaignId = $page.url.searchParams.get("campaignId");
+        if (campaignId) {
+          getLevel(campaignId).then((campaign) => {
+            campaignName = campaign.name;
+            campaignTheme = campaign.theme;
+            isOfficial = campaign.isOfficial || false;
+            
+            if (campaign.sourceLevelIds) {
+              const promises = campaign.sourceLevelIds.map(id => getLevel(id).catch(e => null));
+              Promise.all(promises).then(sourceLevels => {
+                const newPlaylist = [];
+                sourceLevels.forEach((sl, index) => {
+                  if (sl) {
+                    newPlaylist.push({ ...sl, playlistId: crypto.randomUUID() });
+                  } else if (campaign.holes && campaign.holes[index]) {
+                    newPlaylist.push({
+                       name: "Unknown Level",
+                       par: campaign.holes[index].par,
+                       holes: [campaign.holes[index]],
+                       playlistId: crypto.randomUUID()
+                    });
+                  }
+                });
+                playlist = newPlaylist;
+                loading = false;
+              });
+            } else {
+              loading = false;
+            }
+          }).catch(e => {
+            console.error("Failed to load campaign", e);
+            loading = false;
+          });
+        } else {
+          loading = false;
+        }
       });
     } else {
       loading = false;
@@ -117,14 +158,28 @@
       const sourceLevelIds = playlist.map((level) => level.id);
       const thumbnailUrl = playlist[0].thumbnailUrl; // Inherit first level's thumbnail
 
-      await saveCampaign(
-        $user.uid,
-        campaignName,
-        campaignTheme,
-        thumbnailUrl,
-        mergedHoles,
-        sourceLevelIds
-      );
+      const campaignId = $page.url.searchParams.get("campaignId");
+      if (campaignId) {
+        await updateCampaign(
+          campaignId,
+          campaignName,
+          campaignTheme,
+          thumbnailUrl,
+          mergedHoles,
+          sourceLevelIds,
+          isAdmin ? isOfficial : false
+        );
+      } else {
+        await saveCampaign(
+          $user.uid,
+          campaignName,
+          campaignTheme,
+          thumbnailUrl,
+          mergedHoles,
+          sourceLevelIds,
+          isAdmin ? isOfficial : false
+        );
+      }
 
       alert("Campaign saved successfully!");
       goto("/mylevels");
@@ -277,6 +332,12 @@
               {/each}
             </select>
           </label>
+          {#if isAdmin}
+            <label class="flex items-center gap-2 mt-2 cursor-pointer">
+              <input type="checkbox" class="w-5 h-5 rounded border-white/50 text-[#F6A655] focus:ring-[#F6A655]" bind:checked={isOfficial} />
+              <span class="font-bold text-sm tracking-wider text-[#F6A655]">Make Official Campaign</span>
+            </label>
+          {/if}
         </div>
 
         <div class="flex flex-col gap-3 overflow-y-auto max-h-[45vh] pr-2">

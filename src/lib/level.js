@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { get } from "svelte/store";
 import { user } from "$lib/user";
 import { userProfile } from "$lib/stores/profile";
@@ -60,7 +60,7 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
  * @param {Array} sourceLevelIds - Array of original level IDs used in this campaign
  * @returns {Promise<string>} Saved campaign Firestore document ID
  */
-export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, sourceLevelIds = []) {
+export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, sourceLevelIds = [], isOfficial = false) {
   try {
     const profile = get(userProfile);
     const author = profile?.nickname || "Unknown Player";
@@ -74,6 +74,7 @@ export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, source
       theme: theme || "clear",
       difficulty: "Campaign",
       isCampaign: true,
+      isOfficial,
       sourceLevelIds,
       holes: cleanHoles,
       thumbnailUrl,
@@ -82,6 +83,37 @@ export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, source
     return docRef.id;
   } catch (error) {
     console.error("Error saving campaign: ", error);
+    throw error;
+  }
+}
+
+/**
+ * Updates an existing bundled campaign in Firebase.
+ *
+ * @param {string} campaignId - Campaign Document ID
+ * @param {string} name - Campaign name
+ * @param {string} theme - Campaign theme
+ * @param {string} thumbnailUrl - Inherited thumbnail URL
+ * @param {Array} holes - Array of holes from selected levels
+ * @param {Array} sourceLevelIds - Array of original level IDs used in this campaign
+ * @param {boolean} isOfficial - Whether the campaign is official
+ * @returns {Promise<void>}
+ */
+export async function updateCampaign(campaignId, name, theme, thumbnailUrl, holes, sourceLevelIds = [], isOfficial = false) {
+  try {
+    const docRef = doc(db, "levels", campaignId);
+    const cleanHoles = JSON.parse(JSON.stringify(holes));
+    await updateDoc(docRef, {
+      name: name || "Untitled Campaign",
+      theme: theme || "clear",
+      isOfficial,
+      sourceLevelIds,
+      holes: cleanHoles,
+      thumbnailUrl,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error updating campaign: ", error);
     throw error;
   }
 }
@@ -109,6 +141,27 @@ export async function getMyLevels(uid) {
 }
 
 /**
+ * Fetches all official campaigns.
+ *
+ * @returns {Promise<Array>} List of official campaigns
+ */
+export async function getOfficialCampaigns() {
+  try {
+    const levelsCol = collection(db, "levels");
+    const q = query(levelsCol, where("isCampaign", "==", true), where("isOfficial", "==", true));
+    const querySnapshot = await getDocs(q);
+    const campaigns = [];
+    querySnapshot.forEach((docSnap) => {
+      campaigns.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return campaigns;
+  } catch (error) {
+    console.error("Error getting official campaigns: ", error);
+    throw error;
+  }
+}
+
+/**
  * Fetches a specific level by document ID.
  *
  * @param {string} levelId - Level Document ID
@@ -127,7 +180,7 @@ export async function getLevel(levelId) {
       const profile = get(userProfile);
       const isAdmin = profile?.role === 'super-admin' || profile?.role === 'admin';
       
-      if (!isAdmin && data.uid !== currentUser?.uid) {
+      if (!isAdmin && data.uid !== currentUser?.uid && !data.isOfficial) {
         throw new Error("You do not have permission to view this level.");
       }
       

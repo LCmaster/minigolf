@@ -4,7 +4,7 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
   import { page } from "$app/stores";
-  import { getLevel } from "$lib/level";
+  import { getLevel, getOfficialCampaigns } from "$lib/level";
   import { user } from "$lib/user";
   import { onMount } from "svelte";
   import { scale, fly, fade } from "svelte/transition";
@@ -13,6 +13,18 @@
   export let data;
   let current = 0;
   let loading = false;
+  let courses = data.courses;
+
+  onMount(async () => {
+    try {
+      const official = await getOfficialCampaigns();
+      if (official && official.length > 0) {
+        courses = [...data.courses, ...official];
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  });
 
   const { course, current: currentHole, shots } = useGame();
 
@@ -37,8 +49,8 @@
 
   function startGame() {
     $currentHole = 0;
-    $course = data.courses[current];
-    $shots = data.courses[current].holes.map((_) => 0);
+    $course = courses[current];
+    $shots = courses[current].holes.map((_) => 0);
   }
 
   async function quitGame() {
@@ -141,7 +153,7 @@
             <h2
               class="text-3xl font-black text-[#4A4A4A] text-center drop-shadow-sm"
             >
-              {data.courses[current].name}
+              {courses[current].name}
             </h2>
 
             <!-- Polished Thumbnail Placeholder -->
@@ -170,7 +182,7 @@
                 >
                 <span
                   class="text-xl font-mono font-bold text-[#7ACC52] drop-shadow-sm"
-                  >{data.courses[current].holes.length}</span
+                  >{courses[current].holes.length}</span
                 >
               </div>
               <div class="flex flex-col items-center border-x border-black/10">
@@ -181,7 +193,7 @@
                 <span
                   class="text-xl font-mono font-bold text-[#4A4A4A] drop-shadow-sm"
                 >
-                  {data.courses[current].holes.reduce(
+                  {courses[current].holes.reduce(
                     (sum, h) => sum + (h.par || 0),
                     0,
                   )}
@@ -194,7 +206,7 @@
                 >
                 <span
                   class="text-xl font-mono font-bold text-[#F6A655] drop-shadow-sm"
-                  >{data.courses[current].difficulty || "Normal"}</span
+                  >{courses[current].difficulty || "Normal"}</span
                 >
               </div>
             </div>
@@ -205,7 +217,7 @@
         <div class="w-full flex items-center justify-between gap-4 mt-4">
           <button
             on:click={() =>
-              (current = current === 0 ? data.courses.length - 1 : current - 1)}
+              (current = current === 0 ? courses.length - 1 : current - 1)}
             class="w-14 h-14 flex justify-center items-center rounded-full bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <img src="/icons/arrow_left.svg" alt="Prev" class="w-6 h-6" />
@@ -220,7 +232,7 @@
 
           <button
             on:click={() =>
-              (current = current < data.courses.length - 1 ? current + 1 : 0)}
+              (current = current < courses.length - 1 ? current + 1 : 0)}
             class="w-14 h-14 flex justify-center items-center rounded-full bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <img src="/icons/arrow_right.svg" alt="Next" class="w-6 h-6" />
