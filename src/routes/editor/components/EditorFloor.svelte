@@ -3,7 +3,7 @@
   import { useEditor } from "../context";
   import { TILE_SIZE, GRID_SIZE } from "$lib/gridUtils";
 
-  const { controlPoints, pointSelected } = useEditor();
+  const { controlPoints, pointSelected, placementBlock, previewPosition, blocks, blockSelected } = useEditor();
 
   // Grid settings (must match gridUtils.js)
   const GAP = 0.06; // gap between tiles (visual grid lines)
@@ -44,8 +44,30 @@
   let lastClickTime = 0;
 
   function handleClick(e, tile) {
-    console.log("Terrain tile clicked");
     e.stopPropagation();
+
+    if ($placementBlock) {
+      // Place the block
+      const newBlock = {
+        id: crypto.randomUUID(),
+        type: $placementBlock.type,
+        variation: $placementBlock.variation,
+        position: [tile.x, 0, tile.z],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      };
+      if (newBlock.type === "bumper") newBlock.restitution = 2.0;
+      if (newBlock.type === "boost") newBlock.boostForce = 15;
+
+      blocks.commit();
+      $blocks = [...$blocks, newBlock];
+      $blockSelected = newBlock.id;
+      
+      // Exit placement mode
+      $placementBlock = null;
+      return;
+    }
+
     const now = Date.now();
     const isDouble =
       tile.key === lastClickKey && now - lastClickTime < DOUBLE_CLICK_MS;
@@ -67,6 +89,13 @@
     }
   }
 
+  function handlePointerMove(e, tile) {
+    if ($placementBlock) {
+      e.stopPropagation();
+      $previewPosition = [tile.x, 0, tile.z];
+    }
+  }
+
 
 </script>
 
@@ -81,6 +110,7 @@
     on:pointerleave={() => {
       if (hoveredKey === tile.key) hoveredKey = null;
     }}
+    on:pointermove={(e) => handlePointerMove(e, tile)}
     on:click={(e) => handleClick(e, tile)}
   >
     <T.CircleGeometry args={[HEX_RADIUS - GAP / 2, 6]} />

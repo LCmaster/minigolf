@@ -143,8 +143,14 @@
           <WindmillBlock position={block.position} rotation={block.rotation} scale={block.scale} />
         {:else if block.type === "ice"}
           <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
-            on:iceenter={() => player.setDamping(0.0, 0.0)}
-            on:iceexit={() => player.setDamping(0.35, 0.35)}
+            on:iceenter={() => {
+              player.setDamping(0.0, 0.0);
+              player.setFriction(0.0);
+            }}
+            on:iceexit={() => {
+              player.setDamping(0.35, 0.35);
+              player.setFriction(2.0); // Default player friction
+            }}
           />
         {:else if block.type === "sand"}
           <SandTrap position={block.position} rotation={block.rotation} scale={block.scale}

@@ -1,3 +1,8 @@
+<script context="module">
+  // Cache heavily generated geometries so remounting during drags doesn't freeze the editor
+  const geoCache = {};
+</script>
+
 <script>
   import { Shape, ExtrudeGeometry, MeshStandardMaterial } from "three";
   import { T } from "@threlte/core";
@@ -8,6 +13,7 @@
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
+  export let isEditor = false;
 
   export let groundMaterial = new MeshStandardMaterial({ color: "#567D46" });
 
@@ -16,6 +22,9 @@
   $: height = variation * 0.5; // Variation 1=0.5, 2=1.0, 3=1.5
 
   $: geometry = (() => {
+    const cacheKey = `${type}-${variation}`;
+    if (geoCache[cacheKey]) return geoCache[cacheKey];
+
     // Draw the side profile (Z and Y axes)
     const shape = new Shape();
     shape.moveTo(1, 0);              // top front
@@ -40,6 +49,8 @@
     geo.translate(1, 0, 0);
     
     geo.computeVertexNormals();
+
+    geoCache[cacheKey] = geo;
     return geo;
   })();
 </script>

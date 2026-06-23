@@ -17,9 +17,9 @@
 <T.Group {position} rotation={actualRotation} {scale}>
   <!-- Fixed RigidBody ensures it doesn't move but collides -->
   <RigidBody type="fixed">
-    <!-- Visual representation: Light blue icy square -->
-    <T.Mesh position={[0, 0.05, 0]} receiveShadow>
-      <T.BoxGeometry args={[2, 0.1, 2]} />
+    <!-- Visual representation: Light blue icy square (Thin decal) -->
+    <T.Mesh position={[0, 0.005, 0]} receiveShadow>
+      <T.BoxGeometry args={[2, 0.01, 2]} />
       <T.MeshStandardMaterial 
         color="#a5f3fc" 
         roughness={0.0} 
@@ -29,23 +29,15 @@
       />
     </T.Mesh>
 
-    <!-- Collider with zero friction -->
-    <Collider 
-      shape="cuboid" 
-      args={[1, 0.05, 1]} 
-      position={[0, 0.05, 0]} 
-      friction={0.0} 
-      restitution={0.2}
-    />
-
-    <!-- Sensor to apply sliding (low damping) to ball -->
-    <Collider 
-      shape="cuboid" 
-      args={[1, 0.5, 1]} 
-      position={[0, 0.5, 0]} 
-      sensor 
-      on:sensorenter={() => dispatch('iceenter')}
-      on:sensorexit={() => dispatch('iceexit')}
-    />
+    <!-- Sensor to apply sliding to ball -->
+    <T.Group position={[0, 0.5, 0]}>
+      <Collider 
+        shape="cuboid" 
+        args={[1, 0.5, 1]} 
+        sensor 
+        on:sensorenter={() => dispatch('iceenter')}
+        on:sensorexit={() => dispatch('iceexit')}
+      />
+    </T.Group>
   </RigidBody>
 </T.Group>

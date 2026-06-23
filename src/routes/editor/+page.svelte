@@ -26,6 +26,7 @@
     blockSelected,
     stage,
     history,
+    placementBlock,
   } = setEditor();
 
   let showingAssets = false;
@@ -53,21 +54,11 @@
     { type: "plinko", variation: 1 },
   ];
 
-  function addBlock(detail) {
-    const newBlock = {
-      id: crypto.randomUUID(),
+  function startPlacement(detail) {
+    $placementBlock = {
       type: detail.type,
       variation: detail.variation,
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1],
     };
-    if (detail.type === "bumper") newBlock.restitution = 2.0;
-    if (detail.type === "boost") newBlock.boostForce = 15;
-
-    blocks.commit();
-    $blocks = [...$blocks, newBlock];
-    $blockSelected = newBlock.id;
   }
 
   onMount(async () => {
@@ -114,9 +105,13 @@
       e.preventDefault();
       history.redo();
     } else if (e.key === "Escape") {
-      // Escape exits preview or test mode
-      if ($previewing) previewing.set(false);
-      if ($testing) testing.set(false);
+      // Escape exits preview, test mode, or placement mode
+      if ($placementBlock) {
+        $placementBlock = null;
+      } else {
+        if ($previewing) previewing.set(false);
+        if ($testing) testing.set(false);
+      }
     }
   }
 </script>
@@ -184,7 +179,7 @@
         types={availableTypes}
         blocks={availableBlocks}
         on:assetSelected={(e) => {
-          addBlock(e.detail);
+          startPlacement(e.detail);
           showingAssets = false;
         }}
       />

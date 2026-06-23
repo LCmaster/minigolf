@@ -1,3 +1,8 @@
+<script context="module">
+  // Cache the heavily generated geometry so remounting during drags doesn't freeze the editor
+  let cachedLoopGeo = null;
+</script>
+
 <script>
   import {
     Shape,
@@ -22,6 +27,8 @@
     : [0, Math.PI * rotation, 0];
 
   $: sharedLoopGeometry = (() => {
+    if (cachedLoopGeo) return cachedLoopGeo;
+
     // 1. Create the Track Cross-Section Profile (Flat floor + Side walls)
     const trackWidth = 2;
     const wallHeight = 0.5;
@@ -142,6 +149,8 @@
     // Merge the vertices! ExtrudeGeometry generates unmerged polygon soup which crashes Rapier
     geo = mergeVertices(geo);
     geo.computeVertexNormals();
+    
+    cachedLoopGeo = geo;
     return geo;
   })();
 </script>

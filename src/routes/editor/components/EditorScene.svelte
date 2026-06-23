@@ -21,7 +21,7 @@
   import InstancedObstacles from "./InstancedObstacles.svelte";
   import { useEditor } from "../context";
 
-  const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode, stage } = useEditor();
+  const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode, stage, placementBlock, previewPosition } = useEditor();
 
   interactivity();
 
@@ -71,6 +71,35 @@
     if (e.key === 't') $transformMode = "translate";
     if (e.key === 'r') $transformMode = "rotate";
     if (e.key === 'e') $transformMode = "scale";
+  }
+
+  function makeGhost(node) {
+    const applyGhost = (obj) => {
+      obj.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (!child.userData.isGhosted) {
+            // Some meshes share materials, clone it so we don't turn the whole world transparent
+            child.material = child.material.clone();
+            child.material.transparent = true;
+            child.material.opacity = 0.5;
+            // Disable shadows for the ghost
+            child.castShadow = false;
+            child.receiveShadow = false;
+            child.userData.isGhosted = true;
+          }
+        }
+      });
+    };
+
+    applyGhost(node);
+
+    // Intercept future child additions (since Svelte mounts children after parents)
+    const originalAdd = node.add.bind(node);
+    node.add = (...object) => {
+      originalAdd(...object);
+      object.forEach(applyGhost);
+      return node;
+    };
   }
 
   $: colors = $pointColors;
@@ -132,13 +161,13 @@
 <SplineTrack controlPoints={$controlPoints} isEditor={true} />
 
 <!-- INSTANCED BLOCKS (Massive performance boost for basic assets) -->
-<InstancedObstacles blocks={iceBlocks} positionOffset={[0, 0.05, 0]}>
-  <T.BoxGeometry args={[2, 0.1, 2]} />
+<InstancedObstacles blocks={iceBlocks} positionOffset={[0, 0.005, 0]}>
+  <T.BoxGeometry args={[2, 0.01, 2]} />
   <T.MeshStandardMaterial color="#a5f3fc" roughness={0.0} metalness={0.2} transparent={true} opacity={0.8} />
 </InstancedObstacles>
 
-<InstancedObstacles blocks={sandBlocks} positionOffset={[0, 0.05, 0]}>
-  <T.BoxGeometry args={[2, 0.1, 2]} />
+<InstancedObstacles blocks={sandBlocks} positionOffset={[0, 0.005, 0]}>
+  <T.BoxGeometry args={[2, 0.01, 2]} />
   <T.MeshStandardMaterial color="#eab308" roughness={1.0} metalness={0.0} />
 </InstancedObstacles>
 
@@ -148,8 +177,33 @@
 </InstancedObstacles>
 
 <!-- COMPLEX BLOCKS (Rendered Individually) -->
-{#if complexBlocks.length > 0}
+{#if complexBlocks.length > 0 || $placementBlock}
   <Suspense>
+    <!-- GHOST BLOCK PREVIEW -->
+    {#if $placementBlock}
+      <T.Group position={$previewPosition} on:create={({ ref }) => makeGhost(ref)}>
+        {#if $placementBlock.type === "bumper"}
+          <Bumper restitution={2.0} isEditor={true} />
+        {:else if $placementBlock.type === "boost"}
+          <BoostPad boostForce={15} isEditor={true} />
+        {:else if $placementBlock.type === "ramp" || $placementBlock.type === "slope"}
+          <RampBlock type={$placementBlock.type} variation={$placementBlock.variation} isEditor={true} />
+        {:else if $placementBlock.type === "loop"}
+          <LoopBlock isEditor={true} />
+        {:else if $placementBlock.type === "windmill"}
+          <WindmillBlock isEditor={true} />
+        {:else if $placementBlock.type === "ice"}
+          <IcePatch isEditor={true} />
+        {:else if $placementBlock.type === "sand"}
+          <SandTrap isEditor={true} />
+        {:else if $placementBlock.type === "water"}
+          <WaterHazard isEditor={true} />
+        {:else if $placementBlock.type === "plinko"}
+          <PlinkoPegs isEditor={true} />
+        {/if}
+      </T.Group>
+    {/if}
+
     {#each complexBlocks as block, i (block.id)}
       <T.Group
         position={block.position}

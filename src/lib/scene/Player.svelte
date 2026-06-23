@@ -71,6 +71,10 @@
     body.setAngularDamping(angular);
   }
 
+  export function setFriction(value) {
+    friction = value;
+  }
+
   function updatePosition() {
     position[0] = positionVector.x;
     position[1] = positionVector.y;
@@ -131,7 +135,8 @@
     bind:rigidBody={body}
     on:sleep={() => dispatch("stopped", position)}
   >
-    <AutoColliders shape={"ball"} {friction} {restitution} mass={1}>
+    <!-- Use min combine rule so we can force friction to 0 when on ice -->
+    <AutoColliders shape={"ball"} {friction} frictionCombineRule="min" {restitution} mass={1}>
       <T.Mesh bind:ref={mesh}>
         <T.IcosahedronGeometry args={[size, 4]} />
         <T.MeshToonMaterial {color} gradientMap={gradientMap} />

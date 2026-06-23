@@ -13,6 +13,10 @@
   import WoodMaterial from "$lib/scene/materials/WoodMaterial.svelte";
   import TileMaterial from "$lib/scene/materials/TileMaterial.svelte";
   import { createMiterGeometry, createSegmentHull, computeMiterPathData } from "$lib/trackGeometry";
+  import { useEditor } from "../context";
+  import { snapToHex } from "$lib/gridUtils";
+
+  const { placementBlock, previewPosition, blocks, blockSelected } = useEditor();
 
 
   export let controlPoints = [];
@@ -190,6 +194,38 @@
 
     colliders = segments;
   }
+
+  function handlePointerMove(e) {
+    if ($placementBlock) {
+      e.stopPropagation();
+      const snapped = snapToHex(e.point.x, e.point.z);
+      $previewPosition = [snapped.x, e.point.y, snapped.z];
+    }
+  }
+
+  function handleClick(e) {
+    if ($placementBlock) {
+      e.stopPropagation();
+      const snapped = snapToHex(e.point.x, e.point.z);
+
+      const newBlock = {
+        id: crypto.randomUUID(),
+        type: $placementBlock.type,
+        variation: $placementBlock.variation,
+        position: [snapped.x, e.point.y, snapped.z],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      };
+      if (newBlock.type === "bumper") newBlock.restitution = 2.0;
+      if (newBlock.type === "boost") newBlock.boostForce = 15;
+
+      blocks.commit();
+      $blocks = [...$blocks, newBlock];
+      $blockSelected = newBlock.id;
+      
+      $placementBlock = null;
+    }
+  }
 </script>
 
 {#if baseGeo}
@@ -197,10 +233,10 @@
   <T.Group>
     <!-- Render floor visual meshes only if physics is disabled (to avoid duplicating AutoColliders rendering) -->
     {#if noPhysics}
-      <T.Mesh geometry={baseGeo} receiveShadow>
+      <T.Mesh geometry={baseGeo} receiveShadow on:pointermove={handlePointerMove} on:click={handleClick}>
         <T.MeshStandardMaterial color="#888888" />
       </T.Mesh>
-      <T.Mesh geometry={tileGeo} receiveShadow>
+      <T.Mesh geometry={tileGeo} receiveShadow on:pointermove={handlePointerMove} on:click={handleClick}>
         <TileMaterial color={tileColor} />
       </T.Mesh>
     {/if}

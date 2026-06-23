@@ -49,6 +49,8 @@ export const setEditor = () => {
   const ctx = {
     testing: writable(false),
     previewing: writable(false),
+    placementBlock: writable(null),
+    previewPosition: writable([0, 0, 0]),
     history,
     controlPoints,
     pointSelected: writable(secondId),
@@ -78,6 +80,8 @@ export const setEditor = () => {
   activeEditor.controlPoints = ctx.controlPoints;
   activeEditor.stage = ctx.stage;
   activeEditor.blocks = ctx.blocks;
+  activeEditor.placementBlock = ctx.placementBlock;
+  activeEditor.previewPosition = ctx.previewPosition;
 
   return setContext("minigolfmania/editor/context", ctx);
 };
