@@ -22,6 +22,7 @@
   import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
   import PlinkoPegs from "$lib/scene/obstacles/PlinkoPegs.svelte";
   import InstancedObstacles from "./InstancedObstacles.svelte";
+  import BackgroundHills from "$lib/scene/BackgroundHills.svelte";
   import { useEditor } from "../context";
 
   const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode, stage, placementBlock, previewPosition } = useEditor();
@@ -159,6 +160,7 @@
     </T.Mesh>
   {/each}
 
+<BackgroundHills controlPoints={$controlPoints} />
 <EditorFloor />
 
 <SplineTrack controlPoints={$controlPoints} isEditor={true} />

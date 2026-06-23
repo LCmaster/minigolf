@@ -32,6 +32,7 @@
   import PlinkoPegs from "./obstacles/PlinkoPegs.svelte";
 
   import EnvironmentSettings from "./EnvironmentSettings.svelte";
+  import BackgroundHills from "./BackgroundHills.svelte";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
@@ -115,6 +116,7 @@
     <Ground />
 
     <!-- SplineTrack manages its own AutoColliders internally -->
+    <BackgroundHills {controlPoints} />
     <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} {tileColor} />
 
     {#if blocks && blocks.length > 0}
