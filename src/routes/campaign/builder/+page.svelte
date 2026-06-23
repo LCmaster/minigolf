@@ -1,6 +1,6 @@
 <script>
   import JSZip from "jszip";
-  import { getMyLevels, saveCampaign } from "$lib/firebase";
+  import { getMyLevels, saveCampaign } from "$lib/level";
   import { user } from "$lib/user";
   import { goto } from "$app/navigation";
   import { themeOptions } from "$lib/scene/themes";
