@@ -1,8 +1,9 @@
 <script>
   import { getModalStore } from "@skeletonlabs/skeleton";
   import { useEditor } from "../context";
+  import { ProceduralGenerator } from "$lib/ProceduralGenerator";
 
-  const { controlPoints, pointSelected, blocks, blockSelected } = useEditor();
+  const { controlPoints, pointSelected, blocks, blockSelected, stage } = useEditor();
   const modalStore = getModalStore();
 
   $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
@@ -152,8 +153,12 @@
       class="w-full btn variant-filled-primary"
       on:click={() => {
         controlPoints.commit();
-        const builder = new CourseBuilder();
-        $controlPoints = builder.generateRandomSpline();
+        const gen = ProceduralGenerator.generateRandomCourse();
+        $controlPoints = gen.controlPoints;
+        $blocks = gen.blocks;
+        $stage.par = gen.par;
+        $pointSelected = null;
+        $blockSelected = null;
       }}
     >
       Generate Random Course
