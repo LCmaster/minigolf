@@ -2,7 +2,8 @@
   import { goto } from "$app/navigation";
   import { getModalStore } from "@skeletonlabs/skeleton";
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
-  import { user, auth } from "$lib/firebase";
+  import { auth } from "$lib/firebase";
+  import { user } from "$lib/user";
   import { signOut } from "firebase/auth";
 
   const modalStore = getModalStore();

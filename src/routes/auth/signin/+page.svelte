@@ -1,6 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
-  import { auth, user } from "$lib/firebase";
+  import { auth } from "$lib/firebase";
+  import { user } from "$lib/user";
   import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
   import Button from "$lib/component/Button.svelte";
 

@@ -1,8 +1,8 @@
 <script>
   import { goto } from "$app/navigation";
-  import { user } from "$lib/firebase";
+  import { user } from "$lib/user";
   import { userProfile } from "$lib/stores/profile";
-  import { updateUserProfile } from "$lib/firebase";
+  import { updateUserProfile } from "$lib/user";
   import { onMount } from "svelte";
 
   let nickname = "";

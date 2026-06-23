@@ -3,7 +3,8 @@
   import { inject } from "@vercel/analytics";
 
   import { onMount } from "svelte";
-  import { auth, user, getUserProfile } from "$lib/firebase";
+  import { auth } from "$lib/firebase";
+  import { user, getUserProfile } from "$lib/user";
   import { userProfile } from "$lib/stores/profile";
   import { onAuthStateChanged } from "firebase/auth";
 

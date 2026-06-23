@@ -1,5 +1,6 @@
 <script>
-  import { user, getMyLevels, deleteLevel } from "$lib/firebase";
+  import { getMyLevels, deleteLevel } from "$lib/firebase";
+  import { user } from "$lib/user";
   import { goto } from "$app/navigation";
 
   let levels = [];

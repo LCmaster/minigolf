@@ -4,7 +4,8 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
   import { page } from "$app/stores";
-  import { getLevel, user } from "$lib/firebase";
+  import { getLevel } from "$lib/firebase";
+  import { user } from "$lib/user";
   import { onMount } from "svelte";
   import { scale, fly, fade } from "svelte/transition";
   import { backOut } from "svelte/easing";

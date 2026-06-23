@@ -15,7 +15,8 @@
   import { onMount } from "svelte";
   import { fly, fade } from "svelte/transition";
   import { page } from "$app/stores";
-  import { getLevel, user } from "$lib/firebase";
+  import { getLevel } from "$lib/firebase";
+  import { user } from "$lib/user";
 
   const {
     testing,

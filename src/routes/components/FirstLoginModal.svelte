@@ -1,6 +1,6 @@
 <script>
   import { getModalStore } from "@skeletonlabs/skeleton";
-  import { updateUserProfile } from "$lib/firebase";
+  import { updateUserProfile } from "$lib/user";
   import { userProfile } from "$lib/stores/profile";
 
   export let parent;
