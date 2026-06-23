@@ -41,14 +41,15 @@
     $shots = data.courses[current].holes.map((_) => 0);
   }
 
-  function quitGame() {
+  async function quitGame() {
+    // Remove courseId from URL so we go back to the select screen
+    if ($page.url.searchParams.has("courseId")) {
+      await goto("/game", { replaceState: true });
+    }
+    
     $currentHole = null;
     $course = null;
     $shots = null;
-    // Remove courseId from URL so we go back to the select screen
-    if ($page.url.searchParams.has("courseId")) {
-      goto("/game", { replaceState: true });
-    }
   }
 </script>
 
