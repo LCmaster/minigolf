@@ -17,13 +17,17 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       ));
       
-      // A user can create/update/delete a level if they own it
+      // A user can create/update a level if they own it and have the right role
       allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['editor', 'moderator', 'admin', 'super-admin']
+      ) && (
         (request.resource.data.uid == request.auth.uid) || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       );
       
       allow delete: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['editor', 'moderator', 'admin', 'super-admin']
+      ) && (
         resource.data.uid == request.auth.uid || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       );
@@ -36,11 +40,15 @@ service cloud.firestore {
       ));
       
       allow write: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['editor', 'moderator', 'admin', 'super-admin']
+      ) && (
         (request.resource.data.uid == request.auth.uid) || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       );
       
       allow delete: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['editor', 'moderator', 'admin', 'super-admin']
+      ) && (
         resource.data.uid == request.auth.uid || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       );
