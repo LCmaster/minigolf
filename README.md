@@ -92,6 +92,8 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [ ] **Community Discovery**: A public "Discover" page to browse and play community-created courses.
 - [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
 - [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
+- [ ] **Undo/Redo System**: Expanded editor history stack with Ctrl+Z/Ctrl+Y keyboard shortcuts for fast level iteration.
+- [ ] **Campaign Progression**: System to lock advanced official campaigns until the player meets par requirements on earlier campaigns.
 - [x] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
 - [ ] **Ambient Music**:
   - [x] "Clear Day" Theme (Acoustic)
