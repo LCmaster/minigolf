@@ -63,7 +63,7 @@
   }
 </script>
 
-<div class="w-screen min-h-screen bg-[#C4E9CC] flex flex-col relative overflow-hidden p-4 md:p-8">
+<div class="w-screen h-screen overflow-y-auto bg-[#C4E9CC] flex flex-col relative overflow-x-hidden p-4 md:p-8">
   <!-- Background glowing orbs -->
   <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
     <div class="absolute -top-32 -left-32 w-96 h-96 bg-white/20 rounded-full blur-[100px]"></div>

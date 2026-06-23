@@ -137,7 +137,7 @@
 </script>
 
 <div
-  class="w-screen min-h-screen bg-[#C4E9CC] flex flex-col relative overflow-x-hidden"
+  class="w-screen h-screen overflow-y-auto bg-[#C4E9CC] flex flex-col relative overflow-x-hidden"
 >
   <!-- Background decorative glowing orbs -->
   <div
