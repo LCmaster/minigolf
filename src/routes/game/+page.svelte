@@ -4,7 +4,7 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
   import { page } from "$app/stores";
-  import { getLevel, getOfficialCampaigns } from "$lib/level";
+  import { getLevel, getCampaign, getOfficialCampaigns } from "$lib/level";
   import { user } from "$lib/user";
   import { onMount } from "svelte";
   import { scale, fly, fade } from "svelte/transition";
@@ -47,21 +47,64 @@
       });
   }
 
-  function startGame() {
+  $: if ($user !== undefined && $page.url.searchParams.get("campaignId") && !$course && !loading) {
+    const campaignId = $page.url.searchParams.get("campaignId");
+    loading = true;
+    getCampaign(campaignId)
+      .then(async (loadedCampaign) => {
+        const promises = loadedCampaign.levelIds.map(id => getLevel(id).catch(e => null));
+        const sourceLevels = await Promise.all(promises);
+        const validLevels = sourceLevels.filter(Boolean);
+        const mergedHoles = validLevels.flatMap(l => l.holes);
+        
+        $course = { ...loadedCampaign, holes: mergedHoles };
+        $currentHole = 0;
+        $shots = mergedHoles.map((_) => 0);
+      })
+      .catch((e) => {
+        console.error("Failed to load campaign", e);
+        alert(e.message || "Failed to load campaign.");
+        goto("/");
+      })
+      .finally(() => {
+        loading = false;
+      });
+  }
+
+  async function startGame() {
+    loading = true;
+    let selected = courses[current];
+    if (selected.isCampaign && !selected.holes) {
+      try {
+        const promises = selected.levelIds.map(id => getLevel(id).catch(e => null));
+        const sourceLevels = await Promise.all(promises);
+        const validLevels = sourceLevels.filter(Boolean);
+        selected = { ...selected, holes: validLevels.flatMap(l => l.holes) };
+      } catch (e) {
+        console.error("Error loading official campaign levels:", e);
+        loading = false;
+        alert("Failed to load campaign levels.");
+        return;
+      }
+    }
+    
     $currentHole = 0;
-    $course = courses[current];
-    $shots = courses[current].holes.map((_) => 0);
+    $course = selected;
+    $shots = selected.holes.map((_) => 0);
+    loading = false;
   }
 
   async function quitGame() {
-    // Remove courseId from URL so we go back to the select screen
-    if ($page.url.searchParams.has("courseId")) {
+    loading = true; // Prevent reactive fetches while navigating away
+    // Remove courseId or campaignId from URL so we go back to the select screen
+    if ($page.url.searchParams.has("courseId") || $page.url.searchParams.has("campaignId")) {
       await goto("/game", { replaceState: true });
     }
     
     $currentHole = null;
     $course = null;
     $shots = null;
+    loading = false;
   }
 </script>
 
@@ -182,7 +225,7 @@
                 >
                 <span
                   class="text-xl font-mono font-bold text-[#7ACC52] drop-shadow-sm"
-                  >{courses[current].holes.length}</span
+                  >{courses[current].holes?.length || courses[current].totalHoles || courses[current].levelIds?.length || 0}</span
                 >
               </div>
               <div class="flex flex-col items-center border-x border-black/10">
@@ -193,10 +236,7 @@
                 <span
                   class="text-xl font-mono font-bold text-[#4A4A4A] drop-shadow-sm"
                 >
-                  {courses[current].holes.reduce(
-                    (sum, h) => sum + (h.par || 0),
-                    0,
-                  )}
+                  {courses[current].holes?.reduce((sum, h) => sum + (h.par || 0), 0) || "?"}
                 </span>
               </div>
               <div class="flex flex-col items-center">
