@@ -23,6 +23,9 @@
   import RampBlock from "./blocks/RampBlock.svelte";
   import LoopBlock from "./blocks/LoopBlock.svelte";
   import WindmillBlock from "./blocks/WindmillBlock.svelte";
+  import TreeBlock from "./blocks/TreeBlock.svelte";
+  import RockBlock from "./blocks/RockBlock.svelte";
+  import GrassBlock from "./blocks/GrassBlock.svelte";
   import IcePatch from "./obstacles/IcePatch.svelte";
   import SandTrap from "./obstacles/SandTrap.svelte";
   import WaterHazard from "./obstacles/WaterHazard.svelte";
@@ -142,6 +145,12 @@
           <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
         {:else if block.type === "windmill"}
           <WindmillBlock position={block.position} rotation={block.rotation} scale={block.scale} />
+        {:else if block.type === "tree"}
+          <TreeBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+        {:else if block.type === "rock"}
+          <RockBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+        {:else if block.type === "grass"}
+          <GrassBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
         {:else if block.type === "ice"}
           <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
             on:iceenter={() => {

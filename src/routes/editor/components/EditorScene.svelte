@@ -14,6 +14,9 @@
   import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
   import LoopBlock from "$lib/scene/blocks/LoopBlock.svelte";
   import WindmillBlock from "$lib/scene/blocks/WindmillBlock.svelte";
+  import TreeBlock from "$lib/scene/blocks/TreeBlock.svelte";
+  import RockBlock from "$lib/scene/blocks/RockBlock.svelte";
+  import GrassBlock from "$lib/scene/blocks/GrassBlock.svelte";
   import IcePatch from "$lib/scene/obstacles/IcePatch.svelte";
   import SandTrap from "$lib/scene/obstacles/SandTrap.svelte";
   import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
@@ -200,6 +203,12 @@
           <WaterHazard isEditor={true} />
         {:else if $placementBlock.type === "plinko"}
           <PlinkoPegs isEditor={true} />
+        {:else if $placementBlock.type === "tree"}
+          <TreeBlock isEditor={true} variation={$placementBlock.variation} />
+        {:else if $placementBlock.type === "rock"}
+          <RockBlock isEditor={true} variation={$placementBlock.variation} />
+        {:else if $placementBlock.type === "grass"}
+          <GrassBlock isEditor={true} variation={$placementBlock.variation} />
         {/if}
       </T.Group>
     {/if}
@@ -234,6 +243,12 @@
             <WaterHazard isEditor={true} />
           {:else if block.type === "plinko"}
             <PlinkoPegs isEditor={true} />
+          {:else if block.type === "tree"}
+            <TreeBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+          {:else if block.type === "rock"}
+            <RockBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+          {:else if block.type === "grass"}
+            <GrassBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
           {/if}
         {/key}
       </T.Group>
