@@ -262,7 +262,7 @@
 </script>
 
 {#if baseGeo}
-  <RigidBody type="fixed">
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <T.Group {position} rotation={[euler.x, euler.y, euler.z]}>
       {#each meshes as {geo, color, meshType}}
         <T.Mesh geometry={geo} castShadow receiveShadow>

@@ -45,7 +45,7 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <RigidBody type="fixed">
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <AutoColliders shape="convexHull" collisionGroups={0x0001FFFF}>
       <T.Mesh
         {geometry}

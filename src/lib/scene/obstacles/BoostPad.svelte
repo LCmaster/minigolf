@@ -29,6 +29,7 @@
   export let rotation = [0, 0, 0]; 
   export let scale = [1, 1, 1];
   export let boostForce = 15;
+  export let isEditor = false;
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation) ? safeRotation : [0, Math.PI * safeRotation, 0];
@@ -36,6 +37,7 @@
   let triggered = false;
 
   function handleSensor(e) {
+    if (isEditor) return;
     triggered = true;
     setTimeout(() => triggered = false, 200);
 
@@ -61,7 +63,7 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <RigidBody type="fixed">
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <!-- Back Chevron -->
     <T.Mesh position={[0, 0.05, -0.3]} rotation={[Math.PI/2, 0, 0]} receiveShadow>
       <T.ExtrudeGeometry args={[chevronShape, extrudeSettings]} />

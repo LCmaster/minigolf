@@ -17,7 +17,16 @@
   import { page } from "$app/stores";
   import { getLevel } from "$lib/firebase";
 
-  const { testing, previewing, controlPoints, pointSelected, blocks, blockSelected, stage, history } = setEditor();
+  const {
+    testing,
+    previewing,
+    controlPoints,
+    pointSelected,
+    blocks,
+    blockSelected,
+    stage,
+    history,
+  } = setEditor();
 
   let showingAssets = false;
 
@@ -67,17 +76,19 @@
       try {
         const loadedCourse = await getLevel(courseId);
         if (loadedCourse.isCampaign) {
-          alert("Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.");
+          alert(
+            "Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.",
+          );
           window.location.href = "/mylevels";
           return;
         }
         // The loadedCourse has `{ name, theme, holes: [{ par, controlPoints }] }`
         if (loadedCourse.holes && loadedCourse.holes.length > 0) {
           history.commit(); // Push current state to history before overwriting
-          history.update(h => ({
+          history.update((h) => ({
             ...h,
             controlPoints: loadedCourse.holes[0].controlPoints,
-            blocks: loadedCourse.holes[0].blocks || []
+            blocks: loadedCourse.holes[0].blocks || [],
           }));
           $stage = {
             name: loadedCourse.name,
@@ -128,6 +139,8 @@
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
     <World gravity={[0, -15, 0]}>
+      <Debug />
+
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
       {:else if $previewing}

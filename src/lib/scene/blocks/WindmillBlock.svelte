@@ -1,6 +1,6 @@
 <script>
   import { T, useFrame } from "@threlte/core";
-  import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
+  import { Collider, RigidBody } from "@threlte/rapier";
   import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
 
   export let position = [0, 0, 0];
@@ -8,6 +8,7 @@
   export let scale = [1, 1, 1];
 
   export let speed = 2.0;
+  export let isEditor = false;
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation)
@@ -45,70 +46,54 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <!-- STATIC BASE BUILDING -->
-  <RigidBody type="fixed">
-    <!-- Left Pillar -->
-    <AutoColliders shape="cuboid">
-      <T.Mesh
-        position={[-1.4, 1.5, 0]}
-        material={brickMaterial}
-        castShadow
-        receiveShadow
-      >
-        <T.BoxGeometry args={[1.2, 3, 2]} />
-      </T.Mesh>
-    </AutoColliders>
+  <!-- VISUAL MESHES -->
+  <!-- Left Pillar -->
+  <T.Mesh position={[-1.4, 1.5, 0]} material={brickMaterial} castShadow receiveShadow>
+    <T.BoxGeometry args={[1.2, 3, 2]} />
+  </T.Mesh>
 
-    <!-- Right Pillar -->
-    <AutoColliders shape="cuboid">
-      <T.Mesh
-        position={[1.4, 1.5, 0]}
-        material={brickMaterial}
-        castShadow
-        receiveShadow
-      >
-        <T.BoxGeometry args={[1.2, 3, 2]} />
-      </T.Mesh>
-    </AutoColliders>
+  <!-- Right Pillar -->
+  <T.Mesh position={[1.4, 1.5, 0]} material={brickMaterial} castShadow receiveShadow>
+    <T.BoxGeometry args={[1.2, 3, 2]} />
+  </T.Mesh>
 
-    <!-- Floor/Bridge connecting them -->
+  <!-- Floor/Bridge connecting them -->
+  <T.Mesh position={[0, -0.1, 0]} material={brickMaterial} castShadow receiveShadow>
+    <T.BoxGeometry args={[4, 0.2, 2]} />
+  </T.Mesh>
 
-    <AutoColliders shape="cuboid" collisionGroups={0x0001FFFF}>
-      <T.Mesh
-        position={[0, -0.1, 0]}
-        material={brickMaterial}
-        castShadow
-        receiveShadow
-      >
-        <T.BoxGeometry args={[4, 0.2, 2]} />
-      </T.Mesh>
-    </AutoColliders>
+  <!-- Roof Base (above the gap) -->
+  <T.Mesh position={[0, 3.25, 0]} material={brickMaterial} castShadow receiveShadow>
+    <T.BoxGeometry args={[4, 0.5, 2]} />
+  </T.Mesh>
 
-    <!-- Roof Base (above the gap) -->
-    <AutoColliders shape="cuboid">
-      <T.Mesh
-        position={[0, 3.25, 0]}
-        material={brickMaterial}
-        castShadow
-        receiveShadow
-      >
-        <T.BoxGeometry args={[4, 0.5, 2]} />
-      </T.Mesh>
-    </AutoColliders>
+  <!-- Roof Pyramid -->
+  <!-- Approximated by a cuboid for simplicity -->
+  <T.Mesh position={[0, 4.5, 0]} rotation={[0, Math.PI / 4, 0]} material={roofMaterial} castShadow receiveShadow>
+    <T.ConeGeometry args={[2.8, 2, 4]} />
+  </T.Mesh>
 
-    <!-- Roof Pyramid -->
-    <!-- Approximated by a cuboid for simplicity, or we can use convexHull later. -->
-    <AutoColliders shape="convexHull">
-      <T.Mesh
-        position={[0, 4.5, 0]}
-        rotation={[0, Math.PI / 4, 0]}
-        material={roofMaterial}
-        castShadow
-        receiveShadow
-      >
-        <T.ConeGeometry args={[2.8, 2, 4]} />
-      </T.Mesh>
-    </AutoColliders>
+  <!-- STATIC BASE PHYSICS -->
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
+    <T.Group position={[-1.4, 1.5, 0]}>
+      <Collider shape="cuboid" args={[0.6, 1.5, 1]} />
+    </T.Group>
+
+    <T.Group position={[1.4, 1.5, 0]}>
+      <Collider shape="cuboid" args={[0.6, 1.5, 1]} />
+    </T.Group>
+
+    <T.Group position={[0, -0.1, 0]}>
+      <Collider shape="cuboid" args={[2, 0.1, 1]} collisionGroups={0x0001FFFF} />
+    </T.Group>
+
+    <T.Group position={[0, 3.25, 0]}>
+      <Collider shape="cuboid" args={[2, 0.25, 1]} />
+    </T.Group>
+
+    <T.Group position={[0, 4.5, 0]} rotation={[0, Math.PI / 4, 0]}>
+      <Collider shape="cuboid" args={[2, 1, 2]} />
+    </T.Group>
   </RigidBody>
 
   <!-- KINEMATIC ROTOR (The moving blades) -->

@@ -8,6 +8,7 @@
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
   export let restitution = 2.0;
+  export let isEditor = false;
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation)
@@ -18,6 +19,7 @@
   let active = false;
 
   function hit(e) {
+    if (isEditor) return;
     active = true;
     scaleSpring.set(1.3).then(() => scaleSpring.set(1));
     setTimeout(() => {
@@ -50,15 +52,16 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} scale={actualScale}>
-  <RigidBody type="fixed">
-    <Collider 
-      shape="cylinder" 
-      args={[0.3, 0.4]} 
-      restitution={restitution || 2.0} 
-      friction={0.0} 
-      on:collisionenter={hit} 
-      position={[0, 0.3, 0]} 
-    />
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
+    <T.Group position={[0, 0.3, 0]}>
+      <Collider 
+        shape="cylinder" 
+        args={[0.3, 0.4]} 
+        restitution={restitution || 2.0} 
+        friction={0.0} 
+        on:collisionenter={hit} 
+      />
+    </T.Group>
     <T.Mesh castShadow receiveShadow position={[0, 0.3, 0]}>
       <!-- Bumper is 0.6 tall, so shifted up by 0.3 -->
       <T.CylinderGeometry args={[0.4, 0.4, 0.6, 16]} />

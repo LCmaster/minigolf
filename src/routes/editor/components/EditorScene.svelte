@@ -161,25 +161,27 @@
           selectBlock(block.id);
         }}
       >
-        {#if block.type === "bumper"}
-          <Bumper restitution={block.restitution} />
-        {:else if block.type === "boost"}
-          <BoostPad boostForce={block.boostForce} />
-        {:else if block.type === "ramp" || block.type === "slope"}
-          <RampBlock type={block.type} variation={block.variation} />
-        {:else if block.type === "loop"}
-          <LoopBlock />
-        {:else if block.type === "windmill"}
-          <WindmillBlock />
-        {:else if block.type === "ice"}
-          <IcePatch />
-        {:else if block.type === "sand"}
-          <SandTrap />
-        {:else if block.type === "water"}
-          <WaterHazard />
-        {:else if block.type === "plinko"}
-          <PlinkoPegs />
-        {/if}
+        {#key block.rotation.join(',') + block.position.join(',')}
+          {#if block.type === "bumper"}
+            <Bumper restitution={block.restitution} isEditor={true} />
+          {:else if block.type === "boost"}
+            <BoostPad boostForce={block.boostForce} isEditor={true} />
+          {:else if block.type === "ramp" || block.type === "slope"}
+            <RampBlock type={block.type} variation={block.variation} isEditor={true} />
+          {:else if block.type === "loop"}
+            <LoopBlock isEditor={true} />
+          {:else if block.type === "windmill"}
+            <WindmillBlock isEditor={true} />
+          {:else if block.type === "ice"}
+            <IcePatch isEditor={true} />
+          {:else if block.type === "sand"}
+            <SandTrap isEditor={true} />
+          {:else if block.type === "water"}
+            <WaterHazard isEditor={true} />
+          {:else if block.type === "plinko"}
+            <PlinkoPegs isEditor={true} />
+          {/if}
+        {/key}
       </T.Group>
 
       {#if block.id === $blockSelected && blockRefs[block.id]}

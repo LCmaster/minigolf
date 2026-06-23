@@ -13,6 +13,7 @@
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
+  export let isEditor = false;
 
   export let groundMaterial = new MeshStandardMaterial({ color: "#567D46" });
 
@@ -146,7 +147,7 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <RigidBody type="fixed">
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <AutoColliders shape="trimesh" friction={0.5} restitution={0.2} collisionGroups={0x0001FFFF}>
       <T.Mesh
         geometry={sharedLoopGeometry}

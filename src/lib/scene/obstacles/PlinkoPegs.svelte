@@ -5,6 +5,7 @@
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
+  export let isEditor = false;
 
   // Plinko pegs configuration
   export let pegRadius = 0.05;
@@ -25,7 +26,7 @@
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <RigidBody type="fixed">
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     {#each pegs as peg}
       <T.Group position={[peg.x, pegHeight / 2, peg.z]}>
         <!-- Peg Visual -->
