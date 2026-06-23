@@ -1,9 +1,10 @@
 import { setContext, getContext } from "svelte";
-import { writable } from "svelte/store";
+import { writable, derived } from "svelte/store";
 import { createHistoryStore } from "./historyStore";
 import { snapToGrid } from "$lib/gridUtils";
 
 export const activeEditor = {
+  history: null,
   controlPoints: null,
   stage: null,
   blocks: null,
@@ -13,10 +14,8 @@ export const setEditor = () => {
   const startId = crypto.randomUUID();
   const secondId = crypto.randomUUID();
 
-  const ctx = {
-    testing: writable(false),
-    previewing: writable(false),
-    controlPoints: createHistoryStore([
+  const history = createHistoryStore({
+    controlPoints: [
       {
         id: startId,
         position: [snapToGrid(0), 0, snapToGrid(0)],
@@ -25,9 +24,35 @@ export const setEditor = () => {
         id: secondId,
         position: [snapToGrid(0), 0, snapToGrid(-10)],
       },
-    ]),
+    ],
+    blocks: [],
+  });
+
+  const controlPoints = {
+    subscribe: derived(history, ($h) => $h.controlPoints).subscribe,
+    set: (val) => history.update((h) => ({ ...h, controlPoints: val })),
+    update: (fn) => history.update((h) => ({ ...h, controlPoints: fn(h.controlPoints) })),
+    commit: history.commit,
+    undo: history.undo,
+    redo: history.redo,
+  };
+
+  const blocks = {
+    subscribe: derived(history, ($h) => $h.blocks).subscribe,
+    set: (val) => history.update((h) => ({ ...h, blocks: val })),
+    update: (fn) => history.update((h) => ({ ...h, blocks: fn(h.blocks) })),
+    commit: history.commit,
+    undo: history.undo,
+    redo: history.redo,
+  };
+
+  const ctx = {
+    testing: writable(false),
+    previewing: writable(false),
+    history,
+    controlPoints,
     pointSelected: writable(secondId),
-    blocks: createHistoryStore([]),
+    blocks,
     blockSelected: writable(null),
     transformMode: writable("translate"),
     pointColors: writable({
@@ -49,6 +74,7 @@ export const setEditor = () => {
     }),
   };
 
+  activeEditor.history = ctx.history;
   activeEditor.controlPoints = ctx.controlPoints;
   activeEditor.stage = ctx.stage;
   activeEditor.blocks = ctx.blocks;

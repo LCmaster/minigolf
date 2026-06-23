@@ -17,8 +17,7 @@
   import { page } from "$app/stores";
   import { getLevel } from "$lib/firebase";
 
-  let { testing, previewing, controlPoints, stage, blocks, blockSelected } =
-    setEditor();
+  const { testing, previewing, controlPoints, pointSelected, blocks, blockSelected, stage, history } = setEditor();
 
   let showingAssets = false;
 
@@ -74,12 +73,12 @@
         }
         // The loadedCourse has `{ name, theme, holes: [{ par, controlPoints }] }`
         if (loadedCourse.holes && loadedCourse.holes.length > 0) {
-          controlPoints.commit(); // Push current state to history before overwriting
-          $controlPoints = loadedCourse.holes[0].controlPoints;
-          if (loadedCourse.holes[0].blocks) {
-            blocks.commit();
-            $blocks = loadedCourse.holes[0].blocks;
-          }
+          history.commit(); // Push current state to history before overwriting
+          history.update(h => ({
+            ...h,
+            controlPoints: loadedCourse.holes[0].controlPoints,
+            blocks: loadedCourse.holes[0].blocks || []
+          }));
           $stage = {
             name: loadedCourse.name,
             theme: loadedCourse.theme || "clear",
@@ -96,21 +95,13 @@
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
       e.preventDefault();
-      if ($blockSelected) {
-        blocks.undo();
-      } else {
-        controlPoints.undo();
-      }
+      history.undo();
     } else if (
       (e.ctrlKey || e.metaKey) &&
       (e.key === "y" || (e.shiftKey && e.key === "z"))
     ) {
       e.preventDefault();
-      if ($blockSelected) {
-        blocks.redo();
-      } else {
-        controlPoints.redo();
-      }
+      history.redo();
     } else if (e.key === "Escape") {
       // Escape exits preview or test mode
       if ($previewing) previewing.set(false);

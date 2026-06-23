@@ -187,7 +187,9 @@
           object={blockRefs[block.id]}
           mode={$transformMode}
           on:objectChange={(e) => onBlockTransform(e, i)}
-          on:mouseUp={() => blocks.commit()}
+          on:dragging-changed={(e) => {
+            if (e.detail.value === true) blocks.commit();
+          }}
         />
       {/if}
     {/each}
