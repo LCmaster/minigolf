@@ -15,10 +15,14 @@
   import { createMiterGeometry, createSegmentHull, computeMiterPathData } from "$lib/trackGeometry";
   import { useEditor } from "../context";
   import { snapToHex } from "$lib/gridUtils";
+  import { writable } from "svelte/store";
 
-  const { placementBlock, previewPosition, blocks, blockSelected } = useEditor();
-
-
+  const editorContext = useEditor();
+  const dummyStore = writable(null);
+  const placementBlock = editorContext?.placementBlock || dummyStore;
+  const previewPosition = editorContext?.previewPosition || dummyStore;
+  const blocks = editorContext?.blocks || dummyStore;
+  const blockSelected = editorContext?.blockSelected || dummyStore;
   export let controlPoints = [];
   export let isEditor = false;
   export let isPreview = false;

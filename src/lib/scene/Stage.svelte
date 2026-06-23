@@ -145,18 +145,22 @@
         {:else if block.type === "ice"}
           <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
             on:iceenter={() => {
-              player.setDamping(0.0, 0.0);
-              player.setFriction(0.0);
+              if (player) {
+                player.setDamping(0.0, 0.0);
+                player.setFriction(0.0);
+              }
             }}
             on:iceexit={() => {
-              player.setDamping(0.35, 0.35);
-              player.setFriction(2.0); // Default player friction
+              if (player) {
+                player.setDamping(0.35, 0.35);
+                player.setFriction(2.0); // Default player friction
+              }
             }}
           />
         {:else if block.type === "sand"}
           <SandTrap position={block.position} rotation={block.rotation} scale={block.scale}
-            on:sandenter={() => player.setDamping(2.5, 2.5)}
-            on:sandexit={() => player.setDamping(0.35, 0.35)}
+            on:sandenter={() => { if (player) player.setDamping(2.5, 2.5); }}
+            on:sandexit={() => { if (player) player.setDamping(0.35, 0.35); }}
           />
         {:else if block.type === "water"}
           <!-- Catch waterhazard event from WaterHazard -->
@@ -181,7 +185,7 @@
         shape="cuboid"
         sensor
         on:sensorenter={() => {
-          player.setEnabled(false);
+          if (player) player.setEnabled(false);
           sfx.play("/sounds/applause.wav", 1.0);
           dispatch("completed");
         }}
