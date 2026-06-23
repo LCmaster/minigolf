@@ -57,7 +57,7 @@
             if ($previewing) previewing.set(false);
           }}
         >
-          <img src="/editor/close.svg" alt="Close" />
+          <img src="/editor-icons/close.svg" alt="Close" />
         </button>
       </div>
     {:else}
@@ -69,7 +69,7 @@
           title="Add Block"
           on:click={() => (showingAssets = !showingAssets)}
         >
-          <img src="/editor/bricks.svg" alt="Add Block" class="w-4 h-4" />
+          <img src="/editor-icons/bricks.svg" alt="Add Block" class="w-4 h-4" />
         </button>
         <!-- Undo -->
         <button
@@ -106,7 +106,7 @@
             }
           }}
         >
-          <img src="/editor/eye-white.svg" alt="Preview" />
+          <img src="/editor-icons/eye-white.svg" alt="Preview" />
         </button>
         <!-- Play -->
         <button
@@ -122,7 +122,7 @@
             }
           }}
         >
-          <img src="/editor/play.svg" alt="Play" />
+          <img src="/editor-icons/play.svg" alt="Play" />
         </button>
         <button
           type="button"
@@ -131,7 +131,7 @@
             drawerStore.open(menuDrawer);
           }}
         >
-          <img src="/editor/menu.svg" alt="Menu" />
+          <img src="/editor-icons/menu.svg" alt="Menu" />
         </button>
       </div>
     {/if}

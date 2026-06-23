@@ -176,7 +176,7 @@
       class="p-4 flex justify-between items-center border-b border-surface-500/30"
     >
       <h3 class="h3 font-bold flex items-center gap-2">
-        <img src="/editor/bricks.svg" alt="Blocks" class="w-6 h-6" />
+        <img src="/editor-icons/bricks.svg" alt="Blocks" class="w-6 h-6" />
         Asset Catalog
       </h3>
       <button

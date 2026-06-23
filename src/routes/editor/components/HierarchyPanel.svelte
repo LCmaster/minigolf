@@ -114,10 +114,10 @@
             }}
           >
             {#if index === 0}
-              <img src="/editor/map-pin.svg" alt="Start" class="w-4 h-4" />
+              <img src="/editor-icons/map-pin.svg" alt="Start" class="w-4 h-4" />
               <span class="text-success-400">Start (locked pos)</span>
             {:else if index === $controlPoints.length - 1}
-              <img src="/editor/flag.svg" alt="End" class="w-4 h-4" />
+              <img src="/editor-icons/flag.svg" alt="End" class="w-4 h-4" />
               <span class="text-error-400">End Point</span>
             {:else}
               Point {index + 1}

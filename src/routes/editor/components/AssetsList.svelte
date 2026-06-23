@@ -24,7 +24,7 @@
   <Tab bind:group={tabSet} name="tab1" value={0}>
     <svelte:fragment slot="lead">
       <div class="flex justify-center items-center">
-        <img src="/editor/bricks.svg" alt="" width="48" height="48" />
+        <img src="/editor-icons/bricks.svg" alt="" width="48" height="48" />
       </div>
     </svelte:fragment>
     <span class=" ">Blocks</span>
@@ -47,7 +47,7 @@
                   alt={block.type}
                   width="64"
                   height="64"
-                  on:error={(e) => (e.target.src = "/editor/bricks.svg")}
+                  on:error={(e) => (e.target.src = "/editor-icons/bricks.svg")}
                 />
               </span>
               <span class="flex-auto capitalize"
