@@ -46,6 +46,9 @@
     "sand",
     "water",
     "plinko",
+    "tree",
+    "rock",
+    "grass",
   ];
   const availableBlocks = [
     { type: "ramp", variation: 1 },
@@ -57,6 +60,12 @@
     { type: "sand", variation: 1 },
     { type: "water", variation: 1 },
     { type: "plinko", variation: 1 },
+    { type: "tree", variation: 1 },
+    { type: "tree", variation: 2 },
+    { type: "rock", variation: 1 },
+    { type: "rock", variation: 2 },
+    { type: "grass", variation: 1 },
+    { type: "grass", variation: 2 },
   ];
 
   function startPlacement(detail) {
