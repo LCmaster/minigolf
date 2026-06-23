@@ -86,6 +86,7 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Level bundling support (campaigns and 18-hole courses)
 
 ### V2 Roadmap
+- [x] **Terrain Features**: Added low-poly, cel-shaded cartoon trees, rocks, and grass tufts to the level editor for vibrant visual scenery.
 - [x] **Role-Based Access Control**: Player, Creator, and Admin roles to restrict level creation and management.
 - [x] **User Profiles & Customization**: Editable Nickname, Ball Color, and Trail selection.
 - [x] **Campaign Visibility & Curation**: Public/Private visibility toggles and Official Status markings for campaigns.
