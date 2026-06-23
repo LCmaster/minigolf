@@ -217,7 +217,7 @@
       <T.Group
         position={block.position}
         rotation={block.rotation}
-        scale={block.scale}
+        scale={block.scale || [1, 1, 1]}
         bind:ref={blockRefs[block.id]}
         on:click={(e) => {
           e.stopPropagation();

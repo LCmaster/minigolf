@@ -79,6 +79,7 @@ export class ProceduralGenerator {
         variation: 1, // Default variation
         position: [point.x, point.y, point.z],
         rotation: [0, rotation, 0],
+        scale: [1, 1, 1],
       });
     }
 
@@ -135,6 +136,7 @@ export class ProceduralGenerator {
           variation: variation,
           position: [px, 0, pz], // Scenery rests at y=0, could map to a heightmap later
           rotation: [0, sRotation, 0],
+          scale: [1, 1, 1],
         });
       }
     }
