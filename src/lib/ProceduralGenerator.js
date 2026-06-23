@@ -10,7 +10,7 @@ export class ProceduralGenerator {
    * @param {boolean} varyDifficulty - Whether to increase obstacles with length
    * @returns {Object} { controlPoints, blocks, par }
    */
-  static generateRandomCourse(minPoints = 3, maxPoints = 8, minSpacing = 1, maxSpacing = 3, varyDifficulty = true) {
+  static generateRandomCourse(minPoints = 3, maxPoints = 8, minSpacing = 3, maxSpacing = 10, varyDifficulty = true) {
     const controlPoints = [];
     const blocks = [];
 
