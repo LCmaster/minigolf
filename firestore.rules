@@ -12,14 +12,29 @@ service cloud.firestore {
 
     // Levels rules
     match /levels/{levelId} {
-      // A user can read a level if they own it OR if they are an admin
-      allow read: if request.auth != null && (
-        resource == null || 
+      allow read: if (resource == null) || (resource.data != null && (resource.data.visibility == 'public' || resource.data.isOfficial == true)) || (request.auth != null && (
         resource.data.uid == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
+      ));
+      
+      // A user can create/update/delete a level if they own it
+      allow write: if request.auth != null && (
+        (request.resource.data.uid == request.auth.uid) || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
       );
       
-      // A user can create/update/delete a level if they own it
+      allow delete: if request.auth != null && (
+        resource.data.uid == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
+      );
+    }
+    // Campaigns rules
+    match /campaigns/{campaignId} {
+      allow read: if (resource == null) || (resource.data != null && (resource.data.visibility == 'public' || resource.data.isOfficial == true)) || (request.auth != null && (
+        resource.data.uid == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']
+      ));
+      
       allow write: if request.auth != null && (
         (request.resource.data.uid == request.auth.uid) || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin']

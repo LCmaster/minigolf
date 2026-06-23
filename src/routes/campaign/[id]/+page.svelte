@@ -1,7 +1,9 @@
 <script>
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { getCampaign, getLevel } from "$lib/level";
+  import { getLevel } from "$lib/level";
+  import { getCampaign, unbundleLevelFromCampaign } from "$lib/campaign";
+  import { user } from "$lib/user";
 
   const campaignId = $page.params.id;
   let campaign = null;
@@ -22,6 +24,21 @@
     error = "Failed to load campaign.";
     loading = false;
   });
+
+  async function unbundleLevel(level) {
+    if (!confirm(`Are you sure you want to remove '${level.name}' from this campaign?`)) return;
+    
+    try {
+      loading = true;
+      await unbundleLevelFromCampaign(campaignId, level.id);
+      levels = levels.filter(l => l.id !== level.id);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to unbundle level.");
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
 <div class="w-screen h-screen overflow-y-auto bg-[#C4E9CC] flex flex-col relative overflow-x-hidden">
@@ -89,23 +106,52 @@
               This campaign has no valid levels.
             </div>
           {:else}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4">
               {#each levels as level, i}
-                <div class="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all text-[#4A4A4A] relative overflow-hidden">
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#F6A655] to-[#E57300]"></div>
-                  
-                  <span class="w-10 h-10 rounded-full bg-white border border-[#4A4A4A]/20 flex items-center justify-center font-black text-xl text-[#F6A655] shadow-inner shrink-0 ml-2">
+                <div class="bg-white/50 backdrop-blur-md border border-white/60 shadow-xl rounded-3xl overflow-hidden flex flex-col hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 relative">
+                  <!-- Number Badge -->
+                  <div class="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-[#4A4A4A]/20 flex items-center justify-center font-black text-xl text-[#F6A655] shadow-md z-10">
                     {i + 1}
-                  </span>
-                  
-                  {#if level.thumbnailUrl}
-                    <img src={level.thumbnailUrl} alt="thumbnail" class="w-16 h-12 object-cover rounded-xl shadow-inner shrink-0" />
-                  {/if}
-                  
-                  <div class="flex-grow">
-                    <h4 class="font-bold text-lg leading-tight">{level.name}</h4>
-                    <span class="text-xs font-bold opacity-75">Par: {level.par || (level.holes && level.holes[0]?.par) || 2}</span>
                   </div>
+                  <header class="relative">
+                    {#if level.thumbnailUrl}
+                      <img src={level.thumbnailUrl} class="bg-black/50 w-full aspect-video object-cover" alt="thumbnail" />
+                    {:else}
+                      <div class="bg-surface-800 w-full aspect-video flex items-center justify-center text-surface-500 font-bold">
+                        No Image
+                      </div>
+                    {/if}
+                  </header>
+                  <div class="p-6 space-y-2 flex-grow text-[#4A4A4A] w-full bg-white/40">
+                    <h3 class="text-xl font-black tracking-wide flex items-center gap-2" data-toc-ignore>
+                      {level.name}
+                    </h3>
+                    <p class="text-sm font-bold opacity-60 text-[#4A4A4A] mt-0.5 mb-2">By {level.author || "Unknown Player"}</p>
+                    <p class="font-bold opacity-75 text-sm">Par: {level.par || (level.holes && level.holes[0]?.par) || "?"}</p>
+                  </div>
+                  {#if $user && level.uid === $user.uid}
+                    <hr class="border-white/50" />
+                    <footer class="p-4 flex justify-end gap-2 items-center bg-white/20">
+                      <button 
+                        class="py-1.5 px-4 rounded-full font-bold text-sm tracking-wider bg-red-400 hover:bg-red-500 border border-white/50 shadow-sm text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
+                        on:click|stopPropagation={() => unbundleLevel(level)}
+                      >
+                        Unbundle
+                      </button>
+                      <button 
+                        class="py-1.5 px-4 rounded-full font-bold text-sm tracking-wider bg-[#F6A655] hover:bg-[#E57300] border border-white/50 shadow-sm text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
+                        on:click|stopPropagation={() => goto(`/editor?courseId=${level.id}`)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        class="py-1.5 px-4 rounded-full font-bold text-sm tracking-wider bg-[#7ACC52] hover:bg-[#68B345] border border-white/50 shadow-sm text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
+                        on:click|stopPropagation={() => goto(`/game?courseId=${level.id}`)}
+                      >
+                        Play
+                      </button>
+                    </footer>
+                  {/if}
                 </div>
               {/each}
             </div>

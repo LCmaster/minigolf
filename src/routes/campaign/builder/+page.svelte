@@ -1,6 +1,7 @@
 <script>
   import JSZip from "jszip";
-  import { getMyLevels, saveCampaign, getLevel, updateCampaign } from "$lib/level";
+  import { getMyLevels, getLevel } from "$lib/level";
+  import { saveCampaign, updateCampaign, getCampaign } from "$lib/campaign";
   import { user } from "$lib/user";
   import { userProfile } from "$lib/stores/profile";
   import { goto } from "$app/navigation";
@@ -17,27 +18,31 @@
   let campaignName = "";
   let campaignTheme = "clear";
   let campaignDifficulty = "Normal";
+  let visibility = "private";
   let isOfficial = false;
 
   $: isAdmin = $userProfile?.role === 'super-admin' || $userProfile?.role === 'admin';
 
-  $: if ($user !== undefined) {
+  let initialized = false;
+
+  $: if ($user !== undefined && !initialized) {
     if ($user) {
+      initialized = true;
       const campaignId = $page.url.searchParams.get("campaignId");
       getMyLevels($user.uid).then((res) => {
         // Only show levels not bundled or bundled in the current campaign
         levels = res.filter((l) => !l.isCampaign && (!l.campaignId || l.campaignId === campaignId));
         
-        const campaignId = $page.url.searchParams.get("campaignId");
         if (campaignId) {
-          getLevel(campaignId).then((campaign) => {
+          getCampaign(campaignId).then((campaign) => {
             campaignName = campaign.name;
             campaignTheme = campaign.theme;
             campaignDifficulty = campaign.difficulty || "Normal";
+            visibility = campaign.visibility || "private";
             isOfficial = campaign.isOfficial || false;
             
-            if (campaign.sourceLevelIds) {
-              const promises = campaign.sourceLevelIds.map(id => getLevel(id).catch(e => null));
+            if (campaign.levelIds) {
+              const promises = campaign.levelIds.map(id => getLevel(id).catch(e => null));
               Promise.all(promises).then(sourceLevels => {
                 const newPlaylist = [];
                 sourceLevels.forEach((sl, index) => {
@@ -117,6 +122,7 @@
     try {
       const sourceLevelIds = playlist.map((level) => level.id);
       const thumbnailUrl = playlist[0].thumbnailUrl; // Inherit first level's thumbnail
+      const totalPar = playlist.reduce((sum, level) => sum + (level.par || (level.holes && level.holes[0]?.par) || 0), 0);
 
       const campaignId = $page.url.searchParams.get("campaignId");
       if (campaignId) {
@@ -127,7 +133,9 @@
           campaignDifficulty,
           thumbnailUrl,
           sourceLevelIds,
-          isAdmin ? isOfficial : false
+          visibility,
+          isAdmin ? isOfficial : false,
+          totalPar
         );
       } else {
         await saveCampaign(
@@ -137,7 +145,9 @@
           campaignDifficulty,
           thumbnailUrl,
           sourceLevelIds,
-          isAdmin ? isOfficial : false
+          visibility,
+          isAdmin ? isOfficial : false,
+          totalPar
         );
       }
 
@@ -287,6 +297,16 @@
               <option value="Normal">Normal</option>
               <option value="Hard">Hard</option>
               <option value="Expert">Expert</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="font-bold text-sm tracking-wider">Visibility</span>
+            <select
+              class="w-full px-4 py-2 rounded-xl border border-white/50 bg-white/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F6A655] transition-colors"
+              bind:value={visibility}
+            >
+              <option value="private">Private (Only you)</option>
+              <option value="public">Public (Everyone)</option>
             </select>
           </label>
           {#if isAdmin}

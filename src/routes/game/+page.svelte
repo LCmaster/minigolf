@@ -4,7 +4,8 @@
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
   import { page } from "$app/stores";
-  import { getLevel, getCampaign, getOfficialCampaigns } from "$lib/level";
+  import { getLevel } from "$lib/level";
+  import { getCampaign, getOfficialCampaigns } from "$lib/campaign";
   import { user } from "$lib/user";
   import { onMount } from "svelte";
   import { scale, fly, fade } from "svelte/transition";
@@ -236,7 +237,7 @@
                 <span
                   class="text-xl font-mono font-bold text-[#4A4A4A] drop-shadow-sm"
                 >
-                  {courses[current].holes?.reduce((sum, h) => sum + (h.par || 0), 0) || "?"}
+                  {courses[current].holes?.reduce((sum, h) => sum + (h.par || 0), 0) || courses[current].totalPar || "?"}
                 </span>
               </div>
               <div class="flex flex-col items-center">
