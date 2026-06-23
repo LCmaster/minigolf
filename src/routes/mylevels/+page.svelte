@@ -3,6 +3,9 @@
   import { getCampaigns, deleteCampaign } from "$lib/campaign";
   import { user } from "$lib/user";
   import { goto } from "$app/navigation";
+  import { userProfile, canEditLevels } from "$lib/stores/profile";
+
+  $: if ($userProfile && !$canEditLevels) goto("/");
 
   let levels = [];
   let loading = true;

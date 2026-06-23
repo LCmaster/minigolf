@@ -17,6 +17,10 @@
   import { page } from "$app/stores";
   import { getLevel } from "$lib/level";
   import { user } from "$lib/user";
+  import { userProfile, canEditLevels } from "$lib/stores/profile";
+  import { goto } from "$app/navigation";
+
+  $: if ($userProfile && !$canEditLevels) goto("/");
 
   const {
     testing,

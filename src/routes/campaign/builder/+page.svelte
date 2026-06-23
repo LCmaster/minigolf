@@ -3,7 +3,9 @@
   import { getMyLevels, getLevel } from "$lib/level";
   import { saveCampaign, updateCampaign, getCampaign } from "$lib/campaign";
   import { user } from "$lib/user";
-  import { userProfile } from "$lib/stores/profile";
+  import { userProfile, canEditLevels } from "$lib/stores/profile";
+
+  $: if ($userProfile && !$canEditLevels) goto("/");
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { themeOptions } from "$lib/scene/themes";

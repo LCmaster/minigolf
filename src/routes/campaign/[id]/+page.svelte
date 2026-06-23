@@ -4,6 +4,9 @@
   import { getLevel } from "$lib/level";
   import { getCampaign, unbundleLevelFromCampaign } from "$lib/campaign";
   import { user } from "$lib/user";
+  import { userProfile, canEditLevels } from "$lib/stores/profile";
+
+  $: if ($userProfile && !$canEditLevels) goto("/");
 
   const campaignId = $page.params.id;
   let campaign = null;
