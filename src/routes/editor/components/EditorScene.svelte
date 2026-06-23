@@ -244,11 +244,11 @@
           {:else if block.type === "plinko"}
             <PlinkoPegs isEditor={true} />
           {:else if block.type === "tree"}
-            <TreeBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+            <TreeBlock isEditor={true} variation={block.variation} />
           {:else if block.type === "rock"}
-            <RockBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+            <RockBlock isEditor={true} variation={block.variation} />
           {:else if block.type === "grass"}
-            <GrassBlock isEditor={true} position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
+            <GrassBlock isEditor={true} variation={block.variation} />
           {/if}
         {/key}
       </T.Group>
