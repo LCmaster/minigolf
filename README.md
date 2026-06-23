@@ -86,6 +86,9 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Level bundling support (campaigns and 18-hole courses)
 
 ### V2 Roadmap
+- [x] **Role-Based Access Control**: Player, Creator, and Admin roles to restrict level creation and management.
+- [x] **User Profiles & Customization**: Editable Nickname, Ball Color, and Trail selection.
+- [x] **Campaign Visibility & Curation**: Public/Private visibility toggles and Official Status markings for campaigns.
 - [ ] **Community Discovery**: A public "Discover" page to browse and play community-created courses.
 - [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
 - [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
