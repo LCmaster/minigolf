@@ -1,7 +1,6 @@
 <script>
   import { getModalStore } from "@skeletonlabs/skeleton";
   import { useEditor } from "../context";
-  import { CourseBuilder } from "$lib/CourseBuilder";
 
   const { controlPoints, pointSelected, blocks, blockSelected } = useEditor();
   const modalStore = getModalStore();
