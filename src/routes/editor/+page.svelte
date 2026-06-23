@@ -134,7 +134,7 @@
   </svelte:fragment>
   <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
     <World gravity={[0, -15, 0]}>
-      <Debug />
+      <!-- <Debug /> -->
 
       {#if $testing}
         <TestScene on:completed={() => ($testing = false)} />
