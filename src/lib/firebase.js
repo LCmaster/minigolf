@@ -83,6 +83,9 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
     // We now bypass Storage entirely and embed the thumbnail data directly.
     let thumbnailUrl = thumbnailDataUrl;
     
+    const profile = get(userProfile);
+    const author = profile?.nickname || "Unknown Player";
+    
     // Save document to firestore
     const levelsCol = collection(db, "levels");
     const cleanHoles = JSON.parse(JSON.stringify([
@@ -95,6 +98,7 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
 
     const docRef = await addDoc(levelsCol, {
       uid,
+      author,
       name: stage.name || "Untitled Level",
       theme: stage.theme || "clear",
       difficulty: "Custom",
@@ -122,10 +126,14 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
  */
 export async function saveCampaign(uid, name, theme, thumbnailUrl, holes, sourceLevelIds = []) {
   try {
+    const profile = get(userProfile);
+    const author = profile?.nickname || "Unknown Player";
+    
     const levelsCol = collection(db, "levels");
     const cleanHoles = JSON.parse(JSON.stringify(holes));
     const docRef = await addDoc(levelsCol, {
       uid,
+      author,
       name: name || "Untitled Campaign",
       theme: theme || "clear",
       difficulty: "Campaign",

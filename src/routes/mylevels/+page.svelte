@@ -87,6 +87,7 @@
                 <span class="px-3 py-1 bg-[#4A4A4A] text-white text-xs font-bold rounded-full">{level.holes?.length || 0} Holes</span>
               {/if}
             </h3>
+            <p class="text-sm font-bold opacity-60 text-[#4A4A4A] mt-0.5 mb-2">By {level.author || "Unknown Player"}</p>
             {#if !level.isCampaign}
               <p class="font-bold opacity-75">Par: {level.par || (level.holes && level.holes[0]?.par) || "?"}</p>
             {:else}

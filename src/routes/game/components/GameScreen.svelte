@@ -56,6 +56,12 @@
   />
   <div class="fixed top-0 left-0" slot="ui">
     <Header on:quit on:stats={() => (modal = "scoreboard")} />
+    
+    <div class="fixed top-4 left-0 w-full pointer-events-none flex flex-col items-center justify-start z-50">
+      <h2 class="text-xl font-black text-[#4A4A4A] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)] tracking-wide">{$course?.name || "Untitled Level"}</h2>
+      <p class="text-sm font-bold text-[#4A4A4A] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)] opacity-90">By {$course?.author || "Unknown Player"}</p>
+    </div>
+
     <Indicators />
     {#if modal === "completed"}
       <StageCompleteModal
