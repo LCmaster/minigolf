@@ -7,8 +7,9 @@
   import { userProfile } from "$lib/stores/profile";
   import { onAuthStateChanged } from "firebase/auth";
 
-  import { Modal, Drawer, initializeStores } from "@skeletonlabs/skeleton";
+  import { Modal, Drawer, initializeStores, getModalStore } from "@skeletonlabs/skeleton";
   import EditorDrawer from "./editor/components/EditorDrawer.svelte";
+  import FirstLoginModal from "./components/FirstLoginModal.svelte";
 
   import "../app.postcss";
 
@@ -16,8 +17,10 @@
   initializeStores();
 
   const modalRegistry = {
-    firstLogin: { ref: () => import('./components/FirstLoginModal.svelte').then(m => m.default) }
+    firstLogin: { ref: FirstLoginModal }
   };
+
+  const modalStore = getModalStore();
 
   onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -29,7 +32,6 @@
           $userProfile = profile;
         } else {
           // No profile exists, trigger first login modal
-          const modalStore = getModalStore();
           modalStore.trigger({
             type: "component",
             component: "firstLogin",
