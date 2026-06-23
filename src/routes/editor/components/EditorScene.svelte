@@ -18,6 +18,7 @@
   import SandTrap from "$lib/scene/obstacles/SandTrap.svelte";
   import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
   import PlinkoPegs from "$lib/scene/obstacles/PlinkoPegs.svelte";
+  import InstancedObstacles from "./InstancedObstacles.svelte";
   import { useEditor } from "../context";
 
   const { controlPoints, pointSelected, pointColors, blocks, blockSelected, transformMode, stage } = useEditor();
@@ -49,6 +50,13 @@
     $blockSelected = id;
     $pointSelected = null;
   }
+
+  // Segregate basic blocks for instancing
+  $: instancedTypes = ["ice", "sand", "water"];
+  $: iceBlocks = $blocks ? $blocks.filter((b) => b.type === "ice") : [];
+  $: sandBlocks = $blocks ? $blocks.filter((b) => b.type === "sand") : [];
+  $: waterBlocks = $blocks ? $blocks.filter((b) => b.type === "water") : [];
+  $: complexBlocks = $blocks ? $blocks.filter((b) => !instancedTypes.includes(b.type)) : [];
 
   function onBlockTransform(e, i) {
     const obj = e.target.object;
@@ -123,9 +131,26 @@
 
 <SplineTrack controlPoints={$controlPoints} isEditor={true} />
 
-{#if $blocks}
+<!-- INSTANCED BLOCKS (Massive performance boost for basic assets) -->
+<InstancedObstacles blocks={iceBlocks} positionOffset={[0, 0.05, 0]}>
+  <T.BoxGeometry args={[2, 0.1, 2]} />
+  <T.MeshStandardMaterial color="#a5f3fc" roughness={0.0} metalness={0.2} transparent={true} opacity={0.8} />
+</InstancedObstacles>
+
+<InstancedObstacles blocks={sandBlocks} positionOffset={[0, 0.05, 0]}>
+  <T.BoxGeometry args={[2, 0.1, 2]} />
+  <T.MeshStandardMaterial color="#eab308" roughness={1.0} metalness={0.0} />
+</InstancedObstacles>
+
+<InstancedObstacles blocks={waterBlocks} positionOffset={[0, -0.25, 0]}>
+  <T.BoxGeometry args={[2, 0.5, 2]} />
+  <T.MeshStandardMaterial color="#3b82f6" transparent={true} opacity={0.6} roughness={0.1} metalness={0.8} />
+</InstancedObstacles>
+
+<!-- COMPLEX BLOCKS (Rendered Individually) -->
+{#if complexBlocks.length > 0}
   <Suspense>
-    {#each $blocks as block, i (block.id)}
+    {#each complexBlocks as block, i (block.id)}
       <T.Group
         position={block.position}
         rotation={block.rotation}
