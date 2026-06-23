@@ -13,6 +13,7 @@
   } from "@threlte/extras";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
   import { sfx } from "$lib/stores/audio";
+  import { userProfile } from "$lib/stores/profile";
 
   import Player from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
@@ -196,6 +197,7 @@
       bind:this={player}
       size={ballSize}
       position={[...spawn]}
+      color={$userProfile?.settings?.ballColor || "#FF0000"}
       on:outofbounds={() => {
         const pos = [...respawnPoints[respawnPoints.length - 1]];
         pos[1] += 0.05; // drop slightly from above to avoid getting stuck in colliders
