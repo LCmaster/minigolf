@@ -4,6 +4,7 @@
   import HowToPlayModal from "./components/HowToPlayModal.svelte";
   import { auth } from "$lib/firebase";
   import { user } from "$lib/user";
+  import { canEditLevels } from "$lib/stores/profile";
   import { signOut } from "firebase/auth";
 
   const modalStore = getModalStore();
@@ -61,24 +62,28 @@
 
       {#if $user}
         <div class="h-px w-full bg-white/50 my-2 shadow-sm" />
-        <button
-          on:click={() => window.location = "/editor"}
-          class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
-        >
-          Level editor
-        </button>
+        {#if $canEditLevels}
+          <button
+            on:click={() => window.location = "/editor"}
+            class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+          >
+            Level editor
+          </button>
+        {/if}
         <button
           on:click={() => goto("/profile")}
           class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
         >
           My Profile
         </button>
-        <button
-          on:click={() => goto("/mylevels")}
-          class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
-        >
-          My Levels
-        </button>
+        {#if $canEditLevels}
+          <button
+            on:click={() => goto("/mylevels")}
+            class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+          >
+            My Levels
+          </button>
+        {/if}
         <button
           on:click={handleSignout}
           class="w-full py-2 rounded-full font-bold text-sm tracking-wider bg-transparent hover:bg-white/20 border border-white/50 text-[#4A4A4A] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer mt-2"
