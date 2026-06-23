@@ -18,44 +18,44 @@
 <T.Group {position} rotation={actualRotation} {scale}>
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <!-- Collider covers the trunk and part of the leaves -->
-    <Collider shape="cylinder" args={[1.0, 0.4]} position={[0, 1.0, 0]} collisionGroups={0x0001FFFF} />
+    <Collider shape="cylinder" args={[3.0, 1.2]} position={[0, 3.0, 0]} collisionGroups={0x0001FFFF} />
     
     <!-- Trunk (Tapered) -->
-    <T.Mesh material={woodMaterial} castShadow receiveShadow position={[0, 0.5, 0]}>
-      <T.CylinderGeometry args={[0.15, 0.3, 1, 8]} />
+    <T.Mesh material={woodMaterial} castShadow receiveShadow position={[0, 1.5, 0]}>
+      <T.CylinderGeometry args={[0.45, 0.9, 3, 8]} />
     </T.Mesh>
 
     <!-- Leaves -->
     {#if variation === 1}
       <!-- Layered Pine Stack -->
       <T.Group position={[0, 0, 0]}>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 1.2, 0]}>
-          <T.ConeGeometry args={[1.4, 1.5, 8]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 3.6, 0]}>
+          <T.ConeGeometry args={[4.2, 4.5, 8]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 2.0, 0]}>
-          <T.ConeGeometry args={[1.1, 1.2, 8]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 6.0, 0]}>
+          <T.ConeGeometry args={[3.3, 3.6, 8]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 2.7, 0]}>
-          <T.ConeGeometry args={[0.8, 1.0, 8]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 8.1, 0]}>
+          <T.ConeGeometry args={[2.4, 3.0, 8]} />
         </T.Mesh>
       </T.Group>
     {:else}
       <!-- Fluffy Cloud Canopy -->
       <T.Group position={[0, 0, 0]}>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 2.0, 0]}>
-          <T.IcosahedronGeometry args={[1.1, 1]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0, 6.0, 0]}>
+          <T.IcosahedronGeometry args={[3.3, 1]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0.7, 1.8, 0.5]}>
-          <T.IcosahedronGeometry args={[0.8, 1]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[2.1, 5.4, 1.5]}>
+          <T.IcosahedronGeometry args={[2.4, 1]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[-0.8, 1.9, -0.2]}>
-          <T.IcosahedronGeometry args={[0.9, 1]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[-2.4, 5.7, -0.6]}>
+          <T.IcosahedronGeometry args={[2.7, 1]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0.2, 1.7, -0.8]}>
-          <T.IcosahedronGeometry args={[0.75, 1]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0.6, 5.1, -2.4]}>
+          <T.IcosahedronGeometry args={[2.25, 1]} />
         </T.Mesh>
-        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0.1, 2.8, 0.1]}>
-          <T.IcosahedronGeometry args={[0.7, 1]} />
+        <T.Mesh material={leavesMaterial} castShadow receiveShadow position={[0.3, 8.4, 0.3]}>
+          <T.IcosahedronGeometry args={[2.1, 1]} />
         </T.Mesh>
       </T.Group>
     {/if}
