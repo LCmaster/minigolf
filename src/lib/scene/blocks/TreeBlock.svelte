@@ -13,12 +13,17 @@
   
   const woodMaterial = new MeshToonMaterial({ color: "#8B5A2B" }); // Vibrant warm brown
   const leavesMaterial = new MeshToonMaterial({ color: "#32CD32" }); // Vibrant lime green
+
+  $: treeRadius = 1.2 * Math.max(scale[0], scale[2]);
+  $: treeHalfHeight = 3.0 * scale[1];
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale} userData={{ isScenery: true }}>
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <!-- Collider covers the trunk and part of the leaves -->
-    <Collider shape="cylinder" args={[3.0, 1.2]} position={[0, 3.0, 0]} collisionGroups={0x0001FFFF} />
+    {#key scale.join(',')}
+      <Collider shape="cylinder" args={[treeHalfHeight, treeRadius]} position={[0, 3.0 * scale[1], 0]} collisionGroups={0x0001FFFF} restitution={0.5} />
+    {/key}
     
     <!-- Trunk (Tapered) -->
     <T.Mesh material={woodMaterial} castShadow receiveShadow position={[0, 1.5, 0]}>
