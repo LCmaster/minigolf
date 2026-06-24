@@ -40,6 +40,7 @@ export class ProceduralGenerator {
       if (Math.random() < 0.2) {
         const heightDelta = 0.5 + Math.random() * 1.0;
         nextPos.y += Math.random() > 0.5 ? heightDelta : -heightDelta;
+        if (nextPos.y < 0) nextPos.y = 0; // Prevent going underground
       }
 
       controlPoints.push({
