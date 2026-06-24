@@ -3,7 +3,7 @@
 
   import { MeshStandardMaterial, RepeatWrapping, Raycaster, Vector3 } from "three";
 
-  import { T, forwardEventHandlers, useTask, useThrelte } from "@threlte/core";
+  import { T, forwardEventHandlers, useFrame, useThrelte } from "@threlte/core";
   import {
     OrbitControls,
     Suspense,
@@ -78,7 +78,7 @@
   const dir = new Vector3();
   let currentlyOccluded = new Set();
   
-  useTask(() => {
+  useFrame(() => {
     if (!camera || !playerPosition) return;
 
     const playerV = new Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
