@@ -86,7 +86,7 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Level bundling support (campaigns and 18-hole courses)
 
 ### V2 Roadmap
-- [ ] **Procedural Spline Generation**: A completely new random course generator using spline-math, tangent-aligned obstacles, and Poisson disk scenery scattering.
+- [x] **Procedural Spline Generation**: A completely new random course generator using spline-math, tangent-aligned obstacles, and Poisson disk scenery scattering.
 - [x] **Terrain Features**: Added low-poly, cel-shaded cartoon trees, rocks, and grass tufts to the level editor for vibrant visual scenery.
 - [x] **Role-Based Access Control**: Player, Creator, and Admin roles to restrict level creation and management.
 - [x] **User Profiles & Customization**: Editable Nickname, Ball Color, and Trail selection.
