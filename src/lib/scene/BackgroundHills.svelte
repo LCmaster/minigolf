@@ -1,5 +1,5 @@
 <script>
-  import { T, useTask } from "@threlte/core";
+  import { T } from "@threlte/core";
   import { MeshToonMaterial, PlaneGeometry, Vector3 } from "three";
   import { createNoise2D } from "simplex-noise";
 
