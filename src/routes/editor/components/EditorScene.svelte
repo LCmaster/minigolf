@@ -62,12 +62,15 @@
   $: waterBlocks = $blocks ? $blocks.filter((b) => b.type === "water") : [];
   $: complexBlocks = $blocks ? $blocks.filter((b) => !instancedTypes.includes(b.type)) : [];
 
-  function onBlockTransform(e, i) {
+  function onBlockTransform(e, id) {
     const obj = e.target.object;
-    $blocks[i].position = [obj.position.x, obj.position.y, obj.position.z];
-    $blocks[i].rotation = [obj.rotation.x, obj.rotation.y, obj.rotation.z];
-    $blocks[i].scale = [obj.scale.x, obj.scale.y, obj.scale.z];
-    $blocks = [...$blocks];
+    const index = $blocks.findIndex(b => b.id === id);
+    if (index !== -1) {
+      $blocks[index].position = [obj.position.x, obj.position.y, obj.position.z];
+      $blocks[index].rotation = [obj.rotation.x, obj.rotation.y, obj.rotation.z];
+      $blocks[index].scale = [obj.scale.x, obj.scale.y, obj.scale.z];
+      $blocks = [...$blocks];
+    }
   }
 
   function handleKeydown(e) {
@@ -259,7 +262,7 @@
         <TransformControls
           object={blockRefs[block.id]}
           mode={$transformMode}
-          on:objectChange={(e) => onBlockTransform(e, i)}
+          on:objectChange={(e) => onBlockTransform(e, block.id)}
           on:dragging-changed={(e) => {
             if (e.detail.value === true) blocks.commit();
           }}
