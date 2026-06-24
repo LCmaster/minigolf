@@ -68,18 +68,15 @@ export class ProceduralGenerator {
       const point = curve.getPointAt(t);
       const tangent = curve.getTangentAt(t);
 
-      // Calculate yaw from tangent
-      const yaw = Math.atan2(tangent.x, tangent.z);
-      // Normalize rotation for minigolf schema (0 to 2 where 1 = 180 degrees)
-      let rotation = yaw / -Math.PI;
-      if (rotation < 0) rotation += 2;
+      // Calculate yaw from tangent (add Math.PI to face forward)
+      let yaw = Math.atan2(tangent.x, tangent.z) + Math.PI;
 
       blocks.push({
         id: crypto.randomUUID(),
         type: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
         variation: 1, // Default variation
         position: [point.x, point.y, point.z],
-        rotation: [0, rotation, 0],
+        rotation: [0, yaw, 0],
         scale: [1, 1, 1],
       });
     }
@@ -129,7 +126,7 @@ export class ProceduralGenerator {
       if (closestDistSq > 9.0) {
         const sType = sceneryTypes[Math.floor(Math.random() * sceneryTypes.length)];
         const variation = Math.floor(Math.random() * sType.maxVars) + 1;
-        const sRotation = Math.random() * 2; // Random rotation
+        const sRotation = Math.random() * Math.PI * 2; // Random rotation in radians
 
         blocks.push({
           id: crypto.randomUUID(),
