@@ -1,6 +1,6 @@
 <script>
   import { T } from "@threlte/core";
-  import { Shape, ExtrudeGeometry, Vector3, Quaternion, Euler } from "three";
+  import { Shape, ExtrudeGeometry, Vector3, Quaternion, Euler, Matrix4 } from "three";
   import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";
   import { createMiterGeometry } from "$lib/trackGeometry";
@@ -86,9 +86,25 @@
   let meshes = [];
 
   $: euler = (() => {
-    const localZ = new Vector3(0, 0, 1);
     const targetDir = tangent.clone().normalize();
-    const q = new Quaternion().setFromUnitVectors(localZ, targetDir);
+    
+    // We want the block to face targetDir (+Z), but with a strict global Up (0, 1, 0)
+    // to prevent it from rolling/banking sideways on elevation changes.
+    const up = new Vector3(0, 1, 0);
+    const xAxis = new Vector3().crossVectors(up, targetDir);
+    
+    // Fallback if tangent is purely vertical
+    if (xAxis.lengthSq() < 0.0001) {
+      xAxis.set(1, 0, 0);
+    } else {
+      xAxis.normalize();
+    }
+    
+    const yAxis = new Vector3().crossVectors(targetDir, xAxis).normalize();
+    
+    const m = new Matrix4().makeBasis(xAxis, yAxis, targetDir);
+    const q = new Quaternion().setFromRotationMatrix(m);
+    
     return new Euler().setFromQuaternion(q, "YXZ");
   })();
 
