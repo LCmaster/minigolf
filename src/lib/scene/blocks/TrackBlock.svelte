@@ -85,7 +85,7 @@
   let previousGeos = null;
   let meshes = [];
 
-  $: euler = (() => {
+  $: rotationQuaternion = (() => {
     const targetDir = tangent.clone().normalize();
     
     // We want the block to face targetDir (+Z), but with a strict global Up (0, 1, 0)
@@ -103,9 +103,7 @@
     const yAxis = new Vector3().crossVectors(targetDir, xAxis).normalize();
     
     const m = new Matrix4().makeBasis(xAxis, yAxis, targetDir);
-    const q = new Quaternion().setFromRotationMatrix(m);
-    
-    return new Euler().setFromQuaternion(q, "YXZ");
+    return new Quaternion().setFromRotationMatrix(m);
   })();
 
   function buildGeometries(currentShape, currentType) {
@@ -279,7 +277,7 @@
 
 {#if baseGeo}
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
-    <T.Group {position} rotation={[euler.x, euler.y, euler.z]}>
+    <T.Group {position} quaternion={[rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w]} userData={{ isScenery: true }}>
       {#each meshes as {geo, color, meshType}}
         <T.Mesh geometry={geo} castShadow receiveShadow>
           {#if meshType === "wall"}
