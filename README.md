@@ -85,18 +85,20 @@ The built-in Level Editor is a powerful tool designed directly into the game.
 - [x] Environment and Skybox customization
 - [x] Level bundling support (campaigns and 18-hole courses)
 
-### V2 Roadmap
+### Completed (v1.5.0)
 - [x] **Procedural Spline Generation**: A completely new random course generator using spline-math, tangent-aligned obstacles, and Poisson disk scenery scattering.
 - [x] **Terrain Features**: Added low-poly, cel-shaded cartoon trees, rocks, and grass tufts to the level editor for vibrant visual scenery.
 - [x] **Role-Based Access Control**: Player, Creator, and Admin roles to restrict level creation and management.
 - [x] **User Profiles & Customization**: Editable Nickname, Ball Color, and Trail selection.
 - [x] **Campaign Visibility & Curation**: Public/Private visibility toggles and Official Status markings for campaigns.
+- [x] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
+
+### V2 Roadmap
 - [ ] **Community Discovery**: A public "Discover" page to browse and play community-created courses.
 - [ ] **Rating System**: Upvotes, difficulty ratings, and play-counts for public levels.
 - [ ] **Global Leaderboards**: Track best par scores/speedrun times for all courses.
 - [ ] **Undo/Redo System**: Expanded editor history stack with Ctrl+Z/Ctrl+Y keyboard shortcuts for fast level iteration.
 - [ ] **Campaign Progression**: System to lock advanced official campaigns until the player meets par requirements on earlier campaigns.
-- [x] **Physics Audio**: Satisfying thwack sounds, rolling noise, and bounce effects.
 - [ ] **Ambient Music**:
   - [x] "Clear Day" Theme (Acoustic)
   - [ ] "Sunset" Theme (Lo-fi / Chillhop)
