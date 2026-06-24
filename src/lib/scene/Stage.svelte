@@ -1,9 +1,9 @@
 <script>
   import { createEventDispatcher } from "svelte";
 
-  import { MeshStandardMaterial, RepeatWrapping } from "three";
+  import { MeshStandardMaterial, RepeatWrapping, Raycaster, Vector3 } from "three";
 
-  import { T, forwardEventHandlers } from "@threlte/core";
+  import { T, forwardEventHandlers, useTask, useThrelte } from "@threlte/core";
   import {
     OrbitControls,
     Suspense,
@@ -71,6 +71,77 @@
     controlPoints && controlPoints.length > 0
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
+
+  // --- Camera Occlusion System ---
+  const { scene } = useThrelte();
+  const raycaster = new Raycaster();
+  const dir = new Vector3();
+  let currentlyOccluded = new Set();
+  
+  useTask(() => {
+    if (!camera || !playerPosition) return;
+
+    const playerV = new Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
+    dir.subVectors(playerV, camera.position);
+    const distance = dir.length();
+    dir.normalize();
+
+    raycaster.set(camera.position, dir);
+    const hits = raycaster.intersectObjects(scene.children, true);
+
+    const newlyOccluded = new Set();
+
+    for (let i = 0; i < hits.length; i++) {
+      const hit = hits[i];
+      if (hit.distance >= distance) break; // Past the ball
+      
+      let obj = hit.object;
+      let isScenery = false;
+      let sceneryRoot = null;
+      
+      while (obj) {
+        if (obj.userData?.isScenery) {
+          isScenery = true;
+          sceneryRoot = obj;
+          break;
+        }
+        obj = obj.parent;
+      }
+
+      if (isScenery && sceneryRoot) {
+        sceneryRoot.traverse((child) => {
+          if (child.isMesh && child.material) {
+            newlyOccluded.add(child);
+          }
+        });
+      }
+    }
+
+    // Restore un-occluded meshes
+    currentlyOccluded.forEach(obj => {
+      if (!newlyOccluded.has(obj)) {
+        if (obj.userData.origTransparent !== undefined) {
+          obj.material.transparent = obj.userData.origTransparent;
+          obj.material.opacity = obj.userData.origOpacity;
+          obj.material.depthWrite = true;
+        }
+        currentlyOccluded.delete(obj);
+      }
+    });
+
+    // Fade newly occluded meshes
+    newlyOccluded.forEach(obj => {
+      if (!currentlyOccluded.has(obj)) {
+        obj.userData.origTransparent = obj.material.transparent;
+        obj.userData.origOpacity = obj.material.opacity;
+        
+        obj.material.transparent = true;
+        obj.material.opacity = 0.2;
+        obj.material.depthWrite = false;
+        currentlyOccluded.add(obj);
+      }
+    });
+  });
 </script>
 
 <EnvironmentSettings {theme} />
