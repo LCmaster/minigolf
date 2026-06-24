@@ -73,20 +73,24 @@
       : [0, 0, 0];
 
   // --- Camera Occlusion System ---
-  const { scene } = useThrelte();
+  const { scene, camera: threlteCamera } = useThrelte();
   const raycaster = new Raycaster();
   const dir = new Vector3();
   let currentlyOccluded = new Set();
   
   useFrame(() => {
-    if (!camera || !playerPosition) return;
+    const activeCam = $threlteCamera;
+    if (!activeCam || !playerPosition) return;
 
     const playerV = new Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
-    dir.subVectors(playerV, camera.position);
+    const camPos = new Vector3();
+    activeCam.getWorldPosition(camPos);
+
+    dir.subVectors(playerV, camPos);
     const distance = dir.length();
     dir.normalize();
 
-    raycaster.set(camera.position, dir);
+    raycaster.set(camPos, dir);
     const hits = raycaster.intersectObjects(scene.children, true);
 
     const newlyOccluded = new Set();
