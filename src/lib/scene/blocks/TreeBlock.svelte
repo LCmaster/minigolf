@@ -15,7 +15,7 @@
   const leavesMaterial = new MeshToonMaterial({ color: "#32CD32" }); // Vibrant lime green
 </script>
 
-<T.Group {position} rotation={actualRotation} {scale}>
+<T.Group {position} rotation={actualRotation} {scale} userData={{ isScenery: true }}>
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <!-- Collider covers the trunk and part of the leaves -->
     <Collider shape="cylinder" args={[3.0, 1.2]} position={[0, 3.0, 0]} collisionGroups={0x0001FFFF} />

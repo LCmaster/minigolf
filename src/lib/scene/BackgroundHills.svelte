@@ -75,4 +75,5 @@
   material={hillsMaterial} 
   position={[0, -0.2, 0]} 
   receiveShadow 
+  userData={{ isScenery: true }}
 />

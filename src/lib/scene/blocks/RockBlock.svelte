@@ -25,7 +25,7 @@
   const geomStacked2 = new DodecahedronGeometry(1.5, 0);
 </script>
 
-<T.Group {position} rotation={actualRotation} {scale}>
+<T.Group {position} rotation={actualRotation} {scale} userData={{ isScenery: true }}>
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     {#if variation === 1}
       <!-- Chunky Dodecahedron Cluster -->

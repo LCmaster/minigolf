@@ -47,7 +47,7 @@
   });
 </script>
 
-<T.Group {position} rotation={actualRotation} {scale}>
+<T.Group {position} rotation={actualRotation} {scale} userData={{ isScenery: true }}>
   <!-- STATIC BASE BUILDING (Visuals + Physics combined elegantly) -->
   
   <!-- Base Floor (Tunnel floor) -->
