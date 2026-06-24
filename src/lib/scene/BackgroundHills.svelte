@@ -44,9 +44,9 @@
         const minDistance = Math.sqrt(minDistanceSq);
         
         // Flatten the hills if they are too close to the track
-        // Full flatten at distance 6, start blending at distance 12
-        const flattenRadius = 6;
-        const blendRadius = 16;
+        // Full flatten at distance 15, start blending at distance 25
+        const flattenRadius = 15;
+        const blendRadius = 25;
         
         if (minDistance < flattenRadius) {
           height = 0;
