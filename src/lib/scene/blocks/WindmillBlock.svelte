@@ -47,7 +47,7 @@
   });
 </script>
 
-<T.Group {position} rotation={actualRotation} {scale} userData={{ isScenery: true }}>
+<T.Group {position} rotation={actualRotation} {scale}>
   <!-- STATIC BASE BUILDING (Visuals + Physics combined elegantly) -->
   
   <!-- Base Floor (Tunnel floor) -->
@@ -91,7 +91,7 @@
   </T.Group>
 
   <!-- Octagonal Tower -->
-  <T.Group position={[0, 3.45, 0]}>
+  <T.Group position={[0, 3.45, 0]} userData={{ isScenery: true }}>
     <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
       <Collider shape="cylinder" args={[1.25, 1.25]} />
     </RigidBody>
@@ -101,7 +101,7 @@
   </T.Group>
 
   <!-- Roof Trim -->
-  <T.Group position={[0, 4.75, 0]}>
+  <T.Group position={[0, 4.75, 0]} userData={{ isScenery: true }}>
     <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
       <Collider shape="cylinder" args={[0.1, 1.1]} />
     </RigidBody>
@@ -111,7 +111,7 @@
   </T.Group>
 
   <!-- Roof Dome/Cone -->
-  <T.Group position={[0, 5.6, 0]}>
+  <T.Group position={[0, 5.6, 0]} userData={{ isScenery: true }}>
     <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
       <Collider shape="cylinder" args={[0.75, 0.8]} />
     </RigidBody>
@@ -121,7 +121,7 @@
   </T.Group>
 
   <!-- KINEMATIC ROTOR (The moving blades) -->
-  <T.Group position={[0, 3.5, 1.4]} bind:ref={rotorGroup}>
+  <T.Group position={[0, 3.5, 1.4]} bind:ref={rotorGroup} userData={{ isScenery: true }}>
     
     <!-- Hub / Axle -->
     <T.Group rotation={[Math.PI / 2, 0, 0]} bind:ref={rotorMeshes[0]}>
