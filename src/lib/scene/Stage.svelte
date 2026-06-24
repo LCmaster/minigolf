@@ -76,7 +76,7 @@
   const { scene, camera: threlteCamera } = useThrelte();
   const raycaster = new Raycaster();
   const dir = new Vector3();
-  let currentlyOccluded = new Set();
+  let currentlyOccludedMaterials = new Set();
   
   useFrame(() => {
     const activeCam = $threlteCamera;
@@ -93,7 +93,7 @@
     raycaster.set(camPos, dir);
     const hits = raycaster.intersectObjects(scene.children, true);
 
-    const newlyOccluded = new Set();
+    const newlyOccludedMeshes = new Set();
 
     for (let i = 0; i < hits.length; i++) {
       const hit = hits[i];
@@ -115,34 +115,38 @@
       if (isScenery && sceneryRoot) {
         sceneryRoot.traverse((child) => {
           if (child.isMesh && child.material) {
-            newlyOccluded.add(child);
+            newlyOccludedMeshes.add(child);
           }
         });
       }
     }
 
-    // Restore un-occluded meshes
-    currentlyOccluded.forEach(obj => {
-      if (!newlyOccluded.has(obj)) {
-        if (obj.userData.origTransparent !== undefined) {
-          obj.material.transparent = obj.userData.origTransparent;
-          obj.material.opacity = obj.userData.origOpacity;
-          obj.material.depthWrite = true;
-        }
-        currentlyOccluded.delete(obj);
+    const newlyOccludedMaterials = new Set();
+
+    // Fade newly occluded materials
+    newlyOccludedMeshes.forEach(obj => {
+      const mat = obj.material;
+      if (!currentlyOccludedMaterials.has(mat)) {
+        mat.userData.origTransparent = mat.transparent;
+        mat.userData.origOpacity = mat.opacity;
+        
+        mat.transparent = true;
+        mat.opacity = 0.2;
+        mat.depthWrite = false;
+        currentlyOccludedMaterials.add(mat);
       }
+      newlyOccludedMaterials.add(mat);
     });
 
-    // Fade newly occluded meshes
-    newlyOccluded.forEach(obj => {
-      if (!currentlyOccluded.has(obj)) {
-        obj.userData.origTransparent = obj.material.transparent;
-        obj.userData.origOpacity = obj.material.opacity;
-        
-        obj.material.transparent = true;
-        obj.material.opacity = 0.2;
-        obj.material.depthWrite = false;
-        currentlyOccluded.add(obj);
+    // Restore un-occluded materials
+    currentlyOccludedMaterials.forEach(mat => {
+      if (!newlyOccludedMaterials.has(mat)) {
+        if (mat.userData.origTransparent !== undefined) {
+          mat.transparent = mat.userData.origTransparent;
+          mat.opacity = mat.userData.origOpacity;
+          mat.depthWrite = true;
+        }
+        currentlyOccludedMaterials.delete(mat);
       }
     });
   });
