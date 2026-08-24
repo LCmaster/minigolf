@@ -6,7 +6,9 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^2.3.0",
