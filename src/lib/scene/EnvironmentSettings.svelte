@@ -6,7 +6,9 @@
 
   export let theme = "clear";
 
-  // Fallback to clear if the theme name doesn't exist
+  // Fallback to clear if the theme name doesn't exist.
+  // Initialize immediately to prevent undefined errors on first render.
+  let activeTheme = themes[theme] || themes["clear"];
   $: activeTheme = themes[theme] || themes["clear"];
 
   const { scene, renderer, invalidate } = useThrelte();
