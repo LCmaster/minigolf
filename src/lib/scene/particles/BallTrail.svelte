@@ -1,6 +1,6 @@
 <script>
   import { T, useFrame } from "@threlte/core";
-  import { Matrix4, Vector3, Quaternion, Color, InstancedMesh } from "three";
+  import { Matrix4, Vector3, Quaternion, Color, InstancedMesh, SphereGeometry, MeshBasicMaterial } from "three";
 
   export let position = [0, 0, 0];
   export let maxTrailLength = 50;
@@ -97,9 +97,6 @@
 <!-- Add toneMapped={false} so bloom can pick it up if it's bright enough -->
 <T.InstancedMesh 
   bind:ref={instancedMesh} 
-  args={[undefined, undefined, maxTrailLength]} 
+  args={[new SphereGeometry(1, 8, 8), new MeshBasicMaterial({ color: "#a855f7", toneMapped: false, transparent: true, opacity: 0.6 }), maxTrailLength]} 
   frustumCulled={false}
->
-  <T.SphereGeometry args={[1, 8, 8]} />
-  <T.MeshBasicMaterial color="#a855f7" toneMapped={false} transparent opacity={0.6} />
-</T.InstancedMesh>
+/>

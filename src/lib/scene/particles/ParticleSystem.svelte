@@ -1,6 +1,6 @@
 <script>
   import { T, useFrame } from "@threlte/core";
-  import { Matrix4, Vector3, Quaternion, Color, InstancedMesh, MathUtils } from "three";
+  import { Matrix4, Vector3, Quaternion, Color, InstancedMesh, MathUtils, BoxGeometry, MeshBasicMaterial } from "three";
   import { createEventDispatcher, onMount } from "svelte";
 
   export let maxParticles = 200;
@@ -134,9 +134,6 @@
 
 <T.InstancedMesh 
   bind:ref={instancedMesh} 
-  args={[undefined, undefined, maxParticles]} 
+  args={[new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ toneMapped: false }), maxParticles]} 
   frustumCulled={false}
->
-  <T.BoxGeometry args={[1, 1, 1]} />
-  <T.MeshBasicMaterial toneMapped={false} />
-</T.InstancedMesh>
+/>
