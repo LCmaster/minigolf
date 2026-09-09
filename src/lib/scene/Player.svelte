@@ -5,6 +5,7 @@
   import { sfx } from "$lib/stores/audio";
   import { createToonGradientMap } from "$lib/scene/materials/index.js";
   import { createEventDispatcher } from "svelte";
+  import BallTrail from "./particles/BallTrail.svelte";
 
   export let position;
   export let size = 0.45;
@@ -106,6 +107,7 @@
     if (currentSpeed > 1.0) {
       const volume = Math.min(currentSpeed / 10, 1.0);
       sfx.play("/sounds/bounce.wav", volume);
+      dispatch("wallhit", { intensity: volume, position: [...position] });
     }
   }
 
@@ -258,4 +260,7 @@
       on:sensorenter={handleSensorEnter}
     />
   </RigidBody>
+
+  <!-- Speed ribbon effect -->
+  <BallTrail {position} {currentSpeed} speedThreshold={4.0} />
 </T>

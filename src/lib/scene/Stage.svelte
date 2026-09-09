@@ -1,7 +1,8 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { T, forwardEventHandlers, useThrelte } from "@threlte/core";
+  import { T, forwardEventHandlers, useThrelte, useFrame } from "@threlte/core";
   import { OrbitControls, Suspense } from "@threlte/extras";
+  import { Vector3 } from "three";
   import { sfx } from "$lib/stores/audio";
   import { userProfile } from "$lib/stores/profile";
 
@@ -13,6 +14,8 @@
   import CourseRenderer  from "./course/CourseRenderer.svelte";
   import GoalSensor      from "./course/GoalSensor.svelte";
   import { useCameraOcclusion } from "./useCameraOcclusion.js";
+  import PostProcessing from "./effects/PostProcessing.svelte";
+  import ParticleSystem from "./particles/ParticleSystem.svelte";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
@@ -46,7 +49,7 @@
   let camera;
   let controls;
   let player;
-  let playerPosition   = spawn;
+  let playerPosition   = new Vector3(...spawn);
   let canSelectPlayer  = false;
   let respawnPoints    = [[...spawn]];
 
@@ -75,12 +78,38 @@
     const pos = [...respawnPoints[respawnPoints.length - 1]];
     pos[1] += 0.05;
     player.moveTo(pos);
-    playerPosition = pos;
+    playerPosition.set(...pos);
     canSelectPlayer = true;
   }
+
+  // --- Visual Polish ---
+  let particleSystem;
+  let bloomEnabled = true; // Could be tied to a setting later
+
+  // Camera Shake
+  let cameraTarget = new Vector3(...spawn);
+  let shakeIntensity = 0;
+
+  function triggerShake(intensity) {
+    shakeIntensity = Math.min(shakeIntensity + intensity, 1.0);
+  }
+
+  useFrame((_, delta) => {
+    if (shakeIntensity > 0) {
+      shakeIntensity -= delta * 2.0; // fade out
+      if (shakeIntensity < 0) shakeIntensity = 0;
+      
+      const shakeX = (Math.random() - 0.5) * shakeIntensity * 0.5;
+      const shakeZ = (Math.random() - 0.5) * shakeIntensity * 0.5;
+      cameraTarget.set(playerPosition.x + shakeX, playerPosition.y, playerPosition.z + shakeZ);
+    } else {
+      cameraTarget.copy(playerPosition);
+    }
+  });
 </script>
 
 <EnvironmentSettings {theme} />
+<PostProcessing enabled={bloomEnabled} />
 
 <!-- Camera — positioned behind the spawn based on track direction -->
 <T.PerspectiveCamera
@@ -115,7 +144,7 @@
     enableZoom={false}
     minPolarAngle={Math.PI * 0.05}
     maxPolarAngle={Math.PI * 0.35}
-    bind:target={playerPosition}
+    bind:target={cameraTarget}
   />
 </T.PerspectiveCamera>
 
@@ -149,6 +178,7 @@
       position={endPos}
       on:completed={() => {
         if (player) player.setEnabled(false);
+        if (particleSystem) particleSystem.emit(new Vector3(...endPos), "confetti", 100);
         sfx.play("/sounds/applause.wav", 1.0);
         dispatch("completed");
       }}
@@ -164,11 +194,17 @@
         const pos = [...respawnPoints[respawnPoints.length - 1]];
         pos[1] += 0.05;
         player.moveTo(pos);
-        playerPosition = pos;
+        playerPosition.set(...pos);
         canSelectPlayer = true;
       }}
-      on:moved={(ev) => {
-        playerPosition = ev.detail;
+      on:wallhit={(e) => {
+        triggerShake(e.detail.intensity);
+        if (particleSystem) {
+          particleSystem.emit(new Vector3(...e.detail.position), "spark", Math.floor(10 * e.detail.intensity), e.detail.intensity);
+        }
+      }}
+      on:moved={({ detail }) => {
+        playerPosition.set(detail[0], detail[1], detail[2]);
         occlusionState.position = playerPosition;
         canSelectPlayer = false;
       }}
@@ -182,6 +218,9 @@
         sfx.setRollingVolume(ev.detail);
       }}
     />
+
+    <!-- Particle System -->
+    <ParticleSystem bind:this={particleSystem} maxParticles={300} />
 
     <!-- Shot controller — only visible when ball is at rest -->
     {#if player && canSelectPlayer}
