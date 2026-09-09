@@ -1,5 +1,5 @@
 <script>
-  import { Group, Vector3 } from "three";
+  import { Group, Vector3, MathUtils } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, RigidBody, Collider, useRapier } from "@threlte/rapier";
   import { sfx } from "$lib/stores/audio";
@@ -172,7 +172,9 @@
 
     // Snap Y position without waking the body (wakeUp=false).
     // This lets Rapier's internal sleep countdown continue uninterrupted.
-    body.setTranslation({ x: t.x, y: targetY, z: t.z }, false);
+    const currentY = t.y;
+    const smoothY = MathUtils.lerp(currentY, targetY, 0.2);
+    body.setTranslation({ x: t.x, y: smoothY, z: t.z }, false);
 
     // Zero Y velocity — wakeUp=false so we don't reset Rapier's sleep timer.
     body.setLinvel({ x: linvel.x, y: 0, z: linvel.z }, false);
