@@ -127,7 +127,7 @@
   // ---------------------------------------------------------------------------
   const DOWN = { x: 0, y: -1, z: 0 };
 
-  function applyHover(linvel) {
+  function applyHover(linvel, delta) {
     if (!body || !world || !rapier) return false;
 
     const t = body.translation();
@@ -173,7 +173,7 @@
     const upwardForce = Math.max(0, springForce);
 
     if (upwardForce > 0) {
-      body.addForce({ x: 0, y: upwardForce, z: 0 }, true);
+      body.applyImpulse({ x: 0, y: upwardForce * delta, z: 0 }, true);
     }
     
     return true;
@@ -182,7 +182,7 @@
   // ---------------------------------------------------------------------------
   // Physics frame loop
   // ---------------------------------------------------------------------------
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!body || !enabled) return;
 
     mesh.getWorldPosition(positionVector);
@@ -201,7 +201,7 @@
       // We no longer manually disable gravity, so no need to manage setGravityScale
       const inFreefall = Math.abs(linvel.y) > FREE_FALL_THRESHOLD;
       if (framesAwake > 2 && !inFreefall) {
-        applyHover(linvel);
+        applyHover(linvel, delta);
       }
 
       // Notify consumers of speed change so they can drive audio independently
