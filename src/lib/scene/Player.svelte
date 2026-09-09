@@ -1,5 +1,5 @@
 <script>
-  import { Group, Vector3, MathUtils } from "three";
+  import { Group, Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
   import { AutoColliders, RigidBody, Collider, useRapier } from "@threlte/rapier";
   import { sfx } from "$lib/stores/audio";
@@ -148,36 +148,34 @@
     );
 
     if (!hit) {
-      // No surface in range — re-enable gravity so the ball falls naturally
-      body.setGravityScale(1, false);
       return false;
     }
 
     // toi is the "time of impact" along the ray (distance from ray origin)
-    const surfaceY = rayOrigin.y + DOWN.y * hit.toi; // rayOrigin.y - toi
+    const surfaceY = rayOrigin.y + DOWN.y * hit.toi; 
     const targetY  = surfaceY + size + HOVER_GAP;
 
     // Only engage hover if we're actually close enough to the surface
     const distToSurface = t.y - surfaceY;
     if (distToSurface > HOVER_CAST_DIST) {
-      body.setGravityScale(1, false);
       return false;
     }
 
-    // ON SURFACE:
-    // Disable gravity so Rapier never pushes the ball into the floor.
-    // Without gravity, the physical collider floats cleanly at targetY
-    // and never contacts the trimesh — eliminating all floor collision events.
-    body.setGravityScale(0, false);
+    // Proportional-Derivative (PD) Hover Controller
+    const error = targetY - t.y;
+    const springK = 350; // Stiffness
+    const dampingK = 25; // Damping
 
-    // Snap Y position without waking the body (wakeUp=false).
-    // This lets Rapier's internal sleep countdown continue uninterrupted.
-    const currentY = t.y;
-    const smoothY = MathUtils.lerp(currentY, targetY, 0.2);
-    body.setTranslation({ x: t.x, y: smoothY, z: t.z }, false);
+    // Calculate upward spring force
+    const springForce = (error * springK) - (linvel.y * dampingK);
+    
+    // Only apply force upwards (acts like a cushion)
+    const upwardForce = Math.max(0, springForce);
 
-    // Zero Y velocity — wakeUp=false so we don't reset Rapier's sleep timer.
-    body.setLinvel({ x: linvel.x, y: 0, z: linvel.z }, false);
+    if (upwardForce > 0) {
+      body.addForce({ x: 0, y: upwardForce, z: 0 }, true);
+    }
+    
     return true;
   }
 
@@ -200,12 +198,10 @@
       currentSpeed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
 
       // Hover system: engage when not in free-fall and not inside a loop
+      // We no longer manually disable gravity, so no need to manage setGravityScale
       const inFreefall = Math.abs(linvel.y) > FREE_FALL_THRESHOLD;
       if (framesAwake > 2 && !inFreefall) {
         applyHover(linvel);
-      } else {
-        // Exiting hover (free-fall or loop) — restore gravity
-        if (body) body.setGravityScale(1, false);
       }
 
       // Notify consumers of speed change so they can drive audio independently
