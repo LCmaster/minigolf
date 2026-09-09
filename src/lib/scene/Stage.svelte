@@ -1,57 +1,41 @@
 <script>
   import { createEventDispatcher } from "svelte";
-
-  import { MeshStandardMaterial, RepeatWrapping, Raycaster, Vector3 } from "three";
-
-  import { T, forwardEventHandlers, useFrame, useThrelte } from "@threlte/core";
-  import {
-    OrbitControls,
-    Suspense,
-    useSuspense,
-    useTexture,
-    Environment,
-  } from "@threlte/extras";
-  import { AutoColliders, RigidBody } from "@threlte/rapier";
+  import { T, forwardEventHandlers, useThrelte } from "@threlte/core";
+  import { OrbitControls, Suspense } from "@threlte/extras";
   import { sfx } from "$lib/stores/audio";
   import { userProfile } from "$lib/stores/profile";
 
-  import Player from "./Player.svelte";
+  import Player          from "./Player.svelte";
   import PlayerController from "./PlayerController.svelte";
-  import Ground from "./Ground.svelte";
-  import Bumper from "./obstacles/Bumper.svelte";
-  import BoostPad from "./obstacles/BoostPad.svelte";
-  import RampBlock from "./blocks/RampBlock.svelte";
-  import LoopBlock from "./blocks/LoopBlock.svelte";
-  import WindmillBlock from "./blocks/WindmillBlock.svelte";
-  import TreeBlock from "./blocks/TreeBlock.svelte";
-  import RockBlock from "./blocks/RockBlock.svelte";
-  import GrassBlock from "./blocks/GrassBlock.svelte";
-  import IcePatch from "./obstacles/IcePatch.svelte";
-  import SandTrap from "./obstacles/SandTrap.svelte";
-  import WaterHazard from "./obstacles/WaterHazard.svelte";
-  import PlinkoPegs from "./obstacles/PlinkoPegs.svelte";
-
-  import EnvironmentSettings from "./EnvironmentSettings.svelte";
+  import Ground          from "./Ground.svelte";
   import BackgroundHills from "./BackgroundHills.svelte";
+  import EnvironmentSettings from "./EnvironmentSettings.svelte";
+  import CourseRenderer  from "./course/CourseRenderer.svelte";
+  import GoalSensor      from "./course/GoalSensor.svelte";
+  import { useCameraOcclusion } from "./useCameraOcclusion.js";
 
   import SplineTrack from "../../routes/editor/components/SplineTrack.svelte";
 
+  // ---------------------------------------------------------------------------
+  // Props
+  // ---------------------------------------------------------------------------
   export let controlPoints;
   export let blocks = [];
   export let theme = "clear";
 
-  export let groundFriction = 0.75;
-  export let groundRestitution = 0.75;
-  export let tileColor = "#567D46";
+  export let groundFriction    = 0.75;
+  export let groundRestitution = 0.05;
+  export let tileColor         = "#567D46";
+  export let wallFriction      = 0.75;
+  export let wallRestitution   = 0.95;
 
-  export let wallFriction = 0.75;
-  export let wallRestitution = 0.95;
-
-  let ballSize = 0.1;
-  let tileHeight = 0.5;
-
-  let camera;
-  let controls;
+  // ---------------------------------------------------------------------------
+  // Internal state
+  // ---------------------------------------------------------------------------
+  const ballSize   = 0.1;
+  const dispatch   = createEventDispatcher();
+  const component  = forwardEventHandlers();
+  const threlteCtx = useThrelte();
 
   const spawn =
     controlPoints && controlPoints.length > 0
@@ -59,101 +43,46 @@
       : [0, 0, 0];
   spawn[1] += 0.35;
 
+  let camera;
+  let controls;
   let player;
-  let respawnPoints = [[...spawn]];
-  let playerPosition = spawn;
-  let canSelectPlayer = false;
-
-  const dispatch = createEventDispatcher();
-  const component = forwardEventHandlers();
+  let playerPosition   = spawn;
+  let canSelectPlayer  = false;
+  let respawnPoints    = [[...spawn]];
 
   $: endPos =
     controlPoints && controlPoints.length > 0
       ? controlPoints[controlPoints.length - 1].position
       : [0, 0, 0];
 
-  // --- Camera Occlusion System ---
-  const { scene, camera: threlteCamera } = useThrelte();
-  const raycaster = new Raycaster();
-  const dir = new Vector3();
-  let currentlyOccludedMaterials = new Set();
-  
-  useFrame(() => {
-    const activeCam = $threlteCamera;
-    if (!activeCam || !playerPosition) return;
+  // Camera occlusion: fades scenery that blocks the camera-to-ball line of sight
+  const occlusionState = { position: playerPosition };
+  useCameraOcclusion(threlteCtx, occlusionState);
 
-    const playerV = new Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
-    const camPos = new Vector3();
-    activeCam.getWorldPosition(camPos);
+  // ---------------------------------------------------------------------------
+  // Player surface callbacks (ice / sand / water)
+  // ---------------------------------------------------------------------------
+  function onIceEnter() {
+    if (player) { player.setDamping(0.0, 0.0); player.setFriction(0.0); }
+  }
+  function onIceExit() {
+    if (player) { player.setDamping(0.55, 0.55); player.setFriction(0.5); }
+  }
+  function onSandEnter() { if (player) player.setDamping(2.5, 2.5); }
+  function onSandExit()  { if (player) player.setDamping(0.55, 0.55); }
 
-    dir.subVectors(playerV, camPos);
-    const distance = dir.length();
-    dir.normalize();
-
-    raycaster.set(camPos, dir);
-    const hits = raycaster.intersectObjects(scene.children, true);
-
-    const newlyOccludedMeshes = new Set();
-
-    for (let i = 0; i < hits.length; i++) {
-      const hit = hits[i];
-      if (hit.distance >= distance) break; // Past the ball
-      
-      let obj = hit.object;
-      let isScenery = false;
-      let sceneryRoot = null;
-      
-      while (obj) {
-        if (obj.userData?.isScenery) {
-          isScenery = true;
-          sceneryRoot = obj;
-          break;
-        }
-        obj = obj.parent;
-      }
-
-      if (isScenery && sceneryRoot) {
-        sceneryRoot.traverse((child) => {
-          if (child.isMesh && child.material) {
-            newlyOccludedMeshes.add(child);
-          }
-        });
-      }
-    }
-
-    const newlyOccludedMaterials = new Set();
-
-    // Fade newly occluded materials
-    newlyOccludedMeshes.forEach(obj => {
-      const mat = obj.material;
-      if (!currentlyOccludedMaterials.has(mat)) {
-        mat.userData.origTransparent = mat.transparent;
-        mat.userData.origOpacity = mat.opacity;
-        
-        mat.transparent = true;
-        mat.opacity = 0.2;
-        mat.depthWrite = false;
-        currentlyOccludedMaterials.add(mat);
-      }
-      newlyOccludedMaterials.add(mat);
-    });
-
-    // Restore un-occluded materials
-    currentlyOccludedMaterials.forEach(mat => {
-      if (!newlyOccludedMaterials.has(mat)) {
-        if (mat.userData.origTransparent !== undefined) {
-          mat.transparent = mat.userData.origTransparent;
-          mat.opacity = mat.userData.origOpacity;
-          mat.depthWrite = true;
-        }
-        currentlyOccludedMaterials.delete(mat);
-      }
-    });
-  });
+  function onWaterHazard() {
+    const pos = [...respawnPoints[respawnPoints.length - 1]];
+    pos[1] += 0.05;
+    player.moveTo(pos);
+    playerPosition = pos;
+    canSelectPlayer = true;
+  }
 </script>
 
 <EnvironmentSettings {theme} />
 
+<!-- Camera — positioned behind the spawn based on track direction -->
 <T.PerspectiveCamera
   makeDefault
   fov={70}
@@ -165,12 +94,12 @@
       const dx = p1[0] - p0[0];
       const dz = p1[2] - p0[2];
       const dist = Math.sqrt(dx * dx + dz * dz) || 1;
-
       const camDist = 5;
-      const cx = spawn[0] - (dx / dist) * camDist;
-      const cz = spawn[2] - (dz / dist) * camDist;
-
-      ref.position.set(cx, spawn[1] + 2.5, cz);
+      ref.position.set(
+        spawn[0] - (dx / dist) * camDist,
+        spawn[1] + 2.5,
+        spawn[2] - (dz / dist) * camDist
+      );
     } else {
       ref.position.set(spawn[0], spawn[1] + 2.5, spawn[2] + 5);
     }
@@ -193,100 +122,39 @@
 <T.Group {...$$restProps} bind:this={$component}>
   <Suspense on:load={() => console.log("Stage loaded")}>
     <Ground />
+    <BackgroundHills {controlPoints} />
 
     <!-- SplineTrack manages its own AutoColliders internally -->
-    <BackgroundHills {controlPoints} />
-    <SplineTrack {controlPoints} {groundFriction} {groundRestitution} {wallFriction} {wallRestitution} {tileColor} />
+    <SplineTrack
+      {controlPoints}
+      {groundFriction}
+      {groundRestitution}
+      {wallFriction}
+      {wallRestitution}
+      {tileColor}
+    />
 
-    {#if blocks && blocks.length > 0}
-      {#each blocks as block (block.id)}
-        {#if block.type === "bumper"}
-          <Bumper 
-            position={block.position}
-            rotation={block.rotation}
-            scale={block.scale}
-            restitution={block.restitution}
-          />
-        {:else if block.type === "boost"}
-          <BoostPad 
-            position={block.position}
-            rotation={block.rotation}
-            scale={block.scale}
-            boostForce={block.boostForce}
-          />
-        {:else if block.type === "ramp" || block.type === "slope"}
-          <RampBlock 
-            type={block.type} 
-            variation={block.variation} 
-            position={block.position}
-            rotation={block.rotation}
-            scale={block.scale}
-          />
-        {:else if block.type === "loop"}
-          <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
-        {:else if block.type === "windmill"}
-          <WindmillBlock position={block.position} rotation={block.rotation} scale={block.scale} />
-        {:else if block.type === "tree"}
-          <TreeBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
-        {:else if block.type === "rock"}
-          <RockBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
-        {:else if block.type === "grass"}
-          <GrassBlock position={block.position} rotation={block.rotation} scale={block.scale} variation={block.variation} />
-        {:else if block.type === "ice"}
-          <IcePatch position={block.position} rotation={block.rotation} scale={block.scale}
-            on:iceenter={() => {
-              if (player) {
-                player.setDamping(0.0, 0.0);
-                player.setFriction(0.0);
-              }
-            }}
-            on:iceexit={() => {
-              if (player) {
-                player.setDamping(0.35, 0.35);
-                player.setFriction(2.0); // Default player friction
-              }
-            }}
-          />
-        {:else if block.type === "sand"}
-          <SandTrap position={block.position} rotation={block.rotation} scale={block.scale}
-            on:sandenter={() => { if (player) player.setDamping(2.5, 2.5); }}
-            on:sandexit={() => { if (player) player.setDamping(0.35, 0.35); }}
-          />
-        {:else if block.type === "water"}
-          <!-- Catch waterhazard event from WaterHazard -->
-          <WaterHazard position={block.position} rotation={block.rotation} scale={block.scale} 
-            on:waterhazard={() => {
-              const pos = [...respawnPoints[respawnPoints.length - 1]];
-              pos[1] += 0.05;
-              player.moveTo(pos);
-              playerPosition = pos;
-              canSelectPlayer = true;
-            }} 
-          />
-        {:else if block.type === "plinko"}
-          <PlinkoPegs position={block.position} rotation={block.rotation} scale={block.scale} />
-        {/if}
-      {/each}
-    {/if}
+    <!-- All obstacle/block rendering — see CourseRenderer for the type map -->
+    <CourseRenderer
+      {blocks}
+      on:iceenter={onIceEnter}
+      on:iceexit={onIceExit}
+      on:sandenter={onSandEnter}
+      on:sandexit={onSandExit}
+      on:waterhazard={onWaterHazard}
+    />
 
-    <!-- Hole sensor: triggers "completed" when ball enters -->
-    <RigidBody type="fixed">
-      <AutoColliders
-        shape="cuboid"
-        sensor
-        on:sensorenter={() => {
-          if (player) player.setEnabled(false);
-          sfx.play("/sounds/applause.wav", 1.0);
-          dispatch("completed");
-        }}
-      >
-        <T.Mesh position={endPos}>
-          <T.BoxGeometry args={[1, 0.25, 1]} />
-          <T.MeshStandardMaterial transparent opacity={0} />
-        </T.Mesh>
-      </AutoColliders>
-    </RigidBody>
+    <!-- Hole sensor: fires "completed" when the ball enters -->
+    <GoalSensor
+      position={endPos}
+      on:completed={() => {
+        if (player) player.setEnabled(false);
+        sfx.play("/sounds/applause.wav", 1.0);
+        dispatch("completed");
+      }}
+    />
 
+    <!-- The ball -->
     <Player
       bind:this={player}
       size={ballSize}
@@ -294,20 +162,24 @@
       color={$userProfile?.settings?.ballColor || "#FF0000"}
       on:outofbounds={() => {
         const pos = [...respawnPoints[respawnPoints.length - 1]];
-        pos[1] += 0.05; // drop slightly from above to avoid getting stuck in colliders
+        pos[1] += 0.05;
         player.moveTo(pos);
         playerPosition = pos;
         canSelectPlayer = true;
       }}
       on:moved={(ev) => {
         playerPosition = ev.detail;
+        occlusionState.position = playerPosition;
         canSelectPlayer = false;
       }}
       on:stopped={(ev) => {
-        const position = ev.detail;
-        respawnPoints.push([...position]);
+        respawnPoints.push([...ev.detail]);
         respawnPoints = respawnPoints;
         canSelectPlayer = true;
+      }}
+      on:speedchange={(ev) => {
+        // Bridge rolling audio: Player fires speedchange, Stage drives the audio system
+        sfx.setRollingVolume(ev.detail);
       }}
     />
 
@@ -317,9 +189,7 @@
         position={respawnPoints[respawnPoints.length - 1]}
         size={ballSize}
         {camera}
-        on:selected={() => {
-          controls.enabled = false;
-        }}
+        on:selected={() => { controls.enabled = false; }}
         on:apply={(ev) => {
           const hitpoint = ev.detail;
           if (hitpoint.x !== 0 || hitpoint.y !== 0 || hitpoint.z !== 0) {

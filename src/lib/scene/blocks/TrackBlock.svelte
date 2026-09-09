@@ -15,7 +15,7 @@
   export let isEditor = false;
 
   export let groundFriction = 0.5;
-  export let groundRestitution = 0.5;
+  export let groundRestitution = 0.05;
   export let wallFriction = 0.5;
   export let wallRestitution = 0.5;
   export let tileColor = "#567D46";
