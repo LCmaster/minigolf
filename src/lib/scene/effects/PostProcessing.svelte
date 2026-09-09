@@ -7,7 +7,7 @@
 
   export let enabled = true;
 
-  const { scene, camera, renderer, size, autoRender } = useThrelte();
+  const { scene, renderer, size, camera } = useThrelte();
 
   // Setup Composer
   const composer = new EffectComposer(renderer);
@@ -38,7 +38,4 @@
       renderer.render(scene, $camera);
     }
   });
-
-  // We are taking over the render loop
-  autoRender.set(false);
 </script>
