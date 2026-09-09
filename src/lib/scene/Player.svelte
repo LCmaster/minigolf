@@ -1,7 +1,7 @@
 <script>
   import { Group, Vector3 } from "three";
   import { T, useFrame } from "@threlte/core";
-  import { AutoColliders, RigidBody, Collider } from "@threlte/rapier";
+  import { AutoColliders, RigidBody, Collider, useRapier } from "@threlte/rapier";
   import { sfx } from "$lib/stores/audio";
   import { createToonGradientMap } from "$lib/scene/materials/index.js";
   import { createEventDispatcher } from "svelte";
@@ -17,6 +17,22 @@
 
   // Cel-shaded gradient map — construction delegated to the materials utility
   const gradientMap = createToonGradientMap();
+
+  // Rapier world + Ray constructor for the hover raycast system
+  const { world, rapier } = useRapier();
+
+  // Hover gap: ball floats this many units above the detected surface.
+  // Large enough to avoid trimesh contact, small enough to look grounded.
+  const HOVER_GAP = 0.03;
+
+  // Threshold for "in free-fall or on a loop" — Y velocity above this
+  // means we let Rapier handle it naturally (no hover snap).
+  const FREE_FALL_THRESHOLD = 2.5;
+
+  // Ray cast distance downward — ball must be within this distance of a surface
+  // for the hover system to engage. Keeps ramps and loops unaffected when the
+  // ball is far from the floor.
+  const HOVER_CAST_DIST = 1.5;
 
   let body;
   let mesh;
@@ -94,10 +110,61 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Hover raycast system
+  //
+  // Purpose: Completely eliminate sphere-on-trimesh jitter by taking the ball's
+  // Y axis off the physics simulation when it is near a surface.
+  //
+  // How it works each frame:
+  //   1. Cast a ray straight down from slightly above the ball's center.
+  //   2. If a surface is found within HOVER_CAST_DIST AND the ball is not in
+  //      free-fall (|linvel.y| < FREE_FALL_THRESHOLD), we are "on surface".
+  //   3. Snap the body's Y translation to surfaceHitY + size + HOVER_GAP.
+  //   4. Zero out Y velocity entirely → no bounce, no oscillation.
+  //
+  // The ball still collides with walls/bumpers/obstacles in XZ via Rapier —
+  // only the vertical position is overridden.
+  // ---------------------------------------------------------------------------
+  const DOWN = { x: 0, y: -1, z: 0 };
+
+  function applyHover(linvel) {
+    if (!body || !world || !rapier) return false;
+
+    const t = body.translation();
+
+    // Cast from slightly above the ball center to avoid self-intersection
+    const rayOrigin = { x: t.x, y: t.y + size * 0.5, z: t.z };
+    const ray = new rapier.Ray(rayOrigin, DOWN);
+
+    // Exclude the ball's own rigid body from the raycast
+    const hit = world.castRay(
+      ray,
+      HOVER_CAST_DIST + size,
+      true,       // solid: stop at first hit
+      undefined,  // filterFlags
+      undefined,  // filterGroups (hit everything — floor and obstacles)
+      undefined,  // filterExcludeCollider
+      body,       // filterExcludeRigidBody — skip the ball itself
+    );
+
+    if (!hit) return false;
+
+    // toi is the "time of impact" along the ray (distance from ray origin)
+    const surfaceY = rayOrigin.y + DOWN.y * hit.toi; // rayOrigin.y - toi
+    const targetY  = surfaceY + size + HOVER_GAP;
+
+    // Only engage hover if we're actually close enough to the surface
+    const distToSurface = t.y - surfaceY;
+    if (distToSurface > HOVER_CAST_DIST) return false;
+
+    // Snap Y position and kill all vertical velocity
+    body.setTranslation({ x: t.x, y: targetY, z: t.z }, false);
+    body.setLinvel({ x: linvel.x, y: 0, z: linvel.z }, true);
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------
   // Physics frame loop
-  // Pure physics + position concerns only.
-  // Audio side-effects are delegated via the `speedchange` event so consumers
-  // can bridge audio without this component depending on the audio system.
   // ---------------------------------------------------------------------------
   useFrame(() => {
     if (!body || !enabled) return;
@@ -114,24 +181,23 @@
       const linvel = body.linvel();
       currentSpeed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
 
-      // Gliding feel: suppress small vertical velocities caused by the ball
-      // bumping over trimesh triangle edges on the track surface.
-      // The 1.5 threshold is safe: surface jitter is < 0.3, ramps produce > 2.0.
-      if (framesAwake > 2 && Math.abs(linvel.y) < 1.5) {
-        body.setLinvel({ x: linvel.x, y: linvel.y * 0.05, z: linvel.z }, true);
+      // Hover system: engage when not in free-fall and not inside a loop
+      const inFreefall = Math.abs(linvel.y) > FREE_FALL_THRESHOLD;
+      if (framesAwake > 2 && !inFreefall) {
+        applyHover(linvel);
       }
 
       // Notify consumers of speed change so they can drive audio independently
       dispatch("speedchange", currentSpeed);
 
-      // Force-stop: prevent the ball from crawling indefinitely on nearly-flat surfaces.
+      // Force-stop: prevent the ball from crawling indefinitely on flat surfaces.
       // Wait a few frames first so the ball has time to fall after teleport/respawn.
       if (framesAwake > 5 && currentSpeed < 0.25 && Math.abs(linvel.y) < 0.1) {
         body.setLinvel({ x: 0, y: 0, z: 0 }, true);
         body.setAngvel({ x: 0, y: 0, z: 0 }, true);
         body.sleep();
-        // Note: `sleep` triggers the RigidBody's on:sleep, which dispatches "stopped".
-        // "stopped" is a game-state signal meaning "ball is ready for next shot".
+        // Note: `sleep` triggers RigidBody's on:sleep → dispatches "stopped"
+        // "stopped" is the game-state signal meaning "ball is ready for next shot".
         dispatch("speedchange", 0);
       } else {
         syncPosition();
