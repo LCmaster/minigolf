@@ -255,8 +255,8 @@
   <!-- Physics collider (only in gameplay/test mode) -->
   {#if !noPhysics}
   <RigidBody type="fixed">
-    <!-- Floor colliders: single trimesh for seamless rolling -->
-    <AutoColliders shape="trimesh" friction={groundFriction} restitution={groundRestitution}>
+    <!-- Floor colliders: single trimesh for seamless rolling — group 1 (floor), not detected by audio sensor -->
+    <AutoColliders shape="trimesh" friction={groundFriction} restitution={groundRestitution} collisionGroups={0x0001FFFF}>
       <T.Mesh geometry={baseGeo} receiveShadow>
         <T.MeshStandardMaterial color="#888888" />
       </T.Mesh>
