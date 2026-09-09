@@ -303,11 +303,10 @@
       <!-- Indicators -->
       {#if type === "start"}
         <T.Mesh
-          position={[0, floorDepth + 0.02, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, floorDepth + 0.025, 0]}
           receiveShadow
         >
-          <T.CircleGeometry args={[0.4, 32]} />
+          <T.CylinderGeometry args={[0.4, 0.4, 0.01, 32]} />
           <T.MeshStandardMaterial color="#4ade80" />
         </T.Mesh>
       {:else}
