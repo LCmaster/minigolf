@@ -1,7 +1,7 @@
 <script>
   import { T, useThrelte } from "@threlte/core";
   import { Environment } from "@threlte/extras";
-  import { Color } from "three";
+  import { Color, Fog } from "three";
   import { themes } from "./themes.js";
 
   export let theme = "clear";
@@ -17,12 +17,13 @@
       invalidate();
     }
   }
+  
+  $: {
+    if (scene && activeTheme) {
+      scene.fog = new Fog(activeTheme.fogColor, activeTheme.fogNear, activeTheme.fogFar);
+    }
+  }
 </script>
-
-<!-- Declaratively attach fog to the root 3D scene -->
-<T is={scene}>
-  <T.Fog attach="fog" color={activeTheme.fogColor} near={activeTheme.fogNear} far={activeTheme.fogFar} />
-</T>
 
 <T.AmbientLight intensity={activeTheme.ambientIntensity} color={activeTheme.ambientColor} />
 <T.DirectionalLight
