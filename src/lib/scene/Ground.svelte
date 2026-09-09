@@ -43,8 +43,8 @@
 <RigidBody type="fixed" position={[0, -1, 0]}>
   <!-- Halfspace normal points up (Y+) -->
   <Collider
-    shape="halfspace"
-    args={[{ x: 0, y: 1, z: 0 }]}
+    shape="cuboid"
+    args={[500, 0.1, 500]}
     collisionGroups={0x0001FFFF}
     on:contact={() => dispatch("outofbounds")}
   />
