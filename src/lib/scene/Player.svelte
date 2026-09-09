@@ -147,7 +147,11 @@
       body,       // filterExcludeRigidBody — skip the ball itself
     );
 
-    if (!hit) return false;
+    if (!hit) {
+      // No surface in range — re-enable gravity so the ball falls naturally
+      body.setGravityScale(1, false);
+      return false;
+    }
 
     // toi is the "time of impact" along the ray (distance from ray origin)
     const surfaceY = rayOrigin.y + DOWN.y * hit.toi; // rayOrigin.y - toi
@@ -155,11 +159,23 @@
 
     // Only engage hover if we're actually close enough to the surface
     const distToSurface = t.y - surfaceY;
-    if (distToSurface > HOVER_CAST_DIST) return false;
+    if (distToSurface > HOVER_CAST_DIST) {
+      body.setGravityScale(1, false);
+      return false;
+    }
 
-    // Snap Y position and kill all vertical velocity
+    // ON SURFACE:
+    // Disable gravity so Rapier never pushes the ball into the floor.
+    // Without gravity, the physical collider floats cleanly at targetY
+    // and never contacts the trimesh — eliminating all floor collision events.
+    body.setGravityScale(0, false);
+
+    // Snap Y position without waking the body (wakeUp=false).
+    // This lets Rapier's internal sleep countdown continue uninterrupted.
     body.setTranslation({ x: t.x, y: targetY, z: t.z }, false);
-    body.setLinvel({ x: linvel.x, y: 0, z: linvel.z }, true);
+
+    // Zero Y velocity — wakeUp=false so we don't reset Rapier's sleep timer.
+    body.setLinvel({ x: linvel.x, y: 0, z: linvel.z }, false);
     return true;
   }
 
@@ -185,6 +201,9 @@
       const inFreefall = Math.abs(linvel.y) > FREE_FALL_THRESHOLD;
       if (framesAwake > 2 && !inFreefall) {
         applyHover(linvel);
+      } else {
+        // Exiting hover (free-fall or loop) — restore gravity
+        if (body) body.setGravityScale(1, false);
       }
 
       // Notify consumers of speed change so they can drive audio independently
