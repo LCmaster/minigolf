@@ -1,6 +1,5 @@
 <script>
   import { T, useThrelte } from "@threlte/core";
-  import { Environment } from "@threlte/extras";
   import { Color, Fog } from "three";
   import { themes } from "./themes.js";
 
@@ -36,7 +35,3 @@
   shadow.mapSize.width={2048}
   shadow.mapSize.height={2048}
 />
-
-
-
-<Environment preset={activeTheme.preset} isBackground={false} />

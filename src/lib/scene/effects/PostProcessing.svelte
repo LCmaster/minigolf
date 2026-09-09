@@ -12,12 +12,12 @@
   // Setup Composer
   const composer = new EffectComposer(renderer);
 
-  const renderPass = new RenderPass(scene, camera.current);
+  const renderPass = new RenderPass(scene, $camera);
   composer.addPass(renderPass);
 
   // Resolution, strength, radius, threshold
   const bloomPass = new UnrealBloomPass(
-    new Vector2(size.current.width, size.current.height),
+    new Vector2($size.width, $size.height),
     1.5, // strength
     0.4, // radius
     0.85 // threshold - only bloom bright objects
