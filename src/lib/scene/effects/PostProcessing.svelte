@@ -17,7 +17,7 @@
 
   // Resolution, strength, radius, threshold
   const bloomPass = new UnrealBloomPass(
-    new Vector2($size.width, $size.height),
+    new Vector2($size?.width || 1, $size?.height || 1),
     1.5, // strength
     0.4, // radius
     0.85 // threshold - only bloom bright objects
