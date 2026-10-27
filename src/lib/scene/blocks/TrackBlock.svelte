@@ -1,9 +1,8 @@
 <script>
   import { T } from "@threlte/core";
-  import { Shape, ExtrudeGeometry, Vector3, Quaternion, Euler, Matrix4 } from "three";
-  import { AutoColliders, Collider, RigidBody } from "@threlte/rapier";
+  import { Shape, ExtrudeGeometry, Vector3, Quaternion, Matrix4 } from "three";
+  import { Collider, RigidBody } from "@threlte/rapier";
   import { onDestroy } from "svelte";
-  import { createMiterGeometry } from "$lib/trackGeometry";
   import WoodMaterial from "$lib/scene/materials/WoodMaterial.svelte";
   import TileMaterial from "$lib/scene/materials/TileMaterial.svelte";
 
@@ -11,7 +10,8 @@
   export let shape = "rounded"; // 'square' or 'rounded'
   export let position = [0, 0, 0];
   export let tangent = new Vector3(0, 0, 1); // direction the track is heading
-  export let rotation = 0; // kept for back-compat but we use tangent now
+  export let width = 2.5; // half inner width
+  export let bankAngle = 0; // degrees
   export let isEditor = false;
 
   export let groundFriction = 0.5;
@@ -20,97 +20,50 @@
   export let wallRestitution = 0.5;
   export let tileColor = "#567D46";
 
-  // Track cross-section dimensions (must match SplineTrack exactly)
-  const w = 2.5; // half inner width
   const t = 0.5; // wall thickness
   const h = 0.5; // wall height (from top surface downward)
   const floorDepth = 0.1;
-  const blockLength = 2.7; // half of totalWidth, how far the cap extends
 
-  // ── Cross-section shapes (identical to SplineTrack) ──────────────────
-  const baseShape = (() => {
-    const s = new Shape();
-    s.moveTo(0, -w - t);
-    s.lineTo(0, w + t);
-    s.lineTo(-floorDepth, w + t);
-    s.lineTo(-floorDepth, -w - t);
-    s.lineTo(0, -w - t);
-    return s;
-  })();
-
-  const tileShape = (() => {
-    const s = new Shape();
-    s.moveTo(-floorDepth, -w);
-    s.lineTo(-floorDepth, w);
-    s.lineTo(-floorDepth - 0.02, w);
-    s.lineTo(-floorDepth - 0.02, -w);
-    s.lineTo(-floorDepth, -w);
-    return s;
-  })();
-
-  const leftWallShape = (() => {
-    const s = new Shape();
-    s.moveTo(-floorDepth, w);
-    s.lineTo(-floorDepth, w + t);
-    s.lineTo(-h, w + t);
-    s.lineTo(-h, w);
-    s.lineTo(-floorDepth, w);
-    return s;
-  })();
-
-  const rightWallShape = (() => {
-    const s = new Shape();
-    s.moveTo(-floorDepth, -w - t);
-    s.lineTo(-floorDepth, -w);
-    s.lineTo(-h, -w);
-    s.lineTo(-h, -w - t);
-    s.lineTo(-floorDepth, -w - t);
-    return s;
-  })();
-
-  // Back wall shape — closes the open end of the block
-  const backWallShape = (() => {
-    const s = new Shape();
-    // A flat rectangle spanning the full width, from floorDepth down to h
-    s.moveTo(-floorDepth, -w - t);
-    s.lineTo(-floorDepth, w + t);
-    s.lineTo(-h, w + t);
-    s.lineTo(-h, -w - t);
-    s.lineTo(-floorDepth, -w - t);
-    return s;
-  })();
-
-  // ── Geometry builders ────────────────────────────────────────────────
   let baseGeo, tileGeo, wallGeo;
   let previousGeos = null;
   let meshes = [];
 
   $: rotationQuaternion = (() => {
     const targetDir = tangent.clone().normalize();
-    
-    // We want the block to face targetDir (+Z), but with a strict global Up (0, 1, 0)
-    // to prevent it from rolling/banking sideways on elevation changes.
     const up = new Vector3(0, 1, 0);
     const xAxis = new Vector3().crossVectors(up, targetDir);
-    
-    // Fallback if tangent is purely vertical
+
     if (xAxis.lengthSq() < 0.0001) {
       xAxis.set(1, 0, 0);
     } else {
       xAxis.normalize();
     }
-    
+
     const yAxis = new Vector3().crossVectors(targetDir, xAxis).normalize();
-    
+
+    // Apply banking roll around targetDir if bankAngle !== 0
+    const bankRad = ((bankAngle || 0) * Math.PI) / 180;
+    if (Math.abs(bankRad) > 0.0001) {
+      const cosB = Math.cos(bankRad);
+      const sinB = Math.sin(bankRad);
+      // Note: xAxis is -R in computeMiterPathData
+      const bankedX = xAxis.clone().multiplyScalar(cosB).addScaledVector(yAxis, -sinB);
+      const bankedY = yAxis.clone().multiplyScalar(cosB).addScaledVector(xAxis, sinB);
+      xAxis.copy(bankedX).normalize();
+      yAxis.copy(bankedY).normalize();
+    }
+
     const m = new Matrix4().makeBasis(xAxis, yAxis, targetDir);
     return new Quaternion().setFromRotationMatrix(m);
   })();
 
-  function buildGeometries(currentShape, currentType) {
+  function buildGeometries(currentShape, currentType, wVal, currentTileColor) {
     disposeGeometries();
 
-    const R_base = w + t; // 2.7
-    const R_tile = w; // 2.5
+    const w = wVal || 2.5;
+    const R_base = w + t;
+    const R_tile = w;
+    const blockLength = w + 0.2;
 
     const baseShapeLocal = new Shape();
     const tileShapeLocal = new Shape();
@@ -121,18 +74,18 @@
 
     if (currentShape === "rounded") {
       baseShapeLocal.moveTo(-R_base * zMult, 0);
-      baseShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false); // CCW
+      baseShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false);
       baseShapeLocal.lineTo(-R_base * zMult, 0);
 
       tileShapeLocal.moveTo(-R_tile * zMult, 0);
-      tileShapeLocal.absarc(0, 0, R_tile, angleStart, angleStart + Math.PI, false); // CCW
+      tileShapeLocal.absarc(0, 0, R_tile, angleStart, angleStart + Math.PI, false);
       tileShapeLocal.lineTo(-R_tile * zMult, 0);
 
       wallShapeLocal.moveTo(-R_base * zMult, 0);
-      wallShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false); // CCW outer
-      wallShapeLocal.lineTo(R_tile * zMult, 0); // inward
-      wallShapeLocal.absarc(0, 0, R_tile, angleStart + Math.PI, angleStart, true); // CW inner
-      wallShapeLocal.lineTo(-R_base * zMult, 0); // close
+      wallShapeLocal.absarc(0, 0, R_base, angleStart, angleStart + Math.PI, false);
+      wallShapeLocal.lineTo(R_tile * zMult, 0);
+      wallShapeLocal.absarc(0, 0, R_tile, angleStart + Math.PI, angleStart, true);
+      wallShapeLocal.lineTo(-R_base * zMult, 0);
     } else {
       baseShapeLocal.moveTo(-R_base * zMult, 0);
       baseShapeLocal.lineTo(-R_base * zMult, -blockLength * zMult);
@@ -183,7 +136,7 @@
     previousGeos = [baseGeo, tileGeo, wallGeo].filter(Boolean);
     meshes = [
       { geo: baseGeo, color: "#888888", meshType: "base" },
-      { geo: tileGeo, color: tileColor, meshType: "tile" },
+      { geo: tileGeo, color: currentTileColor, meshType: "tile" },
       { geo: wallGeo, color: "#8B5A2B", meshType: "wall" },
     ];
   }
@@ -197,18 +150,19 @@
 
   onDestroy(() => disposeGeometries());
 
-  // Rebuild whenever inputs change
   $: if (shape && type) {
-    buildGeometries(shape, type);
+    buildGeometries(shape, type, width, tileColor);
   }
-  // Generate explicit convex hull colliders to avoid expensive trimeshes
+
   $: colliders = (() => {
     const floorSegments = [];
     const wallSegments = [];
     if (!shape || !type) return { floor: floorSegments, wall: wallSegments };
 
-    const R_base = w + t; // 2.7
-    const R_tile = w; // 2.5
+    const w = width || 2.5;
+    const R_base = w + t;
+    const R_tile = w;
+    const blockLength = w + 0.2;
     const y0_base = 0;
     const y1_base = floorDepth;
     const y0_tile = floorDepth;
@@ -232,7 +186,7 @@
 
     const getPoint = (r, angle) => ({
       x: r * Math.cos(angle),
-      z: -r * Math.sin(angle) // Note: shape.y maps to world.-z in our rotateX(-PI/2) convention
+      z: -r * Math.sin(angle),
     });
 
     const zMult = type === "start" ? -1 : 1;
@@ -245,11 +199,11 @@
       const zBack0 = zMult === -1 ? -blockLength : blockLength - t;
       const zBack1 = zMult === -1 ? -blockLength + t : blockLength;
 
-      addBox(floorSegments, -R_base, R_base, z0, z1, y0_base, y1_base); // base
-      addBox(floorSegments, -R_tile, R_tile, zTile0, zTile1, y0_tile, y1_tile); // tile
-      addBox(wallSegments, -R_base, -R_tile, z0, z1, y0_wall, y1_wall); // left wall
-      addBox(wallSegments, R_tile, R_base, z0, z1, y0_wall, y1_wall); // right wall
-      addBox(wallSegments, -R_tile, R_tile, zBack0, zBack1, y0_wall, y1_wall); // back wall
+      addBox(floorSegments, -R_base, R_base, z0, z1, y0_base, y1_base);
+      addBox(floorSegments, -R_tile, R_tile, zTile0, zTile1, y0_tile, y1_tile);
+      addBox(wallSegments, -R_base, -R_tile, z0, z1, y0_wall, y1_wall);
+      addBox(wallSegments, R_tile, R_base, z0, z1, y0_wall, y1_wall);
+      addBox(wallSegments, -R_tile, R_tile, zBack0, zBack1, y0_wall, y1_wall);
     } else if (shape === "rounded") {
       const numSegments = 12;
       const angleStart = type === "start" ? 0 : Math.PI;
@@ -265,10 +219,9 @@
         const t1 = getPoint(R_tile, a1);
         const t2 = getPoint(R_tile, a2);
 
-        // For triangle wedges (base, tile), we can use a degenerate quad (p1=p4)
-        addQuad(floorSegments, origin, b1, b2, origin, y0_base, y1_base); // base
-        addQuad(floorSegments, origin, t1, t2, origin, y0_tile, y1_tile); // tile
-        addQuad(wallSegments, t1, b1, b2, t2, y0_wall, y1_wall); // wall
+        addQuad(floorSegments, origin, b1, b2, origin, y0_base, y1_base);
+        addQuad(floorSegments, origin, t1, t2, origin, y0_tile, y1_tile);
+        addQuad(wallSegments, t1, b1, b2, t2, y0_wall, y1_wall);
       }
     }
     return { floor: floorSegments, wall: wallSegments };
@@ -277,9 +230,9 @@
 
 {#if baseGeo}
   <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
-    <T.Group {position} quaternion={[rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w]} userData={{ isScenery: true }}>
+    <T.Group {position} quaternion={[rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w]}>
       {#each meshes as {geo, color, meshType}}
-        <T.Mesh geometry={geo} castShadow receiveShadow>
+        <T.Mesh geometry={geo}>
           {#if meshType === "wall"}
             <WoodMaterial {color} />
           {:else if meshType === "tile"}
@@ -290,42 +243,29 @@
         </T.Mesh>
       {/each}
 
-      <!-- Explicit precise convex hull colliders -->
       {#each colliders.floor as hullVertices}
-        <!-- Floor is strictly in Group 1 -->
-        <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} collisionGroups={0x0001FFFF} />
+        <Collider shape="convexHull" args={[hullVertices]} friction={groundFriction} restitution={groundRestitution} collisionGroups={0x0001FFFF} />
       {/each}
       {#each colliders.wall as hullVertices}
-        <!-- Walls are in collision group 2 -->
         <Collider shape="convexHull" args={[hullVertices]} friction={wallFriction} restitution={wallRestitution} collisionGroups={0x0002FFFF} />
       {/each}
 
-      <!-- Indicators -->
       {#if type === "start"}
-        <T.Mesh
-          position={[0, floorDepth + 0.025, 0]}
-          receiveShadow
-        >
+        <T.Mesh position={[0, floorDepth + 0.025, 0]}>
           <T.CylinderGeometry args={[0.4, 0.4, 0.01, 32]} />
           <T.MeshStandardMaterial color="#4ade80" />
         </T.Mesh>
       {:else}
-        <!-- Hole indicator -->
-        <T.Mesh
-          position={[0, floorDepth + 0.025, 0]}
-          receiveShadow
-        >
+        <T.Mesh position={[0, floorDepth + 0.025, 0]}>
           <T.CylinderGeometry args={[0.4, 0.4, 0.01, 32]} />
           <T.MeshStandardMaterial color="#111111" />
         </T.Mesh>
 
-        <!-- Flag pole -->
         <T.Mesh position={[0, floorDepth + 1.0, 0]} castShadow receiveShadow>
           <T.CylinderGeometry args={[0.02, 0.02, 2, 8]} />
           <T.MeshStandardMaterial color="#cccccc" />
         </T.Mesh>
 
-        <!-- Flag -->
         <T.Mesh position={[0.3, floorDepth + 1.8, 0]} castShadow receiveShadow>
           <T.BoxGeometry args={[0.6, 0.3, 0.02]} />
           <T.MeshStandardMaterial color="#ef4444" />

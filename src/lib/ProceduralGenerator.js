@@ -1,8 +1,11 @@
 import * as THREE from "three";
+import { buildSplineStampTable, evaluateHeightmapAt } from "./heightmapGeometry";
 
 export class ProceduralGenerator {
   /**
-   * Generates a random spline track and scenery.
+   * Generates a random spline track stamped into the heightmap with varied widths,
+   * automatic curve banking, elevation contours, and scenery.
+   *
    * @param {number} minPoints - Minimum control points
    * @param {number} maxPoints - Maximum control points
    * @param {number} minSpacing - Minimum spacing between points
@@ -10,24 +13,32 @@ export class ProceduralGenerator {
    * @param {boolean} varyDifficulty - Whether to increase obstacles with length
    * @returns {Object} { controlPoints, blocks, par }
    */
-  static generateRandomCourse(minPoints = 3, maxPoints = 8, minSpacing = 3, maxSpacing = 10, varyDifficulty = true) {
+  static generateRandomCourse(
+    minPoints = 4,
+    maxPoints = 8,
+    minSpacing = 5,
+    maxSpacing = 11,
+    varyDifficulty = true
+  ) {
     const controlPoints = [];
     const blocks = [];
 
     // 1. Generate the Track Path (Spline Walk)
-    const numPoints = Math.floor(Math.random() * (maxPoints - minPoints + 1)) + minPoints;
+    const numPoints =
+      Math.floor(Math.random() * (maxPoints - minPoints + 1)) + minPoints;
     let currentPos = new THREE.Vector3(0, 0, 0);
     let currentAngle = 0; // Forward direction
 
     controlPoints.push({
       id: crypto.randomUUID(),
       position: [currentPos.x, currentPos.y, currentPos.z],
+      width: 2.6,
+      bankAngle: 0,
     });
 
     for (let i = 1; i < numPoints; i++) {
-      // Pick distance and angle delta
       const distance = minSpacing + Math.random() * (maxSpacing - minSpacing);
-      const angleDelta = (Math.random() - 0.5) * (Math.PI / 2); // Max +/- 45 degrees
+      const angleDelta = (Math.random() - 0.5) * (Math.PI * 0.55); // Up to ~50 deg turn
       currentAngle += angleDelta;
 
       const nextPos = new THREE.Vector3(
@@ -36,16 +47,28 @@ export class ProceduralGenerator {
         currentPos.z + Math.cos(currentAngle) * distance
       );
 
-      // Simple elevation changes (20% chance to go up or down by 0.5 to 1.5 units)
-      if (Math.random() < 0.2) {
-        const heightDelta = 0.5 + Math.random() * 1.0;
-        nextPos.y += Math.random() > 0.5 ? heightDelta : -heightDelta;
-        if (nextPos.y < 0) nextPos.y = 0; // Prevent going underground
+      // Organic elevation changes (45% chance to slope up or down)
+      if (Math.random() < 0.45) {
+        const heightDelta = (Math.random() - 0.48) * 1.6;
+        nextPos.y = Math.max(-2.0, Math.min(4.0, Math.round((nextPos.y + heightDelta) * 2) / 2));
       }
+
+      const isEnd = i === numPoints - 1;
+      // Vary fairway width (wider bowls or narrower bridges, while keeping end green generous)
+      const width = isEnd
+        ? 2.8
+        : Number((1.9 + Math.random() * 1.6).toFixed(1));
+
+      // Bank turns inward proportionally to angleDelta (except on the final hole green)
+      const bankAngle = isEnd
+        ? 0
+        : Math.round(Math.max(-22, Math.min(22, (-angleDelta / (Math.PI / 2)) * 24)));
 
       controlPoints.push({
         id: crypto.randomUUID(),
         position: [nextPos.x, nextPos.y, nextPos.z],
+        width,
+        bankAngle,
       });
 
       currentPos.copy(nextPos);
@@ -54,45 +77,60 @@ export class ProceduralGenerator {
     // Par calculation based on length
     const par = Math.max(2, Math.floor(numPoints / 2));
 
+    // Build heightmap stamp table so obstacles and trees sit accurately on the terrain surface
+    const { samples } = buildSplineStampTable(controlPoints);
+    const endPoint = controlPoints[controlPoints.length - 1];
+
     // 2. Tangent-Aligned Obstacle Placement
-    // We create a temporary CatmullRomCurve3 to sample points along the track
     const vectors = controlPoints.map((p) => new THREE.Vector3(...p.position));
     const curve = new THREE.CatmullRomCurve3(vectors, false, "catmullrom", 0.5);
-    
-    // We avoid placing obstacles at the very start (t < 0.1) and end (t > 0.9)
+
     const numObstacles = varyDifficulty ? Math.floor(numPoints / 2) : 2;
-    const obstacleTypes = ["ramp", "bumper", "boost", "loop", "windmill", "ice", "sand", "water", "plinko"];
+    const obstacleTypes = [
+      "ramp",
+      "bumper",
+      "boost",
+      "windmill",
+      "ice",
+      "sand",
+      "water",
+      "plinko",
+    ];
 
     for (let i = 0; i < numObstacles; i++) {
-      const t = 0.1 + Math.random() * 0.8;
+      const t = 0.15 + Math.random() * 0.7;
       const point = curve.getPointAt(t);
       const tangent = curve.getTangentAt(t);
+      const surfaceEval = evaluateHeightmapAt(point.x, point.z, samples, endPoint);
 
-      // Calculate yaw from tangent (add Math.PI to face forward)
-      let yaw = Math.atan2(tangent.x, tangent.z) + Math.PI;
+      const yaw = Math.atan2(tangent.x, tangent.z) + Math.PI;
+      const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
 
       blocks.push({
         id: crypto.randomUUID(),
-        type: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
-        variation: 1, // Default variation
-        position: [point.x, point.y, point.z],
+        type,
+        variation: 1,
+        position: [point.x, surfaceEval.height, point.z],
         rotation: [0, yaw, 0],
         scale: [1, 1, 1],
+        ...(type === "bumper" ? { restitution: 2.0 } : {}),
+        ...(type === "boost" ? { boostForce: 15 } : {}),
       });
     }
 
-    // 3. Poisson Disk Style Scenery Generation
-    // Define bounding box of the track
-    let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
-    controlPoints.forEach(p => {
+    // 3. Scenery Generation (seated directly onto the heightmap hills!)
+    let minX = Infinity,
+      minZ = Infinity,
+      maxX = -Infinity,
+      maxZ = -Infinity;
+    controlPoints.forEach((p) => {
       if (p.position[0] < minX) minX = p.position[0];
       if (p.position[2] < minZ) minZ = p.position[2];
       if (p.position[0] > maxX) maxX = p.position[0];
       if (p.position[2] > maxZ) maxZ = p.position[2];
     });
 
-    // Expand bounding box for scenery
-    const padding = 5;
+    const padding = 12;
     minX -= padding;
     minZ -= padding;
     maxX += padding;
@@ -101,38 +139,28 @@ export class ProceduralGenerator {
     const sceneryTypes = [
       { type: "tree", maxVars: 2 },
       { type: "rock", maxVars: 2 },
-      { type: "grass", maxVars: 2 }
+      { type: "grass", maxVars: 2 },
     ];
 
-    const numScenery = numPoints * 3; // Number of scenery items scales with track length
+    const numScenery = numPoints * 4;
 
     for (let i = 0; i < numScenery; i++) {
       const px = minX + Math.random() * (maxX - minX);
       const pz = minZ + Math.random() * (maxZ - minZ);
-      const pos = new THREE.Vector3(px, 0, pz);
+      const evalRes = evaluateHeightmapAt(px, pz, samples, endPoint);
 
-      // Check distance to the curve. If it's too close (< 2.0 units), skip to keep the fairway clear.
-      let closestDistSq = Infinity;
-      // Fast rough check against control points first, then fine check if needed
-      for (let j = 0; j < controlPoints.length; j++) {
-        const cp = new THREE.Vector3(...controlPoints[j].position);
-        cp.y = 0; // Ignore height for clearance
-        const distSq = pos.distanceToSquared(cp);
-        if (distSq < closestDistSq) closestDistSq = distSq;
-      }
-
-      // We actually want clearance from the continuous curve, but checking distance to control points 
-      // + a small margin is a fast approximation. To be safer, we require distance > 3.0
-      if (closestDistSq > 9.0) {
-        const sType = sceneryTypes[Math.floor(Math.random() * sceneryTypes.length)];
+      // Place scenery outside the fairway + berm (distNorm > 1.55)
+      if (evalRes.distNorm > 1.55) {
+        const sType =
+          sceneryTypes[Math.floor(Math.random() * sceneryTypes.length)];
         const variation = Math.floor(Math.random() * sType.maxVars) + 1;
-        const sRotation = Math.random() * Math.PI * 2; // Random rotation in radians
+        const sRotation = Math.random() * Math.PI * 2;
 
         blocks.push({
           id: crypto.randomUUID(),
           type: sType.type,
-          variation: variation,
-          position: [px, 0, pz], // Scenery rests at y=0, could map to a heightmap later
+          variation,
+          position: [px, evalRes.height, pz],
           rotation: [0, sRotation, 0],
           scale: [1, 1, 1],
         });

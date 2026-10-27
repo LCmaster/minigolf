@@ -1,6 +1,14 @@
+<script context="module">
+  import { MeshToonMaterial } from "three";
+
+  // Darker toon green for the background hills
+  const hillsMaterial = new MeshToonMaterial({ color: "#4d7c0f" });
+</script>
+
 <script>
   import { T } from "@threlte/core";
-  import { MeshToonMaterial, PlaneGeometry, Vector3 } from "three";
+  import { onDestroy } from "svelte";
+  import { PlaneGeometry, Vector3 } from "three";
   import { createNoise2D } from "simplex-noise";
 
   export let controlPoints = [];
@@ -65,8 +73,9 @@
     }
   }
 
-  // Darker toon green for the background hills
-  const hillsMaterial = new MeshToonMaterial({ color: "#4d7c0f" }); 
+  onDestroy(() => {
+    geometry.dispose();
+  });
 </script>
 
 <!-- The hills sit slightly below 0 so they don't z-fight with the floor or track -->
