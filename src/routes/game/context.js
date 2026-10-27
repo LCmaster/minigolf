@@ -1,14 +1,17 @@
 import { getContext, hasContext, setContext } from "svelte";
-import { writable } from "svelte/store";
+import { createGameStores } from "$lib/stores/game";
 
-const id = "minigolfmania/game/context";
+const GAME_CONTEXT_KEY = "minigolfmania/game/context";
 
+/**
+ * Returns the route-scoped game stores (course, current hole, shots).
+ * Creates the context with fresh stores on first call; subsequent calls
+ * within the same component tree return the existing instance.
+ *
+ * @returns {{ course, current, shots }} Svelte writable stores
+ */
 export function useGame() {
-  return hasContext(id)
-    ? getContext(id)
-    : setContext(id, {
-        course: writable(null),
-        current: writable(null),
-        shots: writable(null),
-      });
+  return hasContext(GAME_CONTEXT_KEY)
+    ? getContext(GAME_CONTEXT_KEY)
+    : setContext(GAME_CONTEXT_KEY, createGameStores());
 }

@@ -11,11 +11,10 @@
   import Scene from "$lib/component/Scene.svelte";
   import StageCompleteModal from "./modal/StageCompleteModal.svelte";
   import { useGame } from "../context";
+  import { GameState } from "$lib/stores/game";
 
-  const { course, current, shots } = useGame();
+  const { course, current, shots, state } = useGame();
   const debug = $page.url.searchParams.has("debug");
-
-  let modal = "";
 
   const THEME_MUSIC = {
     clear: "/sounds/clear_theme.mp3",
@@ -48,14 +47,16 @@
     course={$course}
     current={$current}
     on:completed={() => {
-      modal = "completed";
+      if ($current === $course.holes.length - 1) {
+        $state = GameState.COURSE_COMPLETE;
+      }
     }}
     on:hit={() => {
       $shots[$current] += 1;
     }}
   />
   <div class="fixed top-0 left-0" slot="ui">
-    <Header on:quit on:stats={() => (modal = "scoreboard")} />
+    <Header on:quit on:stats={() => ($state = GameState.SCOREBOARD)} />
     
     <div class="fixed top-4 left-0 w-full pointer-events-none flex flex-col items-center justify-start z-50">
       <h2 class="text-xl font-black text-[#4A4A4A] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)] tracking-wide">{$course?.name || "Untitled Level"}</h2>
@@ -63,16 +64,18 @@
     </div>
 
     <Indicators />
-    {#if modal === "completed"}
+    {#if $state === GameState.HOLED_OUT}
       <StageCompleteModal
         on:quit
         on:next={() => {
-          modal = "";
           $current += 1;
+          $state = GameState.IDLE;
         }}
       />
-    {:else if modal === "scoreboard"}
-      <ScoreboardModal on:close={() => (modal = "")} />
+    {:else if $state === GameState.COURSE_COMPLETE}
+      <ScoreboardModal isComplete={true} on:quit />
+    {:else if $state === GameState.SCOREBOARD}
+      <ScoreboardModal isComplete={false} on:close={() => ($state = GameState.IDLE)} />
     {/if}
   </div>
 </Scene>

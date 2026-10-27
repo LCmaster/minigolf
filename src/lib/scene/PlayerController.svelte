@@ -59,6 +59,8 @@
   });
 </script>
 
+<svelte:window on:pointerup={handleMouseUp} />
+
 <T.Group bind:ref {position}>
   <T.Mesh bind:ref={selectionSphere} on:pointerdown={handleMouseDown}>
     <T.SphereGeometry args={[lowerLimit, 32, 16]} />
@@ -72,7 +74,6 @@
     bind:ref={selectionPlane}
     rotation.x={-Math.PI * 0.5}
     on:pointermove={handleMouseMove}
-    on:pointerup={handleMouseUp}
   >
     <T.RingGeometry args={[lowerLimit, upperLimit, 32]} />
     <T.MeshBasicMaterial transparent opacity={0.0} color={"white"} />

@@ -5,13 +5,13 @@
   import { sfx } from "$lib/stores/audio";
   import { createToonGradientMap } from "$lib/scene/materials/index.js";
   import { createEventDispatcher } from "svelte";
-  import BallTrail from "./particles/BallTrail.svelte";
 
   export let position;
   export let size = 0.45;
   export let color = "#FF0000";
   export let friction = 0.5;
   export let restitution = 0.0;
+  export let minCourseY = 0;
   export let ref = new Group();
 
   const dispatch = createEventDispatcher();
@@ -23,17 +23,20 @@
   const { world, rapier } = useRapier();
 
   // Hover gap: ball floats this many units above the detected surface.
-  // Large enough to avoid trimesh contact, small enough to look grounded.
+  // Large enough to avoid trimesh contact jitter, small enough to look grounded.
   const HOVER_GAP = 0.03;
 
   // Threshold for "in free-fall or on a loop" — Y velocity above this
   // means we let Rapier handle it naturally (no hover snap).
-  const FREE_FALL_THRESHOLD = 2.5;
+  const FREE_FALL_THRESHOLD = 3.5;
 
   // Ray cast distance downward — ball must be within this distance of a surface
   // for the hover system to engage. Keeps ramps and loops unaffected when the
   // ball is far from the floor.
   const HOVER_CAST_DIST = 1.5;
+
+  // World gravity magnitude (matches <World gravity={[0, -15, 0]}>)
+  const GRAVITY_Y = -15.0;
 
   let body;
   let mesh;
@@ -101,6 +104,7 @@
 
   let framesAwake = 0;
   let currentSpeed = 0;
+  let lastSurfaceNormalY = 1.0;
 
   // Audio sensor: fires bounce SFX when the ball collides with walls
   function handleSensorEnter() {
@@ -112,20 +116,13 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Hover raycast system
+  // Slope-Aware Hover Raycast System
   //
-  // Purpose: Completely eliminate sphere-on-trimesh jitter by taking the ball's
-  // Y axis off the physics simulation when it is near a surface.
-  //
-  // How it works each frame:
-  //   1. Cast a ray straight down from slightly above the ball's center.
-  //   2. If a surface is found within HOVER_CAST_DIST AND the ball is not in
-  //      free-fall (|linvel.y| < FREE_FALL_THRESHOLD), we are "on surface".
-  //   3. Snap the body's Y translation to surfaceHitY + size + HOVER_GAP.
-  //   4. Zero out Y velocity entirely → no bounce, no oscillation.
-  //
-  // The ball still collides with walls/bumpers/obstacles in XZ via Rapier —
-  // only the vertical position is overridden.
+  // Eliminates sphere-on-trimesh seam jitter while projecting downhill slope
+  // gravity along the terrain's surface normal N:
+  //   g_slope = g - (g · N) * N
+  // This lets the ball naturally roll down hills, curve around banked turns,
+  // and funnel into the cup.
   // ---------------------------------------------------------------------------
   const DOWN = { x: 0, y: -1, z: 0 };
 
@@ -138,46 +135,94 @@
     const rayOrigin = { x: t.x, y: t.y + size * 0.5, z: t.z };
     const ray = new rapier.Ray(rayOrigin, DOWN);
 
-    // Exclude the ball's own rigid body from the raycast
-    const hit = world.castRay(
-      ray,
-      HOVER_CAST_DIST + size,
-      true,       // solid: stop at first hit
-      undefined,  // filterFlags
-      undefined,  // filterGroups (hit everything — floor and obstacles)
-      undefined,  // filterExcludeCollider
-      body,       // filterExcludeRigidBody — skip the ball itself
-    );
+    // Exclude the ball's own rigid body and any sensor colliders from the raycast
+    const filterFlags = rapier.QueryFilterFlags
+      ? rapier.QueryFilterFlags.EXCLUDE_SENSORS
+      : 8;
+
+    const hit = world.castRayAndGetNormal
+      ? world.castRayAndGetNormal(
+          ray,
+          HOVER_CAST_DIST + size,
+          true,
+          filterFlags,
+          undefined,
+          undefined,
+          body
+        )
+      : world.castRay(
+          ray,
+          HOVER_CAST_DIST + size,
+          true,
+          filterFlags,
+          undefined,
+          undefined,
+          body
+        );
 
     if (!hit) {
+      lastSurfaceNormalY = 1.0;
       return false;
     }
 
     // toi is the "time of impact" along the ray (distance from ray origin)
-    const surfaceY = rayOrigin.y + DOWN.y * hit.toi; 
-    const targetY  = surfaceY + size + HOVER_GAP;
+    const surfaceY = rayOrigin.y + DOWN.y * hit.toi;
+    const targetY = surfaceY + size + HOVER_GAP;
 
     // Only engage hover if we're actually close enough to the surface
     const distToSurface = t.y - surfaceY;
     if (distToSurface > HOVER_CAST_DIST) {
+      lastSurfaceNormalY = 1.0;
       return false;
     }
 
-    // Proportional-Derivative (PD) Hover Controller
+    // Extract surface normal (ensure it points upward)
+    let nx = 0,
+      ny = 1,
+      nz = 0;
+    if (hit.normal) {
+      nx = hit.normal.x;
+      ny = hit.normal.y;
+      nz = hit.normal.z;
+      if (ny < 0) {
+        nx = -nx;
+        ny = -ny;
+        nz = -nz;
+      }
+    }
+    lastSurfaceNormalY = ny;
+
+    // Proportional-Derivative (PD) Vertical Hover Controller
     const error = targetY - t.y;
     const springK = 350; // Stiffness
     const dampingK = 25; // Damping
 
-    // Calculate upward spring force
-    const springForce = (error * springK) - (linvel.y * dampingK);
-    
-    // Only apply force upwards (acts like a cushion)
+    const springForce = error * springK - linvel.y * dampingK;
     const upwardForce = Math.max(0, springForce);
 
-    if (upwardForce > 0) {
-      body.applyImpulse({ x: 0, y: upwardForce * delta, z: 0 }, true);
+    // Tangential slope gravity projection: g_tan = g - (g · N) * N
+    // where g = (0, GRAVITY_Y, 0), so g · N = GRAVITY_Y * ny
+    // g_tan_x = -GRAVITY_Y * ny * nx = |GRAVITY_Y| * ny * nx
+    // g_tan_z = -GRAVITY_Y * ny * nz = |GRAVITY_Y| * ny * nz
+    let slopeImpulseX = 0;
+    let slopeImpulseZ = 0;
+    if (ny < 0.9995) {
+      const slopeAccelScale = -GRAVITY_Y * ny;
+      slopeImpulseX = slopeAccelScale * nx * delta;
+      slopeImpulseZ = slopeAccelScale * nz * delta;
     }
-    
+
+    if (upwardForce > 0 || slopeImpulseX !== 0 || slopeImpulseZ !== 0) {
+      body.applyImpulse(
+        {
+          x: slopeImpulseX,
+          y: upwardForce * delta,
+          z: slopeImpulseZ,
+        },
+        true
+      );
+    }
+
     return true;
   }
 
@@ -189,7 +234,7 @@
 
     mesh.getWorldPosition(positionVector);
 
-    if (positionVector.y < -1) {
+    if (positionVector.y < minCourseY - 1.5) {
       dispatch("outofbounds", position);
       return;
     }
@@ -200,7 +245,6 @@
       currentSpeed = Math.sqrt(linvel.x * linvel.x + linvel.z * linvel.z);
 
       // Hover system: engage when not in free-fall and not inside a loop
-      // We no longer manually disable gravity, so no need to manage setGravityScale
       const inFreefall = Math.abs(linvel.y) > FREE_FALL_THRESHOLD;
       if (framesAwake > 2 && !inFreefall) {
         applyHover(linvel, delta);
@@ -210,13 +254,18 @@
       dispatch("speedchange", currentSpeed);
 
       // Force-stop: prevent the ball from crawling indefinitely on flat surfaces.
-      // Wait a few frames first so the ball has time to fall after teleport/respawn.
-      if (framesAwake > 5 && currentSpeed < 0.25 && Math.abs(linvel.y) < 0.1) {
+      // Only force-sleep when on relatively flat ground (lastSurfaceNormalY > 0.985)
+      // so the ball naturally rolls down hills and banked curves!
+      const isFlatSurface = lastSurfaceNormalY > 0.985;
+      if (
+        framesAwake > 5 &&
+        isFlatSurface &&
+        currentSpeed < 0.22 &&
+        Math.abs(linvel.y) < 0.1
+      ) {
         body.setLinvel({ x: 0, y: 0, z: 0 }, true);
         body.setAngvel({ x: 0, y: 0, z: 0 }, true);
         body.sleep();
-        // Note: `sleep` triggers RigidBody's on:sleep → dispatches "stopped"
-        // "stopped" is the game-state signal meaning "ball is ready for next shot".
         dispatch("speedchange", 0);
       } else {
         syncPosition();
@@ -260,7 +309,4 @@
       on:sensorenter={handleSensorEnter}
     />
   </RigidBody>
-
-  <!-- Speed ribbon effect -->
-  <BallTrail {position} {currentSpeed} speedThreshold={4.0} />
 </T>

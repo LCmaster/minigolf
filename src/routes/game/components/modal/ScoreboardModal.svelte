@@ -5,6 +5,8 @@
   import Leaderboards from "../ui/Leaderboards.svelte";
   import { useGame } from "../../context";
 
+  export let isComplete = false;
+
   const { course, current, shots } = useGame();
 
   let holes = $course.holes.map((_, index) => index + 1);
@@ -31,11 +33,20 @@
   <div class="p-6 flex flex-col gap-6">
     <Leaderboards current={$current} {holes} {pars} shots={$shots} />
     
-    <button
-      on:click={() => dispatch("close")}
-      class="w-full py-4 rounded-xl font-bold text-lg tracking-wider bg-gradient-to-br from-primary-500 to-tertiary-500 text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
-    >
-      RESUME GAME
-    </button>
+    {#if isComplete}
+      <button
+        on:click={() => dispatch("quit")}
+        class="w-full py-4 rounded-xl font-bold text-lg tracking-wider bg-gradient-to-br from-success-500 to-primary-600 text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+      >
+        FINISH COURSE
+      </button>
+    {:else}
+      <button
+        on:click={() => dispatch("close")}
+        class="w-full py-4 rounded-xl font-bold text-lg tracking-wider bg-gradient-to-br from-primary-500 to-tertiary-500 text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+      >
+        RESUME GAME
+      </button>
+    {/if}
   </div>
 </div>

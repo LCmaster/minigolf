@@ -1,11 +1,29 @@
-import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc, updateDoc, writeBatch, getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, deleteDoc, updateDoc, getDoc } from "firebase/firestore";
 import { get } from "svelte/store";
 import { user } from "$lib/user";
 import { userProfile } from "$lib/stores/profile";
 import { db } from "./firebase";
 
+function buildCleanHoles(stage, controlPoints, blocks) {
+  return JSON.parse(
+    JSON.stringify([
+      {
+        par: stage.par || 2,
+        controlPoints,
+        blocks: blocks || [],
+        groundFriction: stage.groundFriction ?? 0.75,
+        groundRestitution: stage.groundRestitution ?? 0.05,
+        wallFriction: stage.wallFriction ?? 0.75,
+        wallRestitution: stage.wallRestitution ?? 0.95,
+        tileColor: stage.tileColor || "#567D46",
+        terrainMode: stage.terrainMode || "heightmap",
+      },
+    ])
+  );
+}
+
 /**
- * Saves a level configuration and upload its thumbnail to Firebase.
+ * Saves a level configuration and embeds its thumbnail in Firebase.
  *
  * @param {string} uid - User ID
  * @param {Object} stage - Stage config details
@@ -16,22 +34,11 @@ import { db } from "./firebase";
  */
 export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blocks = []) {
   try {
-    // We now bypass Storage entirely and embed the thumbnail data directly.
-    let thumbnailUrl = thumbnailDataUrl;
-    
     const profile = get(userProfile);
     const author = profile?.nickname || "Unknown Player";
-    
-    // Save document to firestore
-    const levelsCol = collection(db, "levels");
-    const cleanHoles = JSON.parse(JSON.stringify([
-      {
-        par: stage.par || 2,
-        controlPoints,
-        blocks
-      }
-    ]));
+    const cleanHoles = buildCleanHoles(stage, controlPoints, blocks);
 
+    const levelsCol = collection(db, "levels");
     const docRef = await addDoc(levelsCol, {
       uid,
       author,
@@ -39,8 +46,8 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
       theme: stage.theme || "clear",
       difficulty: "Custom",
       holes: cleanHoles,
-      thumbnailUrl,
-      createdAt: serverTimestamp()
+      thumbnailUrl: thumbnailDataUrl,
+      createdAt: serverTimestamp(),
     });
     return docRef.id;
   } catch (error) {
@@ -49,6 +56,34 @@ export async function saveLevel(uid, stage, controlPoints, thumbnailDataUrl, blo
   }
 }
 
+/**
+ * Updates an existing level configuration in Firebase.
+ *
+ * @param {string} levelId - Existing Level Document ID
+ * @param {Object} stage - Stage config details
+ * @param {Array} controlPoints - Spline track control points array
+ * @param {string} thumbnailDataUrl - Data URL representation of thumbnail image
+ * @param {Array} blocks - Custom obstacles array
+ * @returns {Promise<string>} Updated level Firestore document ID
+ */
+export async function updateLevel(levelId, stage, controlPoints, thumbnailDataUrl, blocks = []) {
+  try {
+    const cleanHoles = buildCleanHoles(stage, controlPoints, blocks);
+    const docRef = doc(db, "levels", levelId);
+
+    await updateDoc(docRef, {
+      name: stage.name || "Untitled Level",
+      theme: stage.theme || "clear",
+      holes: cleanHoles,
+      thumbnailUrl: thumbnailDataUrl,
+      updatedAt: serverTimestamp(),
+    });
+    return levelId;
+  } catch (error) {
+    console.error("Error updating level: ", error);
+    throw error;
+  }
+}
 
 /**
  * Fetches all levels belonging to a specific user.
@@ -72,8 +107,6 @@ export async function getMyLevels(uid) {
   }
 }
 
-
-
 /**
  * Fetches a specific level by document ID.
  *
@@ -82,21 +115,20 @@ export async function getMyLevels(uid) {
  */
 export async function getLevel(levelId) {
   try {
-    const { doc, getDoc } = await import("firebase/firestore");
     const docRef = doc(db, "levels", levelId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
+
       // Enforce privacy: Only the creator or an admin can load this level
       const currentUser = get(user);
       const profile = get(userProfile);
-      const isAdmin = profile?.role === 'super-admin' || profile?.role === 'admin';
-      
+      const isAdmin = profile?.role === "super-admin" || profile?.role === "admin";
+
       if (!isAdmin && data.uid !== currentUser?.uid && !data.isOfficial) {
         throw new Error("You do not have permission to view this level.");
       }
-      
+
       return { id: docSnap.id, ...data };
     } else {
       throw new Error("No such level found!");
@@ -122,5 +154,3 @@ export async function deleteLevel(levelId) {
     throw error;
   }
 }
-
-

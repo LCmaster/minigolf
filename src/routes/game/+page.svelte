@@ -3,6 +3,7 @@
   import Button from "$lib/component/Button.svelte";
   import GameScreen from "./components/GameScreen.svelte";
   import { useGame } from "./context";
+  import { GameState } from "$lib/stores/game";
   import { page } from "$app/stores";
   import { getLevel } from "$lib/level";
   import { getCampaign, getOfficialCampaigns } from "$lib/campaign";
@@ -27,7 +28,7 @@
     }
   });
 
-  const { course, current: currentHole, shots } = useGame();
+  const { course, current: currentHole, shots, state } = useGame();
 
   $: if ($user !== undefined && $page.url.searchParams.get("courseId") && !$course && !loading) {
     const courseId = $page.url.searchParams.get("courseId");
@@ -37,6 +38,7 @@
         $course = loadedCourse;
         $currentHole = 0;
         $shots = loadedCourse.holes.map((_) => 0);
+        $state = GameState.IDLE;
       })
       .catch((e) => {
         console.error("Failed to load custom course", e);
@@ -61,6 +63,7 @@
         $course = { ...loadedCampaign, holes: mergedHoles };
         $currentHole = 0;
         $shots = mergedHoles.map((_) => 0);
+        $state = GameState.IDLE;
       })
       .catch((e) => {
         console.error("Failed to load campaign", e);
@@ -92,6 +95,7 @@
     $currentHole = 0;
     $course = selected;
     $shots = selected.holes.map((_) => 0);
+    $state = GameState.IDLE;
     loading = false;
   }
 
@@ -105,6 +109,7 @@
     $currentHole = null;
     $course = null;
     $shots = null;
+    $state = GameState.IDLE;
     loading = false;
   }
 </script>

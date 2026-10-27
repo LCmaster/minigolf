@@ -64,7 +64,7 @@
         <div class="h-px w-full bg-white/50 my-2 shadow-sm" />
         {#if $canEditLevels}
           <button
-            on:click={() => window.location = "/editor"}
+            on:click={() => goto("/editor")}
             class="w-full py-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
           >
             Level editor
