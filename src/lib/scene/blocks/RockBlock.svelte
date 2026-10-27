@@ -1,7 +1,20 @@
+<script context="module">
+  import { MeshToonMaterial, DodecahedronGeometry } from "three";
+
+  const rockMaterial = new MeshToonMaterial({ color: "#9BA4B5" }); // Vibrant slate grey
+
+  // Instantiate geometries once in module scope to be shared across all RockBlock instances.
+  const geomMain1 = new DodecahedronGeometry(2.5, 0);
+  const geomRight1 = new DodecahedronGeometry(1.8, 0);
+  const geomLeft1 = new DodecahedronGeometry(1.5, 0);
+
+  const geomBase2 = new DodecahedronGeometry(2.0, 0);
+  const geomStacked2 = new DodecahedronGeometry(1.5, 0);
+</script>
+
 <script>
   import { T } from "@threlte/core";
-  import { Collider, RigidBody, CollisionGroups } from "@threlte/rapier";
-  import { MeshToonMaterial, DodecahedronGeometry } from "three";
+  import { Collider, RigidBody } from "@threlte/rapier";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
@@ -12,17 +25,6 @@
   $: actualRotation = Array.isArray(rotation)
     ? rotation
     : [0, Math.PI * rotation, 0];
-
-  const rockMaterial = new MeshToonMaterial({ color: "#9BA4B5" }); // Vibrant slate grey
-
-  // Instantiate geometries once to be shared across all RockBlock instances.
-  // This solves memory leaks and ensures AutoColliders sees the geometry synchronously!
-  const geomMain1 = new DodecahedronGeometry(2.5, 0);
-  const geomRight1 = new DodecahedronGeometry(1.8, 0);
-  const geomLeft1 = new DodecahedronGeometry(1.5, 0);
-
-  const geomBase2 = new DodecahedronGeometry(2.0, 0);
-  const geomStacked2 = new DodecahedronGeometry(1.5, 0);
 
   // Helper to pre-scale vertices for Rapier convexHull since it ignores scale
   function getScaledVertices(geometry, localScale, globalScale) {

@@ -1,10 +1,13 @@
 <script context="module">
+  import { MeshStandardMaterial } from "three";
+
   // Cache heavily generated geometries so remounting during drags doesn't freeze the editor
   const geoCache = {};
+  const sharedGroundMaterial = new MeshStandardMaterial({ color: "#567D46" });
 </script>
 
 <script>
-  import { Shape, ExtrudeGeometry, MeshStandardMaterial } from "three";
+  import { Shape, ExtrudeGeometry } from "three";
   import { T } from "@threlte/core";
   import { AutoColliders, RigidBody } from "@threlte/rapier";
 
@@ -15,7 +18,7 @@
   export let scale = [1, 1, 1];
   export let isEditor = false;
 
-  export let groundMaterial = new MeshStandardMaterial({ color: "#567D46" });
+  export let groundMaterial = sharedGroundMaterial;
 
   $: actualRotation = Array.isArray(rotation) ? rotation : [0, Math.PI * rotation, 0];
   

@@ -1,6 +1,11 @@
+<script context="module">
+  import { MeshToonMaterial } from "three";
+
+  const grassMaterial = new MeshToonMaterial({ color: "#a3e635" }); // Vibrant lime/yellow-green
+</script>
+
 <script>
   import { T } from "@threlte/core";
-  import { MeshToonMaterial } from "three";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
@@ -9,8 +14,6 @@
   export let isEditor = false; // Just to accept the prop without warning
   
   $: actualRotation = Array.isArray(rotation) ? rotation : [0, Math.PI * rotation, 0];
-  
-  const grassMaterial = new MeshToonMaterial({ color: "#a3e635" }); // Vibrant lime/yellow-green
 </script>
 
 <!-- No physics, purely decorative visual element -->

@@ -1,7 +1,17 @@
+<script context="module">
+  import { MeshStandardMaterial } from "three";
+
+  const redBarnMaterial = new MeshStandardMaterial({ color: "#dc2626", roughness: 0.8 });
+  const whiteTrimMaterial = new MeshStandardMaterial({ color: "#f8fafc", roughness: 0.5 });
+  const roofMaterial = new MeshStandardMaterial({ color: "#1e3a8a", roughness: 0.7 });
+  const woodMaterial = new MeshStandardMaterial({ color: "#8b4513", roughness: 0.9 });
+  const sailMaterial = new MeshStandardMaterial({ color: "#fef08a", roughness: 0.9 });
+</script>
+
 <script>
   import { T, useFrame } from "@threlte/core";
   import { Collider, RigidBody } from "@threlte/rapier";
-  import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
+  import { Quaternion, Vector3 } from "three";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
@@ -14,12 +24,6 @@
   $: actualRotation = Array.isArray(safeRotation)
     ? safeRotation
     : [0, Math.PI * safeRotation, 0];
-
-  const redBarnMaterial = new MeshStandardMaterial({ color: "#dc2626", roughness: 0.8 });
-  const whiteTrimMaterial = new MeshStandardMaterial({ color: "#f8fafc", roughness: 0.5 });
-  const roofMaterial = new MeshStandardMaterial({ color: "#1e3a8a", roughness: 0.7 });
-  const woodMaterial = new MeshStandardMaterial({ color: "#8b4513", roughness: 0.9 });
-  const sailMaterial = new MeshStandardMaterial({ color: "#fef08a", roughness: 0.9 });
 
   let rotorGroup;
   let rotorBodies = Array(9).fill(null);

@@ -1,6 +1,9 @@
 <script context="module">
+  import { MeshStandardMaterial } from "three";
+
   // Cache the heavily generated geometry so remounting during drags doesn't freeze the editor
   let cachedLoopGeo = null;
+  const sharedGroundMaterial = new MeshStandardMaterial({ color: "#567D46" });
 </script>
 
 <script>
@@ -9,7 +12,6 @@
     ExtrudeGeometry,
     CatmullRomCurve3,
     Vector3,
-    MeshStandardMaterial,
   } from "three";
   import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
   import { T } from "@threlte/core";
@@ -20,7 +22,7 @@
   export let scale = [1, 1, 1];
   export let isEditor = false;
 
-  export let groundMaterial = new MeshStandardMaterial({ color: "#567D46" });
+  export let groundMaterial = sharedGroundMaterial;
 
   $: actualRotation = Array.isArray(rotation)
     ? rotation

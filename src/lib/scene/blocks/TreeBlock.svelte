@@ -1,7 +1,13 @@
+<script context="module">
+  import { MeshToonMaterial } from "three";
+
+  const woodMaterial = new MeshToonMaterial({ color: "#8B5A2B" }); // Vibrant warm brown
+  const leavesMaterial = new MeshToonMaterial({ color: "#32CD32" }); // Vibrant lime green
+</script>
+
 <script>
   import { T } from "@threlte/core";
   import { Collider, RigidBody } from "@threlte/rapier";
-  import { MeshToonMaterial } from "three";
 
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
@@ -11,9 +17,6 @@
   
   $: actualRotation = Array.isArray(rotation) ? rotation : [0, Math.PI * rotation, 0];
   
-  const woodMaterial = new MeshToonMaterial({ color: "#8B5A2B" }); // Vibrant warm brown
-  const leavesMaterial = new MeshToonMaterial({ color: "#32CD32" }); // Vibrant lime green
-
   $: treeRadius = 1.2 * Math.max(scale[0], scale[2]);
   $: treeHalfHeight = 3.0 * scale[1];
 </script>

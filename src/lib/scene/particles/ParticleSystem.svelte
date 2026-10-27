@@ -1,7 +1,17 @@
+<script context="module">
+  import { BoxGeometry, MeshBasicMaterial } from "three";
+
+  const sharedBoxGeo = new BoxGeometry(1, 1, 1);
+  const sharedParticleMat = new MeshBasicMaterial({
+    toneMapped: false,
+    transparent: true,
+    opacity: 0.75,
+  });
+</script>
+
 <script>
   import { T, useFrame } from "@threlte/core";
-  import { Matrix4, Vector3, Quaternion, Color, InstancedMesh, MathUtils, BoxGeometry, MeshBasicMaterial } from "three";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { Matrix4, Vector3, Quaternion, Color } from "three";
 
   export let maxParticles = 200;
 
@@ -25,7 +35,7 @@
   const tempPosition = new Vector3();
   const tempRotation = new Quaternion();
   const tempScale = new Vector3();
-  const tempColor = new Color();
+  const spinAxis = new Vector3(1, 1, 1).normalize();
 
   // Public API to trigger particles
   export function emit(pos, type = "spark", count = 10, intensity = 1.0) {
@@ -48,7 +58,7 @@
           );
           p.life = 0;
           p.maxLife = 0.3 + Math.random() * 0.3; // Short life
-          p.scale = 0.1 + Math.random() * 0.1;
+          p.scale = 0.05 + Math.random() * 0.05;
           p.color.setHex(Math.random() > 0.5 ? 0xffcc00 : 0xff5500); // Yellow/Orange
           p.gravity = 5;
           p.drag = 0.9;
@@ -66,12 +76,50 @@
           p.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
           p.gravity = 2.0; // Floaty
           p.drag = 0.98;
+        } else if (type === "splash") {
+          p.velocity.set(
+            (Math.random() - 0.5) * 3,
+            2 + Math.random() * 4,
+            (Math.random() - 0.5) * 3
+          );
+          p.life = 0;
+          p.maxLife = 0.4 + Math.random() * 0.3;
+          p.scale = 0.1 + Math.random() * 0.1;
+          p.color.setHex(Math.random() > 0.5 ? 0xffffff : 0x3b82f6); // White/Blue
+          p.gravity = 8.0;
+          p.drag = 0.95;
+        } else if (type === "dust") {
+          p.velocity.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 1.5,
+            (Math.random() - 0.5) * 2
+          );
+          p.life = 0;
+          p.maxLife = 0.5 + Math.random() * 0.5;
+          p.scale = 0.15 + Math.random() * 0.1;
+          p.color.setHex(0xd4d4d8); // Light gray/sand
+          p.gravity = -0.5; // Floats up slightly
+          p.drag = 0.85;
+        } else if (type === "sparkle") {
+          p.velocity.set(
+            (Math.random() - 0.5) * 1.5,
+            (Math.random() - 0.5) * 1.5,
+            (Math.random() - 0.5) * 1.5
+          );
+          p.life = 0;
+          p.maxLife = 0.2 + Math.random() * 0.2;
+          p.scale = 0.05 + Math.random() * 0.05;
+          p.color.setHex(Math.random() > 0.5 ? 0xffffff : 0xa5f3fc); // White/Cyan
+          p.gravity = 0;
+          p.drag = 0.9;
         }
         
         emitted++;
       }
     }
   }
+
+  const zeroMatrix = new Matrix4().makeScale(0, 0, 0);
 
   useFrame((_, delta) => {
     if (!instancedMesh) return;
@@ -110,9 +158,9 @@
         
         // Spin confetti
         if (p.gravity === 2.0) {
-            tempRotation.setFromAxisAngle(new Vector3(1, 1, 1).normalize(), p.life * 5);
+          tempRotation.setFromAxisAngle(spinAxis, p.life * 5);
         } else {
-            tempRotation.set(0, 0, 0, 1);
+          tempRotation.set(0, 0, 0, 1);
         }
         
         tempScale.set(currentScale, currentScale, currentScale);
@@ -133,7 +181,15 @@
 </script>
 
 <T.InstancedMesh 
-  bind:ref={instancedMesh} 
-  args={[new BoxGeometry(1, 1, 1), new MeshBasicMaterial({ toneMapped: false }), maxParticles]} 
+  bind:ref={instancedMesh}
+  on:create={({ ref }) => {
+    // Hide all instances immediately on creation — before the first render frame.
+    // Using on:create (not onMount) because bind:ref resolves asynchronously in Threlte.
+    for (let i = 0; i < maxParticles; i++) {
+      ref.setMatrixAt(i, zeroMatrix);
+    }
+    ref.instanceMatrix.needsUpdate = true;
+  }}
+  args={[sharedBoxGeo, sharedParticleMat, maxParticles]} 
   frustumCulled={false}
 />

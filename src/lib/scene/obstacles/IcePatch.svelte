@@ -1,3 +1,16 @@
+<script context="module">
+  import { BoxGeometry, MeshStandardMaterial } from "three";
+
+  const iceGeo = new BoxGeometry(2, 0.01, 2);
+  const iceMat = new MeshStandardMaterial({
+    color: "#a5f3fc",
+    roughness: 0.0,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.8,
+  });
+</script>
+
 <script>
   import { T } from "@threlte/core";
   import { Collider, RigidBody } from "@threlte/rapier";
@@ -6,37 +19,26 @@
   export let position = [0, 0, 0];
   export let rotation = [0, 0, 0];
   export let scale = [1, 1, 1];
+  export let isEditor = false;
 
   const dispatch = createEventDispatcher();
 
   $: safeRotation = rotation ?? [0, 0, 0];
   $: actualRotation = Array.isArray(safeRotation) ? safeRotation : [0, Math.PI * safeRotation, 0];
-
 </script>
 
 <T.Group {position} rotation={actualRotation} {scale}>
-  <!-- Fixed RigidBody ensures it doesn't move but collides -->
-  <RigidBody type="fixed">
-    <!-- Visual representation: Light blue icy square (Thin decal) -->
-    <T.Mesh position={[0, 0.005, 0]} receiveShadow>
-      <T.BoxGeometry args={[2, 0.01, 2]} />
-      <T.MeshStandardMaterial 
-        color="#a5f3fc" 
-        roughness={0.0} 
-        metalness={0.2} 
-        transparent={true} 
-        opacity={0.8} 
-      />
-    </T.Mesh>
+  <!-- Visual representation: Light blue icy square (Thin decal) -->
+  <T.Mesh geometry={iceGeo} material={iceMat} position={[0, 0.005, 0]} receiveShadow />
 
-    <!-- Sensor to apply sliding to ball -->
+  <RigidBody type={isEditor ? "kinematicPosition" : "fixed"}>
     <T.Group position={[0, 0.5, 0]}>
       <Collider 
         shape="cuboid" 
         args={[1, 0.5, 1]} 
         sensor 
-        on:sensorenter={() => dispatch('iceenter')}
-        on:sensorexit={() => dispatch('iceexit')}
+        on:sensorenter={() => !isEditor && dispatch('iceenter')}
+        on:sensorexit={() => !isEditor && dispatch('iceexit')}
       />
     </T.Group>
   </RigidBody>
