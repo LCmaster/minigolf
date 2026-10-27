@@ -1,9 +1,9 @@
 <script>
   import JSZip from "jszip";
   import { saveAs } from "file-saver";
-  import { getModalStore, getDrawerStore } from "@skeletonlabs/skeleton";
+  import { getDrawerStore } from "@skeletonlabs/skeleton";
   import { goto } from "$app/navigation";
-  import { saveLevel } from "$lib/level";
+  import { saveLevel, updateLevel } from "$lib/level";
   import { user } from "$lib/user";
   import { activeEditor } from "../context";
   import { get } from "svelte/store";
@@ -13,7 +13,6 @@
   // globally exported activeEditor from context.js instead.
 
   const drawerStore = getDrawerStore();
-  const modalStore = getModalStore();
 
   let fileInput;
 
@@ -28,28 +27,34 @@
       const courseData = JSON.parse(configJson);
 
       if (courseData.holes && courseData.holes.length > 0) {
-        if (activeEditor.controlPoints) {
-          activeEditor.controlPoints.commit();
+        const hole = courseData.holes[0];
+        if (activeEditor.history) {
+          activeEditor.history.commit();
+          activeEditor.history.update((h) => ({
+            ...h,
+            controlPoints: hole.controlPoints || [],
+            blocks: hole.blocks || [],
+          }));
         }
-        activeEditor.controlPoints.set(courseData.holes[0].controlPoints);
-        if (courseData.holes[0].blocks) {
-          if (activeEditor.blocks) activeEditor.blocks.commit();
-          activeEditor.blocks.set(courseData.holes[0].blocks);
-        } else if (activeEditor.blocks) {
-          activeEditor.blocks.set([]);
-        }
-        activeEditor.stage.set({
+        activeEditor.stage.update((s) => ({
+          ...s,
           name: courseData.name || "Untitled Level",
           theme: courseData.theme || courseData.skybox || "clear",
-          par: courseData.holes[0].par || 2,
-        });
+          par: hole.par || 2,
+          groundFriction: hole.groundFriction ?? 0.75,
+          groundRestitution: hole.groundRestitution ?? 0.05,
+          wallFriction: hole.wallFriction ?? 0.75,
+          wallRestitution: hole.wallRestitution ?? 0.95,
+          tileColor: hole.tileColor || "#567D46",
+          terrainMode: hole.terrainMode || "heightmap",
+        }));
         alert("Level imported successfully!");
       } else if (courseData.controlPoints) {
         // Fallback for older exports that only had controlPoints
         if (activeEditor.controlPoints) {
           activeEditor.controlPoints.commit();
+          activeEditor.controlPoints.set(courseData.controlPoints);
         }
-        activeEditor.controlPoints.set(courseData.controlPoints);
         alert("Level imported successfully! (Old format)");
       } else {
         throw new Error("Invalid course data format.");
@@ -94,13 +99,24 @@
               ctx.drawImage(canvas, 0, 0, 320, 180);
               const thumbnailDataUrl = destCanvas.toDataURL("image/jpeg", 0.7);
 
-              await saveLevel(
-                $user.uid,
-                currentStage,
-                currentCPs,
-                thumbnailDataUrl,
-                currentBlocks
-              );
+              if (currentStage.id) {
+                await updateLevel(
+                  currentStage.id,
+                  currentStage,
+                  currentCPs,
+                  thumbnailDataUrl,
+                  currentBlocks
+                );
+              } else {
+                const newId = await saveLevel(
+                  $user.uid,
+                  currentStage,
+                  currentCPs,
+                  thumbnailDataUrl,
+                  currentBlocks
+                );
+                activeEditor.stage.update((s) => ({ ...s, id: newId }));
+              }
               alert("Level saved successfully!");
               drawerStore.close();
             } catch (e) {
@@ -128,6 +144,12 @@
                   par: currentStage.par || 2,
                   startShape: currentCPs[0]?.shape || "rounded",
                   endShape: currentCPs[currentCPs.length - 1]?.shape || "rounded",
+                  groundFriction: currentStage.groundFriction ?? 0.75,
+                  groundRestitution: currentStage.groundRestitution ?? 0.05,
+                  wallFriction: currentStage.wallFriction ?? 0.75,
+                  wallRestitution: currentStage.wallRestitution ?? 0.95,
+                  tileColor: currentStage.tileColor || "#567D46",
+                  terrainMode: currentStage.terrainMode || "heightmap",
                   controlPoints: [...currentCPs],
                   blocks: activeEditor.blocks ? [...get(activeEditor.blocks)] : [],
                 },

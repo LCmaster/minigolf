@@ -1,156 +1,159 @@
 <script>
-  import { getModalStore } from "@skeletonlabs/skeleton";
   import { useEditor } from "../context";
   import { ProceduralGenerator } from "$lib/ProceduralGenerator";
 
-  const { controlPoints, pointSelected, blocks, blockSelected, stage } = useEditor();
-  const modalStore = getModalStore();
+  const {
+    controlPoints,
+    pointSelected,
+    blocks,
+    blockSelected,
+    stage,
+    extendTrack,
+    insertPointAfterSelected,
+    deleteSelected,
+  } = useEditor();
 
   $: selectedIndex = $controlPoints.findIndex((p) => p.id === $pointSelected);
   $: selectedPoint =
     selectedIndex !== -1 ? $controlPoints[selectedIndex] : null;
 
-  $: selectedBlockIndex = $blocks ? $blocks.findIndex((b) => b.id === $blockSelected) : -1;
-  $: selectedBlock = selectedBlockIndex !== -1 ? $blocks[selectedBlockIndex] : null;
-
-  const deletePointModal = {
-    type: "confirm",
-    title: "Delete Point",
-    body: "Are you sure you wish to delete this control point?",
-    response: (r) => {
-      if (r && selectedIndex !== -1) {
-        controlPoints.commit();
-        $controlPoints.splice(selectedIndex, 1);
-        $controlPoints = [...$controlPoints];
-        $pointSelected = null;
-      }
-    },
-  };
-
-  const deleteBlockModal = {
-    type: "confirm",
-    title: "Delete Block",
-    body: "Are you sure you wish to delete this block?",
-    response: (r) => {
-      if (r && selectedBlockIndex !== -1) {
-        blocks.commit();
-        $blocks.splice(selectedBlockIndex, 1);
-        $blocks = [...$blocks];
-        $blockSelected = null;
-      }
-    },
-  };
+  $: selectedBlockIndex = $blocks
+    ? $blocks.findIndex((b) => b.id === $blockSelected)
+    : -1;
+  $: selectedBlock =
+    selectedBlockIndex !== -1 ? $blocks[selectedBlockIndex] : null;
 </script>
 
 <div
   id="sidebar-left"
-  class="w-64 h-full flex flex-col bg-surface-100-800-token border-r border-surface-500/30"
+  class="w-64 h-full flex flex-col bg-surface-900/90 backdrop-blur-md border-r border-surface-500/30 text-white select-none"
 >
-  <div class="flex-grow flex flex-col overflow-hidden">
-    <!-- <div class="p-4 flex flex-col gap-4 flex-shrink-0">
-      {#if selectedPoint}
-        <h3 class="h3">Point Selected</h3>
-        <p>X: {selectedPoint.position[0].toFixed(2)}</p>
-        <p>Z: {selectedPoint.position[2].toFixed(2)}</p>
-      {:else}
-        <p class="text-surface-400">Select a point to edit properties</p>
-      {/if}
-    </div> -->
+  <!-- Quick Track Sculpt Actions -->
+  <div class="p-3 border-b border-surface-500/30 flex flex-col gap-2">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold uppercase tracking-wider text-surface-300">
+        Track Builder
+      </span>
+      <button
+        type="button"
+        class="text-xs px-2 py-0.5 rounded bg-surface-700 hover:bg-surface-600 text-surface-200 transition"
+        title="Open Level & Physics Settings"
+        on:click={() => {
+          $pointSelected = null;
+          $blockSelected = null;
+        }}
+      >
+        ⚙ Settings
+      </button>
+    </div>
 
-    <!-- Point Color Settings -->
-    <!-- <div class="p-4 flex-shrink-0 border-t border-surface-500/30">
-      <h4 class="h4 mb-3">Point Colors</h4>
-      <div class="grid grid-cols-2 gap-3">
-        <label class="flex flex-col gap-1 text-xs">
-          <span class="text-surface-400">Default</span>
-          <input
-            type="color"
-            class="w-full h-8 rounded cursor-pointer"
-            value={$pointColors.normal}
-            on:input={(e) => ($pointColors = { ...$pointColors, normal: e.target.value })}
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-xs">
-          <span class="text-surface-400">Hover</span>
-          <input
-            type="color"
-            class="w-full h-8 rounded cursor-pointer"
-            value={$pointColors.hover}
-            on:input={(e) => ($pointColors = { ...$pointColors, hover: e.target.value })}
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-xs">
-          <span class="text-surface-400">Selected</span>
-          <input
-            type="color"
-            class="w-full h-8 rounded cursor-pointer"
-            value={$pointColors.selected}
-            on:input={(e) => ($pointColors = { ...$pointColors, selected: e.target.value })}
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-xs">
-          <span class="text-surface-400">Selected Hover</span>
-          <input
-            type="color"
-            class="w-full h-8 rounded cursor-pointer"
-            value={$pointColors.selectedHover}
-            on:input={(e) => ($pointColors = { ...$pointColors, selectedHover: e.target.value })}
-          />
-        </label>
+    <div class="grid grid-cols-2 gap-1.5">
+      <button
+        type="button"
+        class="btn btn-sm variant-filled-primary text-xs font-semibold py-1.5"
+        title="Extend track forward along the current direction (Shortcut: A)"
+        on:click={extendTrack}
+      >
+        + Extend (A)
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm variant-soft-primary text-xs font-semibold py-1.5"
+        title="Insert a new control point on the active segment (Shortcut: I)"
+        on:click={insertPointAfterSelected}
+      >
+        + Subdivide (I)
+      </button>
+    </div>
+
+    <p class="text-[11px] text-surface-300 leading-tight bg-surface-800/70 rounded px-2 py-1.5 border border-surface-500/20">
+      💡 <strong>Double-click</strong> anywhere on the terrain to stamp a new point, or drag points with the 3D arrows.
+    </p>
+  </div>
+
+  <!-- Outliner Lists -->
+  <div class="p-3 flex-grow overflow-y-auto flex flex-col gap-4">
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-surface-300">
+          Spline Points ({$controlPoints.length})
+        </h4>
       </div>
-    </div> -->
-
-    <div class="p-4 flex-grow overflow-y-auto border-t border-surface-500/30">
-      <h4 class="h4 mb-4">All Points</h4>
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-1">
         {#each $controlPoints as point, index (point.id)}
           <button
-            class="btn w-full text-left justify-start {point.id === $pointSelected
-              ? 'variant-filled-primary'
-              : 'variant-soft'} {(index === 0 || index === $controlPoints.length - 1) ? 'flex items-center gap-2' : ''}"
+            type="button"
+            class="w-full px-2.5 py-1.5 rounded text-left text-xs flex items-center justify-between transition {point.id ===
+            $pointSelected
+              ? 'bg-primary-500 text-white font-semibold shadow-sm'
+              : 'bg-surface-800/60 hover:bg-surface-700/80 text-surface-200'}"
             on:click={() => {
               $pointSelected = point.id;
               $blockSelected = null;
             }}
           >
-            {#if index === 0}
-              <img src="/editor-icons/map-pin.svg" alt="Start" class="w-4 h-4" />
-              <span class="text-success-400">Start (locked pos)</span>
-            {:else if index === $controlPoints.length - 1}
-              <img src="/editor-icons/flag.svg" alt="End" class="w-4 h-4" />
-              <span class="text-error-400">End Point</span>
-            {:else}
-              Point {index + 1}
-            {/if}
+            <span class="flex items-center gap-1.5 truncate">
+              {#if index === 0}
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Tee (Start)</span>
+              {:else if index === $controlPoints.length - 1}
+                <span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span>
+                <span>Hole (Pin)</span>
+              {:else}
+                <span class="inline-block w-2 h-2 rounded-full bg-sky-400"></span>
+                <span>Point {index + 1}</span>
+              {/if}
+            </span>
+
+            <span class="flex items-center gap-1 font-mono text-[10px] opacity-80">
+              {#if (point.bankAngle ?? 0) !== 0}
+                <span class="px-1 rounded bg-pink-500/30 text-pink-200">
+                  {point.bankAngle > 0 ? `+${point.bankAngle}°` : `${point.bankAngle}°`}
+                </span>
+              {/if}
+              <span>Y:{point.position[1].toFixed(1)}</span>
+            </span>
           </button>
         {/each}
       </div>
+    </div>
 
-      {#if $blocks && $blocks.length > 0}
-        <h4 class="h4 mb-4 mt-6">All Blocks</h4>
-        <div class="flex flex-col gap-2">
+    {#if $blocks && $blocks.length > 0}
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-surface-300 mb-2">
+          Placed Objects ({$blocks.length})
+        </h4>
+        <div class="flex flex-col gap-1">
           {#each $blocks as block, index (block.id)}
             <button
-              class="btn w-full text-left justify-start {block.id === $blockSelected
-                ? 'variant-filled-primary'
-                : 'variant-soft'}"
+              type="button"
+              class="w-full px-2.5 py-1.5 rounded text-left text-xs flex items-center justify-between transition {block.id ===
+              $blockSelected
+                ? 'bg-primary-500 text-white font-semibold shadow-sm'
+                : 'bg-surface-800/60 hover:bg-surface-700/80 text-surface-200'}"
               on:click={() => {
                 $blockSelected = block.id;
                 $pointSelected = null;
               }}
             >
-              Block {index + 1} ({block.type || 'Custom'})
+              <span class="capitalize truncate">
+                {index + 1}. {block.type || "Object"}
+              </span>
+              <span class="font-mono text-[10px] opacity-70">
+                ({block.position[0].toFixed(0)}, {block.position[2].toFixed(0)})
+              </span>
             </button>
           {/each}
         </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
   </div>
-  <div
-    class="p-4 flex-shrink-0 border-t border-surface-500/30 flex flex-col gap-2"
-  >
+
+  <!-- Bottom Actions -->
+  <div class="p-3 flex-shrink-0 border-t border-surface-500/30 flex flex-col gap-1.5">
     <button
-      class="w-full btn variant-filled-primary"
+      type="button"
+      class="w-full btn btn-sm variant-soft-secondary text-xs"
       on:click={() => {
         controlPoints.commit();
         const gen = ProceduralGenerator.generateRandomCourse();
@@ -161,17 +164,16 @@
         $blockSelected = null;
       }}
     >
-      Generate Random Course
+      🎲 Generate Random Hole
     </button>
     <button
-      class="w-full btn variant-filled-error"
-      on:click={() => {
-        if ($pointSelected) modalStore.trigger(deletePointModal);
-        else if ($blockSelected) modalStore.trigger(deleteBlockModal);
-      }}
-      disabled={(!selectedPoint || selectedIndex === 0) && !selectedBlock}
+      type="button"
+      class="w-full btn btn-sm variant-filled-error text-xs"
+      on:click={deleteSelected}
+      disabled={(!selectedPoint || selectedIndex === 0 || $controlPoints.length <= 2) && !selectedBlock}
+      title="Shortcut: Delete or Backspace"
     >
-      Delete Selected
+      🗑 Delete Selected (Del)
     </button>
   </div>
 </div>

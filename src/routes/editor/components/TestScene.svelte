@@ -16,5 +16,7 @@
   groundRestitution={$stage.groundRestitution}
   wallFriction={$stage.wallFriction}
   wallRestitution={$stage.wallRestitution}
+  tileColor={$stage.tileColor || "#567D46"}
+  terrainMode={$stage.terrainMode || "heightmap"}
   on:completed 
 />

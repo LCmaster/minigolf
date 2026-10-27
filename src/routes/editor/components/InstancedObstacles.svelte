@@ -5,10 +5,11 @@
   export let blocks = [];
   export let positionOffset = [0, 0, 0];
 
-  const { blockSelected } = useEditor();
+  const { blockSelected, pointSelected } = useEditor();
 
   function selectBlock(id) {
     $blockSelected = id;
+    $pointSelected = null;
   }
 </script>
 

@@ -3,17 +3,10 @@
   import { OrbitControls, Suspense } from "@threlte/extras";
   import { useEditor } from "../context";
   import EnvironmentSettings from "$lib/scene/EnvironmentSettings.svelte";
-  import { Vector3 } from "three";
   import SplineTrack from "./SplineTrack.svelte";
-  import Bumper from "$lib/scene/obstacles/Bumper.svelte";
-  import BoostPad from "$lib/scene/obstacles/BoostPad.svelte";
-  import RampBlock from "$lib/scene/blocks/RampBlock.svelte";
-  import LoopBlock from "$lib/scene/blocks/LoopBlock.svelte";
-  import WindmillBlock from "$lib/scene/blocks/WindmillBlock.svelte";
-  import IcePatch from "$lib/scene/obstacles/IcePatch.svelte";
-  import SandTrap from "$lib/scene/obstacles/SandTrap.svelte";
-  import WaterHazard from "$lib/scene/obstacles/WaterHazard.svelte";
-  import PlinkoPegs from "$lib/scene/obstacles/PlinkoPegs.svelte";
+  import CourseRenderer from "$lib/scene/course/CourseRenderer.svelte";
+  import Ground from "$lib/scene/Ground.svelte";
+  import BackgroundHills from "$lib/scene/BackgroundHills.svelte";
 
   const { controlPoints, stage, blocks } = useEditor();
 
@@ -59,42 +52,22 @@
   />
 </T.PerspectiveCamera>
 
+<Ground />
+{#if $stage.terrainMode === "classic"}
+  <BackgroundHills controlPoints={$controlPoints} />
+{/if}
+
 <!-- Full track rendered without editor overlays, no physics -->
-<SplineTrack controlPoints={$controlPoints} isEditor={false} isPreview={true} />
+<SplineTrack
+  controlPoints={$controlPoints}
+  isEditor={false}
+  isPreview={true}
+  tileColor={$stage.tileColor || "#567D46"}
+  terrainMode={$stage.terrainMode || "heightmap"}
+/>
 
 {#if $blocks && $blocks.length > 0}
   <Suspense>
-    {#each $blocks as block (block.id)}
-      {#if block.type === "bumper"}
-        <Bumper 
-          position={block.position}
-          rotation={block.rotation}
-          scale={block.scale}
-          restitution={block.restitution}
-        />
-      {:else if block.type === "boost"}
-        <BoostPad 
-          position={block.position}
-          rotation={block.rotation}
-          scale={block.scale}
-          boostForce={block.boostForce}
-        />
-      {:else if block.type === "ramp" || block.type === "slope"}
-        <RampBlock type={block.type} variation={block.variation} 
-          position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "loop"}
-        <LoopBlock position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "windmill"}
-        <WindmillBlock position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "ice"}
-        <IcePatch position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "sand"}
-        <SandTrap position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "water"}
-        <WaterHazard position={block.position} rotation={block.rotation} scale={block.scale} />
-      {:else if block.type === "plinko"}
-        <PlinkoPegs position={block.position} rotation={block.rotation} scale={block.scale} />
-      {/if}
-    {/each}
+    <CourseRenderer blocks={$blocks} />
   </Suspense>
 {/if}
