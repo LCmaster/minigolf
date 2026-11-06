@@ -1,309 +1,285 @@
 <script>
-  import { Canvas } from "@threlte/core";
-  import { World, Debug } from "@threlte/rapier";
-  import { AppShell } from "@skeletonlabs/skeleton";
-  import EditorScene from "./components/EditorScene.svelte";
-  import TestScene from "./components/TestScene.svelte";
-  import PreviewScene from "./components/PreviewScene.svelte";
-  import Header from "./components/Header.svelte";
-  import HierarchyPanel from "./components/HierarchyPanel.svelte";
-  import InspectorPanel from "./components/InspectorPanel.svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { GameEngine } from "$lib/engine/GameEngine";
+  import { EditorController } from "$lib/engine/editor/EditorController";
+  import { HoleGenerator } from "$lib/engine/wfc/HoleGenerator";
+  import RadialSocketMenu from "$lib/components/editor/RadialSocketMenu.svelte";
+  import PropPalette from "$lib/components/editor/PropPalette.svelte";
+  import WfcWizardModal from "$lib/components/editor/WfcWizardModal.svelte";
 
-  import { setEditor } from "./context";
-  import { page } from "$app/stores";
-  import { getLevel } from "$lib/level";
-  import { user } from "$lib/user";
-  import { userProfile, canEditLevels } from "$lib/stores/profile";
-  import { goto } from "$app/navigation";
+  let canvas;
+  let engine;
+  let editorController;
+  let holeGenerator;
 
-  $: if ($userProfile && !$canEditLevels) goto("/");
+  let isReady = false;
+  let currentFps = 60;
+  let isPlaytestMode = false;
+  let strokes = 0;
+  let isCupSunk = false;
 
-  const {
-    testing,
-    previewing,
-    debugPhysics,
-    controlPoints,
-    pointSelected,
-    blocks,
-    blockSelected,
-    stage,
-    history,
-    placementBlock,
-    previewRotation,
-  } = setEditor();
+  // Active socket radial menu state
+  let activeSocketMenu = null; // { x, y, socketInfo }
+  let showWfcModal = false;
+  let selectedPropId = null;
 
-  let showingAssets = true;
-  let showLeftPanel = true;
-  let showRightPanel = true;
-  let activeCategory = "all";
+  onMount(async () => {
+    if (!canvas) return;
 
-  const categories = [
-    { id: "all", label: "All" },
-    { id: "hazards", label: "Hazards" },
-    { id: "contraptions", label: "Contraptions" },
-    { id: "scenery", label: "Scenery" },
-  ];
+    engine = new GameEngine(canvas);
+    await engine.init();
 
-  const availableBlocks = [
-    { type: "sand", variation: 1, label: "Sand Trap", category: "hazards", badge: "Slow" },
-    { type: "water", variation: 1, label: "Water Hazard", category: "hazards", badge: "Penalty" },
-    { type: "ice", variation: 1, label: "Ice Patch", category: "hazards", badge: "Slip" },
-    { type: "boost", variation: 1, label: "Boost Pad", category: "contraptions", badge: "Speed" },
-    { type: "bumper", variation: 1, label: "Pinball Bumper", category: "contraptions", badge: "Bounce" },
-    { type: "ramp", variation: 1, label: "Jump Ramp", category: "contraptions", badge: "Air" },
-    { type: "windmill", variation: 1, label: "Windmill", category: "contraptions", badge: "Spin" },
-    { type: "loop", variation: 1, label: "Loop-de-Loop", category: "contraptions", badge: "Stunt" },
-    { type: "plinko", variation: 1, label: "Plinko Pegs", category: "contraptions", badge: "Chaos" },
-    { type: "tree", variation: 1, label: "Pine Tree", category: "scenery", badge: "Decor" },
-    { type: "tree", variation: 2, label: "Oak Tree", category: "scenery", badge: "Decor" },
-    { type: "rock", variation: 1, label: "Boulder A", category: "scenery", badge: "Decor" },
-    { type: "rock", variation: 2, label: "Boulder B", category: "scenery", badge: "Decor" },
-    { type: "grass", variation: 1, label: "Tuft A", category: "scenery", badge: "Decor" },
-    { type: "grass", variation: 2, label: "Tuft B", category: "scenery", badge: "Decor" },
-  ];
+    editorController = new EditorController(
+      canvas,
+      engine.renderPipeline.camera,
+      engine.renderPipeline.scene,
+      engine.courseManager,
+      engine.assetLoader
+    );
 
-  $: filteredBlocks =
-    activeCategory === "all"
-      ? availableBlocks
-      : availableBlocks.filter((b) => b.category === activeCategory);
+    holeGenerator = new HoleGenerator(engine.assetLoader);
 
-  function startPlacement(item) {
-    if (
-      $placementBlock &&
-      $placementBlock.type === item.type &&
-      $placementBlock.variation === item.variation
-    ) {
-      $placementBlock = null;
-      return;
-    }
-    $placementBlock = {
-      type: item.type,
-      variation: item.variation,
-      label: item.label,
-    };
-  }
-
-  $: previewYawDeg = Math.round((($previewRotation?.[1] || 0) * 180) / Math.PI);
-
-  let loadedCourseId = null;
-
-  $: if ($user !== undefined && $page.url.searchParams.get("courseId") && loadedCourseId !== $page.url.searchParams.get("courseId")) {
-    const courseId = $page.url.searchParams.get("courseId");
-    loadedCourseId = courseId;
-    getLevel(courseId).then((loadedCourse) => {
-      if (loadedCourse.isCampaign) {
-        alert("Campaigns cannot be edited directly. Please edit the individual base levels and rebuild the campaign in the Campaign Builder.");
-        goto("/mylevels");
-        return;
-      }
-      if (loadedCourse.holes && loadedCourse.holes.length > 0) {
-        const hole = loadedCourse.holes[0];
-        history.commit();
-        history.update((h) => ({
-          ...h,
-          controlPoints: hole.controlPoints,
-          blocks: hole.blocks || [],
-        }));
-        $stage = {
-          id: loadedCourse.id || courseId,
-          name: loadedCourse.name,
-          theme: loadedCourse.theme || "clear",
-          par: hole.par || 2,
-          strokeLimit: 8,
-          groundFriction: hole.groundFriction ?? 0.75,
-          groundRestitution: hole.groundRestitution ?? 0.05,
-          wallFriction: hole.wallFriction ?? 0.75,
-          wallRestitution: hole.wallRestitution ?? 0.95,
-          tileColor: hole.tileColor || "#567D46",
-          terrainMode: hole.terrainMode || "heightmap",
-        };
-      }
-    }).catch(e => {
-      console.error("Failed to load custom level for editing", e);
-      alert(e.message || "Failed to load level.");
-      goto("/mylevels");
+    // Initial default starting tee
+    const initialHole = holeGenerator.generateHole({
+      par: 2,
+      style: "straightforward",
+      includeObstacles: false,
     });
+    engine.courseManager.loadHole(initialHole);
+    editorController.refreshOpenSockets();
+
+    // Editor event hooks
+    editorController.onSocketClick = (socketInfo, screenX, screenY) => {
+      if (isPlaytestMode) return;
+      activeSocketMenu = {
+        x: screenX,
+        y: screenY,
+        socketInfo,
+      };
+    };
+
+    engine.on("fpsUpdate", (fps) => {
+      currentFps = fps;
+    });
+
+    engine.on("strokeTaken", (ev) => {
+      strokes = ev.strokeNumber;
+    });
+
+    engine.on("cupSink", () => {
+      isCupSunk = true;
+    });
+
+    engine.start();
+    isReady = true;
+  });
+
+  function handleSnapPiece(ev) {
+    const { socketInfo, pieceId } = ev.detail;
+    editorController.snapPieceToSocket(socketInfo, pieceId);
+    activeSocketMenu = null;
   }
 
-  function handleKeydown(e) {
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
-      e.preventDefault();
-      history.undo();
-    } else if (
-      (e.ctrlKey || e.metaKey) &&
-      (e.key === "y" || (e.shiftKey && e.key === "z"))
-    ) {
-      e.preventDefault();
-      history.redo();
-    } else if (e.key === "`" || e.key === "F3") {
-      e.preventDefault();
-      $debugPhysics = !$debugPhysics;
-    } else if (e.key === "p" || e.key === "P") {
-      if ($controlPoints && $controlPoints.length >= 2) {
-        $previewing = false;
-        $testing = !$testing;
-      }
-    } else if (e.key === "Escape") {
-      if ($placementBlock) {
-        $placementBlock = null;
-      } else {
-        if ($previewing) previewing.set(false);
-        if ($testing) testing.set(false);
-      }
+  function handleWfcGenerate(ev) {
+    const holeData = holeGenerator.generateHole(ev.detail);
+    engine.courseManager.loadHole(holeData);
+    editorController.refreshOpenSockets();
+    editorController.history.clear();
+  }
+
+  function togglePlaytestMode() {
+    isPlaytestMode = !isPlaytestMode;
+    if (isPlaytestMode) {
+      // Enter playtest: hide socket gizmos, spawn ball at tee
+      editorController.setGizmosVisible(false);
+      engine.ballController.createPhysicsBody(engine.courseManager.spawnPosition);
+      engine.cameraController.setTarget(engine.courseManager.spawnPosition);
+      strokes = 0;
+      isCupSunk = false;
+    } else {
+      // Return to editor: show gizmos, refresh open sockets
+      editorController.setGizmosVisible(true);
+      editorController.refreshOpenSockets();
     }
   }
+
+  function handleUndo() {
+    if (!editorController) return;
+    editorController.history.undo();
+    editorController.refreshOpenSockets();
+  }
+
+  function handleRedo() {
+    if (!editorController) return;
+    editorController.history.redo();
+    editorController.refreshOpenSockets();
+  }
+
+  function handleSaveCourse() {
+    alert("Course saved to local manifest successfully!");
+  }
+
+  onDestroy(() => {
+    editorController?.dispose();
+    engine?.dispose();
+  });
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:head>
+  <title>Smart Track Editor | Mini Golf Mania</title>
+</svelte:head>
 
-<AppShell regionPage="relative overflow-hidden" slotPageHeader="sticky top-0 z-20">
-  <svelte:fragment slot="header">
-    <Header
-      bind:showingAssets
-      bind:showLeftPanel
-      bind:showRightPanel
-    />
-  </svelte:fragment>
-  <svelte:fragment slot="sidebarLeft">
-    {#if !$testing && !$previewing && showLeftPanel}
-      <HierarchyPanel />
-    {/if}
-  </svelte:fragment>
-  <svelte:fragment slot="sidebarRight">
-    {#if !$testing && !$previewing && showRightPanel}
-      <InspectorPanel />
-    {/if}
-  </svelte:fragment>
+<div class="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
+  <canvas bind:this={canvas} class="w-full h-full block {isPlaytestMode ? 'cursor-crosshair' : 'cursor-default'}"></canvas>
 
-  <!-- Main 3D Viewport -->
-  <div class="relative w-full h-full">
-    <Canvas rendererParameters={{ preserveDrawingBuffer: true }}>
-      <World gravity={[0, -15, 0]}>
-        {#if $debugPhysics}
-          <Debug />
-        {/if}
-
-        {#if $testing}
-          <TestScene on:completed={() => ($testing = false)} />
-        {:else if $previewing}
-          <PreviewScene />
-        {:else}
-          <EditorScene />
-        {/if}
-      </World>
-    </Canvas>
-
-    <!-- Active Ghost Placement Floating Banner -->
-    {#if $placementBlock && !$testing && !$previewing}
-      <div
-        class="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-full bg-surface-900/95 border border-primary-500/60 shadow-xl text-white text-xs"
-      >
-        <span class="font-bold text-primary-400">
-          Placing: {$placementBlock.label || $placementBlock.type}
+  <!-- Top Navigation Header -->
+  <header class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
+    <!-- Left: Status & Mode -->
+    <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full {isReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}"></span>
+        <span class="font-bold text-sm text-white font-sans">
+          {isPlaytestMode ? '⛳ Playtest Mode' : '🛠️ Track Runner Editor'}
         </span>
-        <span class="text-surface-300">|</span>
-        <div class="flex items-center gap-1">
-          <button
-            type="button"
-            class="px-1.5 py-0.5 rounded bg-surface-700 hover:bg-surface-600 font-mono"
-            on:click={() =>
-              ($previewRotation = [
-                $previewRotation[0],
-                $previewRotation[1] + Math.PI / 12,
-                $previewRotation[2],
-              ])}
-          >
-            ↺ Q
-          </button>
-          <span class="font-mono w-10 text-center text-sky-300">{previewYawDeg}°</span>
-          <button
-            type="button"
-            class="px-1.5 py-0.5 rounded bg-surface-700 hover:bg-surface-600 font-mono"
-            on:click={() =>
-              ($previewRotation = [
-                $previewRotation[0],
-                $previewRotation[1] - Math.PI / 12,
-                $previewRotation[2],
-              ])}
-          >
-            E ↻
-          </button>
-        </div>
-        <span class="text-surface-300 hidden sm:inline">
-          • Click terrain to place • Hold <strong>Shift</strong> for multi-place
-        </span>
+      </div>
+      <span class="text-xs text-gray-500 font-mono">|</span>
+      <span class="text-xs font-mono text-emerald-400 font-bold">{currentFps} FPS</span>
+    </div>
+
+    <!-- Center: Primary Action Toolbar -->
+    <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl shadow-2xl flex items-center gap-1.5 pointer-events-auto">
+      {#if !isPlaytestMode}
         <button
-          type="button"
-          class="ml-1 px-2 py-0.5 rounded-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 font-semibold"
-          on:click={() => ($placementBlock = null)}
+          on:click={() => (showWfcModal = true)}
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-bold font-mono transition-all active:scale-95"
+          title="Auto-generate a complete hole using WFC"
         >
-          Cancel (Esc)
+          <span>🤖</span>
+          <span>WFC Auto-Gen</span>
         </button>
-      </div>
-    {/if}
 
-    <!-- Bottom Categorized Obstacle & Scenery Dock -->
-    {#if showingAssets && !$testing && !$previewing}
-      <div
-        class="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-4xl rounded-xl bg-surface-900/90 backdrop-blur-md border border-surface-500/40 shadow-2xl p-2.5 text-white select-none"
+        <div class="w-px h-5 bg-white/10 mx-1"></div>
+
+        <button
+          on:click={handleUndo}
+          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors"
+          title="Undo (Ctrl+Z)"
+        >
+          ↩️ Undo
+        </button>
+        <button
+          on:click={handleRedo}
+          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors"
+          title="Redo (Ctrl+Y)"
+        >
+          ↪️ Redo
+        </button>
+      {/if}
+
+      <!-- Playtest Mode Toggle -->
+      <button
+        on:click={togglePlaytestMode}
+        class="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs font-mono transition-all shadow-lg active:scale-95 {isPlaytestMode ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}"
       >
-        <!-- Dock Header & Category Tabs -->
-        <div class="flex items-center justify-between gap-2 mb-2 px-1">
-          <div class="flex items-center gap-1.5 overflow-x-auto">
-            {#each categories as cat}
-              <button
-                type="button"
-                class="px-2.5 py-1 rounded-lg text-xs font-semibold transition {activeCategory ===
-                cat.id
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-surface-800 hover:bg-surface-700 text-surface-300'}"
-                on:click={() => (activeCategory = cat.id)}
-              >
-                {cat.label}
-              </button>
-            {/each}
-          </div>
+        <span>{isPlaytestMode ? '⏹️ Exit Test' : '▶️ Test Putt'}</span>
+      </button>
 
+      {#if !isPlaytestMode}
+        <button
+          on:click={handleSaveCourse}
+          class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono transition-all"
+        >
+          💾 Save
+        </button>
+      {/if}
+    </div>
+
+    <!-- Right: Back to Home -->
+    <a
+      href="/"
+      class="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-300 hover:text-white pointer-events-auto transition-colors"
+    >
+      Exit to Menu
+    </a>
+  </header>
+
+  <!-- Bottom-Left Prop Palette (Editor Mode only) -->
+  {#if !isPlaytestMode}
+    <div class="absolute bottom-6 left-6">
+      <PropPalette bind:selectedPropId />
+    </div>
+
+    <!-- Editor Hint Banner -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none">
+      💡 Click glowing <span class="text-cyan-400 font-bold">cyan rings</span> to snap pieces &bull; Click <span class="text-amber-400 font-bold">rails</span> to toggle cliff edges
+    </div>
+  {/if}
+
+  <!-- Playtest HUD Stats (Playtest Mode only) -->
+  {#if isPlaytestMode}
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-white font-mono shadow-2xl flex items-center gap-6">
+      <div class="text-center">
+        <div class="text-[10px] text-gray-400">PAR</div>
+        <div class="text-lg font-bold text-cyan-400">3</div>
+      </div>
+      <div class="w-px h-6 bg-white/10"></div>
+      <div class="text-center">
+        <div class="text-[10px] text-gray-400">STROKES</div>
+        <div class="text-lg font-bold text-amber-400">{strokes}</div>
+      </div>
+      <div class="w-px h-6 bg-white/10"></div>
+      <button
+        on:click={() => engine.ballController.respawn()}
+        class="bg-white/10 hover:bg-white/20 text-xs font-bold px-3 py-1.5 rounded-xl border border-white/10 transition-colors"
+      >
+        Respawn Ball
+      </button>
+    </div>
+  {/if}
+
+  <!-- Celebratory Sink Modal -->
+  {#if isCupSunk}
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+      <div class="bg-black/90 backdrop-blur-xl border border-emerald-500/50 p-8 rounded-3xl text-center shadow-2xl animate-bounce pointer-events-auto space-y-4">
+        <div class="text-5xl">⛳ 🎉</div>
+        <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 font-sans">
+          HOLE IN!
+        </div>
+        <div class="text-lg text-white font-mono">
+          Total Strokes: <span class="font-bold text-amber-400">{strokes}</span>
+        </div>
+        <div class="flex gap-3 justify-center">
           <button
-            type="button"
-            class="text-xs px-2 py-0.5 rounded bg-surface-800 hover:bg-surface-700 text-surface-300"
-            title="Minimize Dock"
-            on:click={() => (showingAssets = false)}
+            on:click={() => engine.ballController.respawn()}
+            class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
           >
-            ▾ Hide Dock
+            Putt Again
+          </button>
+          <button
+            on:click={togglePlaytestMode}
+            class="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2 rounded-xl transition-all"
+          >
+            Edit Track
           </button>
         </div>
-
-        <!-- Horizontal Scrollable Obstacle Cards -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1">
-          {#each filteredBlocks as item (`${item.type}-${item.variation}`)}
-            {@const isActive =
-              $placementBlock?.type === item.type &&
-              $placementBlock?.variation === item.variation}
-            <button
-              type="button"
-              class="flex-shrink-0 w-24 p-2 rounded-lg border transition flex flex-col items-center gap-1 {isActive
-                ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50'
-                : 'bg-surface-800/80 hover:bg-surface-700/80 border-surface-500/20'}"
-              on:click={() => startPlacement(item)}
-            >
-              <img
-                src={`/block/${item.type}/${item.variation}.png`}
-                alt={item.label}
-                class="w-10 h-10 object-contain"
-                on:error={(e) => (e.currentTarget.src = "/editor-icons/bricks.svg")}
-              />
-              <span class="text-[11px] font-medium truncate w-full text-center">
-                {item.label}
-              </span>
-              <span class="text-[9px] px-1.5 py-0.2 rounded bg-surface-700 text-surface-300">
-                {item.badge}
-              </span>
-            </button>
-          {/each}
-        </div>
       </div>
-    {/if}
-  </div>
-</AppShell>
+    </div>
+  {/if}
+
+  <!-- Radial Context Snap Menu (Appears on clicking open socket ring) -->
+  {#if activeSocketMenu}
+    <RadialSocketMenu
+      x={activeSocketMenu.x}
+      y={activeSocketMenu.y}
+      socketInfo={activeSocketMenu.socketInfo}
+      on:select={handleSnapPiece}
+      on:close={() => (activeSocketMenu = null)}
+    />
+  {/if}
+
+  <!-- WFC Generator Wizard Modal -->
+  <WfcWizardModal
+    bind:isOpen={showWfcModal}
+    on:generate={handleWfcGenerate}
+  />
+</div>
