@@ -1092,6 +1092,214 @@
         "funnel",
         "dish"
       ]
+    },
+    "obstacle_windmill_4x8": {
+      "id": "obstacle_windmill_4x8",
+      "name": "Classic Windmill Gate (4x8)",
+      "category": "obstacles",
+      "glbPath": "models/kit/obstacle_windmill_4x8.glb",
+      "dimensions": [
+        4.0,
+        4.8,
+        8.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            4.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -4.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "obstacle",
+        "windmill",
+        "animated",
+        "kinematic"
+      ]
+    },
+    "hazard_sand_trap_4x4": {
+      "id": "hazard_sand_trap_4x4",
+      "name": "Sand Trap Bunker (4x4)",
+      "category": "hazards",
+      "glbPath": "models/kit/hazard_sand_trap_4x4.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "hazard",
+        "sand",
+        "bunker",
+        "damping"
+      ]
+    },
+    "hazard_water_channel_4x4": {
+      "id": "hazard_water_channel_4x4",
+      "name": "Water Hazard Channel (4x4)",
+      "category": "hazards",
+      "glbPath": "models/kit/hazard_water_channel_4x4.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "hazard",
+        "water",
+        "penalty",
+        "respawn"
+      ]
+    },
+    "hazard_booster_strip_4x2": {
+      "id": "hazard_booster_strip_4x2",
+      "name": "Arcade Booster Strip (4x2)",
+      "category": "hazards",
+      "glbPath": "models/kit/hazard_booster_strip_4x2.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        2.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            1.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -1.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "hazard",
+        "booster",
+        "speed",
+        "impulse"
+      ]
     }
   }
 }
