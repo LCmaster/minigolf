@@ -794,6 +794,304 @@
         "wall-ride",
         "90deg"
       ]
+    },
+    "ramp_up_15deg_4x4": {
+      "id": "ramp_up_15deg_4x4",
+      "name": "Gentle Ramp Up (15\u00b0)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_up_15deg_4x4.glb",
+      "dimensions": [
+        4.0,
+        1.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            1.0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "ramp_top_1m",
+          "elevation": 1.0
+        }
+      ],
+      "tags": [
+        "ramp",
+        "incline",
+        "15deg",
+        "elevation"
+      ]
+    },
+    "ramp_down_15deg_4x4": {
+      "id": "ramp_down_15deg_4x4",
+      "name": "Gentle Ramp Down (15\u00b0)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_down_15deg_4x4.glb",
+      "dimensions": [
+        4.0,
+        1.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            1.0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "ramp_top_1m",
+          "elevation": 1.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "ramp",
+        "decline",
+        "15deg",
+        "elevation"
+      ]
+    },
+    "ramp_up_30deg_4x4": {
+      "id": "ramp_up_30deg_4x4",
+      "name": "Steep Ramp Up (30\u00b0)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_up_30deg_4x4.glb",
+      "dimensions": [
+        4.0,
+        2.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            2.0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "ramp_top_2m",
+          "elevation": 2.0
+        }
+      ],
+      "tags": [
+        "ramp",
+        "steep",
+        "30deg",
+        "elevation"
+      ]
+    },
+    "ramp_down_30deg_4x4": {
+      "id": "ramp_down_30deg_4x4",
+      "name": "Steep Ramp Down (30\u00b0)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_down_30deg_4x4.glb",
+      "dimensions": [
+        4.0,
+        2.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            2.0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "ramp_top_2m",
+          "elevation": 2.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "ramp",
+        "steep",
+        "decline",
+        "30deg",
+        "elevation"
+      ]
+    },
+    "bridge_overpass_4x8": {
+      "id": "bridge_overpass_4x8",
+      "name": "Overpass Bridge (4x8)",
+      "category": "elevation",
+      "glbPath": "models/kit/bridge_overpass_4x8.glb",
+      "dimensions": [
+        4.0,
+        2.4,
+        8.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            2.0,
+            4.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "ramp_top_2m",
+          "elevation": 2.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            2.0,
+            -4.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "ramp_top_2m",
+          "elevation": 2.0
+        }
+      ],
+      "tags": [
+        "bridge",
+        "overpass",
+        "multi-tier",
+        "tunnel"
+      ]
+    },
+    "green_cup_funnel_4x4": {
+      "id": "green_cup_funnel_4x4",
+      "name": "Funnel Dish Green (4x4)",
+      "category": "foundations",
+      "glbPath": "models/kit/green_cup_funnel_4x4.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0.12,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.12
+        }
+      ],
+      "tags": [
+        "cup",
+        "green",
+        "funnel",
+        "dish"
+      ]
     }
   }
 }
