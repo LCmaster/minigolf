@@ -52,9 +52,10 @@ export class AssetLoader {
     this.sharedMaterial = new THREE.MeshStandardMaterial({
       map: diffTex,
       normalMap: normTex,
+      normalScale: new THREE.Vector2(1.2, 1.2),
       roughnessMap: roughTex,
-      roughness: 1.0,
-      metalness: 0.1,
+      roughness: 0.9,
+      metalness: 0.05,
     });
 
     // Preload and parse all pieces in manifest

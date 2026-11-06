@@ -39,11 +39,14 @@ export class RenderPipeline {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     // Lighting setup
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(this.ambientLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xfff8e7, 1.4);
-    this.sunLight.position.set(18, 28, 14);
+    const hemiLight = new THREE.HemisphereLight(0xddeeff, 0x3a5d28, 0.5);
+    this.scene.add(hemiLight);
+
+    this.sunLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+    this.sunLight.position.set(16, 26, 12);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.width = 2048;
     this.sunLight.shadow.mapSize.height = 2048;

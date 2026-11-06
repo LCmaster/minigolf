@@ -38,6 +38,7 @@ export class AimArrowMesh {
     this.material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
+      side: THREE.DoubleSide,
       uniforms: {
         uPower: { value: 0.0 }, // 0.0 to 1.0
         uColorGreen: { value: new THREE.Color("#68D391") },
@@ -85,7 +86,7 @@ export class AimArrowMesh {
     this.group.position.copy(origin);
 
     // Aim direction angle
-    let angle = Math.atan2(direction.x, direction.z);
+    let angle = Math.atan2(direction.x, -direction.z);
 
     // High-power jitter when power > 75%
     if (power > 0.75) {
