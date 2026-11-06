@@ -7,11 +7,22 @@
 import * as THREE from "three";
 import { RenderPipeline } from "./scene/RenderPipeline";
 import { PhysicsWorld } from "./physics/PhysicsWorld";
+import { AssetLoader } from "./kitbash/AssetLoader";
+import { CourseManager } from "./course/CourseManager";
+import { BallController } from "./player/BallController";
+import { SlingshotInput } from "./player/SlingshotInput";
+import { CameraController } from "./scene/CameraController";
 import type { EngineEventMap } from "./types/EngineEvents";
+import type { HoleData } from "./types/CourseSchema";
 
 export class GameEngine {
-  public renderPipeline!: RenderPipeline;
-  public physicsWorld!: PhysicsWorld;
+  public renderPipeline: RenderPipeline;
+  public physicsWorld: PhysicsWorld;
+  public assetLoader: AssetLoader;
+  public courseManager!: CourseManager;
+  public ballController!: BallController;
+  public slingshotInput!: SlingshotInput;
+  public cameraController!: CameraController;
 
   private isRunning: boolean = false;
   private animationFrameId: number | null = null;
@@ -21,16 +32,50 @@ export class GameEngine {
 
   private eventListeners: { [K in keyof EngineEventMap]?: Function[] } = {};
 
-  // Debug objects for Milestone 1 validation
-  private debugEntities: Array<{ mesh: THREE.Mesh; rigidBody?: any }> = [];
-
   constructor(canvas: HTMLCanvasElement) {
     this.renderPipeline = new RenderPipeline(canvas);
     this.physicsWorld = new PhysicsWorld();
+    this.assetLoader = new AssetLoader();
   }
 
   public async init(): Promise<void> {
     await this.physicsWorld.init();
+    await this.assetLoader.init();
+
+    this.courseManager = new CourseManager(
+      this.renderPipeline.scene,
+      this.physicsWorld.world,
+      this.physicsWorld.rapier,
+      this.assetLoader
+    );
+
+    this.ballController = new BallController(
+      this.renderPipeline.scene,
+      this.physicsWorld.world,
+      this.physicsWorld.rapier
+    );
+
+    this.cameraController = new CameraController(
+      this.renderPipeline.camera,
+      this.renderPipeline.renderer.domElement
+    );
+
+    this.slingshotInput = new SlingshotInput(
+      this.renderPipeline.renderer.domElement,
+      this.renderPipeline.camera,
+      this.renderPipeline.scene,
+      this.ballController
+    );
+
+    this.slingshotInput.onStrokeTaken = (power, impulse) => {
+      this.emit("strokeTaken", {
+        holeNumber: 1,
+        strokeNumber: this.ballController.strokes,
+        power,
+        impulse: [impulse.x, impulse.y, impulse.z],
+      });
+    };
+
     this.setupResizeListener();
   }
 
@@ -84,15 +129,60 @@ export class GameEngine {
     // Step physics simulation
     this.physicsWorld.step(deltaTime);
 
-    // Sync debug entities (if any)
-    for (const entity of this.debugEntities) {
-      if (entity.rigidBody) {
-        const translation = entity.rigidBody.translation();
-        const rotation = entity.rigidBody.rotation();
-        entity.mesh.position.set(translation.x, translation.y, translation.z);
-        entity.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-      }
+    // Update ball physics & visual transform
+    this.ballController.update();
+
+    // Check goal sensor collision
+    const goalCollider = this.courseManager.getGoalSensorCollider();
+    if (goalCollider && this.ballController.collider) {
+      this.physicsWorld.drainCollisionEvents((h1, h2, intersecting) => {
+        const goalHandle = goalCollider.handle;
+        const ballHandle = this.ballController.collider.handle;
+
+        if (intersecting && ((h1 === goalHandle && h2 === ballHandle) || (h2 === goalHandle && h1 === ballHandle))) {
+          if (this.ballController.state !== "in_hole") {
+            this.ballController.state = "in_hole";
+            this.cameraController.mode = "cup_zoom";
+            this.emit("cupSink", {
+              holeNumber: 1,
+              totalStrokes: this.ballController.strokes,
+              par: 2,
+              scoreRelative: this.ballController.strokes - 2,
+            });
+          }
+        }
+      });
     }
+
+    // Out of bounds check
+    if (this.ballController.state === "out_of_bounds") {
+      this.ballController.respawn();
+      this.emit("outOfBounds", {
+        holeNumber: 1,
+        reason: "cliff_fall",
+        penaltyApplied: true,
+        respawnPosition: [
+          this.ballController.mesh.position.x,
+          this.ballController.mesh.position.y,
+          this.ballController.mesh.position.z,
+        ],
+      });
+    }
+
+    // Camera following ball
+    const ballPos = this.ballController.getPosition();
+    this.cameraController.setTarget(ballPos);
+
+    const linvel = this.ballController.rigidBody ? this.ballController.rigidBody.linvel() : { x: 0, y: 0, z: 0 };
+    const speed = Math.sqrt(linvel.x * linvel.x + linvel.y * linvel.y + linvel.z * linvel.z);
+
+    if (this.ballController.state === "moving") {
+      this.cameraController.mode = "following";
+    } else if (this.ballController.state === "aiming") {
+      this.cameraController.mode = "aiming";
+    }
+
+    this.cameraController.update(deltaTime, speed);
 
     // Render frame
     this.renderPipeline.render();
@@ -101,56 +191,46 @@ export class GameEngine {
   };
 
   /**
-   * Spawns a test ground and bouncing dynamic sphere to validate physics harness.
+   * Loads a test course hole (Tee -> Straight -> Cup) to validate seamless physics and controls.
    */
-  public spawnHarnessTestObjects(): void {
-    const rapier = this.physicsWorld.rapier;
-    const world = this.physicsWorld.world;
-    if (!world) return;
+  public loadTestHole(): void {
+    const testHole: HoleData = {
+      holeNumber: 1,
+      par: 2,
+      teeTileId: "tile_tee",
+      cupTileId: "tile_cup",
+      tiles: [
+        {
+          instanceId: "tile_tee",
+          kitPieceId: "tee_box_4x4",
+          position: [0, 0, 4.0],
+          rotationY: 0,
+          walls: { left: true, right: true },
+          connectedSockets: { LOC_Socket_Out: "tile_straight" },
+        },
+        {
+          instanceId: "tile_straight",
+          kitPieceId: "straight_4m",
+          position: [0, 0, 0.0],
+          rotationY: 0,
+          walls: { left: true, right: true },
+          connectedSockets: { LOC_Socket_In: "tile_tee", LOC_Socket_Out: "tile_cup" },
+        },
+        {
+          instanceId: "tile_cup",
+          kitPieceId: "green_cup_standard_4x4",
+          position: [0, 0, -4.0],
+          rotationY: 0,
+          walls: { left: true, right: true },
+          connectedSockets: { LOC_Socket_In: "tile_straight" },
+        },
+      ],
+      props: [],
+    };
 
-    // 1. Static Ground Box (16m x 0.5m x 16m)
-    const groundGeo = new THREE.BoxGeometry(16, 0.5, 16);
-    const groundMat = new THREE.MeshStandardMaterial({
-      color: "#2E7D32", // Lush golf green
-      roughness: 0.7,
-      metalness: 0.1,
-    });
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.position.set(0, -0.25, 0);
-    groundMesh.receiveShadow = true;
-    this.renderPipeline.scene.add(groundMesh);
-
-    // Ground Rapier Collider
-    const groundBodyDesc = rapier.RigidBodyDesc.fixed().setTranslation(0, -0.25, 0);
-    const groundBody = world.createRigidBody(groundBodyDesc);
-    const groundColliderDesc = rapier.ColliderDesc.cuboid(8, 0.25, 8).setFriction(0.4).setRestitution(0.5);
-    world.createCollider(groundColliderDesc, groundBody);
-
-    this.debugEntities.push({ mesh: groundMesh, rigidBody: groundBody });
-
-    // 2. Dynamic Golf Ball Sphere (r = 0.2m)
-    const ballGeo = new THREE.SphereGeometry(0.2, 32, 32);
-    const ballMat = new THREE.MeshStandardMaterial({
-      color: "#FFFFFF",
-      roughness: 0.2,
-      metalness: 0.0,
-    });
-    const ballMesh = new THREE.Mesh(ballGeo, ballMat);
-    ballMesh.position.set(0, 6, 0);
-    ballMesh.castShadow = true;
-    this.renderPipeline.scene.add(ballMesh);
-
-    // Ball Rapier Dynamic Rigid Body
-    const ballBodyDesc = rapier.RigidBodyDesc.dynamic()
-      .setTranslation(0, 6, 0)
-      .setCcdEnabled(true);
-    const ballBody = world.createRigidBody(ballBodyDesc);
-    const ballColliderDesc = rapier.ColliderDesc.ball(0.2)
-      .setFriction(0.3)
-      .setRestitution(0.75); // Bouncy for validation
-    world.createCollider(ballColliderDesc, ballBody);
-
-    this.debugEntities.push({ mesh: ballMesh, rigidBody: ballBody });
+    this.courseManager.loadHole(testHole);
+    this.ballController.createPhysicsBody(this.courseManager.spawnPosition);
+    this.cameraController.setTarget(this.courseManager.spawnPosition);
   }
 
   private setupResizeListener(): void {
@@ -161,6 +241,9 @@ export class GameEngine {
 
   public dispose(): void {
     this.stop();
+    this.slingshotInput?.dispose();
+    this.ballController?.dispose();
+    this.courseManager?.clear();
     this.physicsWorld.dispose();
     this.renderPipeline.dispose();
     this.eventListeners = {};
