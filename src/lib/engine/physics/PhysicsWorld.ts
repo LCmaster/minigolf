@@ -44,17 +44,12 @@ export class PhysicsWorld {
   }
 
   public drainCollisionEvents(
-    onIntersection?: (handle1: number, handle2: number, intersecting: boolean) => void,
-    onContact?: (handle1: number, handle2: number) => void
+    onCollision?: (handle1: number, handle2: number, started: boolean) => void
   ): void {
     if (!this.eventQueue) return;
 
-    this.eventQueue.drainIntersectionEvents((h1, h2, intersecting) => {
-      onIntersection?.(h1, h2, intersecting);
-    });
-
-    this.eventQueue.drainContactEvents((h1, h2) => {
-      onContact?.(h1, h2);
+    this.eventQueue.drainCollisionEvents((h1, h2, started) => {
+      onCollision?.(h1, h2, started);
     });
   }
 

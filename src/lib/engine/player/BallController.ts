@@ -59,7 +59,8 @@ export class BallController {
     const colliderDesc = this.rapier.ColliderDesc.ball(this.radius)
       .setFriction(0.35)
       .setRestitution(0.65)
-      .setDensity(1.2);
+      .setDensity(1.2)
+      .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
 
     this.collider = this.rapierWorld.createCollider(colliderDesc, this.rigidBody);
 

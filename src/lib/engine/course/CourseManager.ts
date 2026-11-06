@@ -238,13 +238,18 @@ export class CourseManager {
 
     const desc = this.rapier.ColliderDesc.ball(0.125)
       .setTranslation(pos.x, pos.y, pos.z)
-      .setSensor(true);
+      .setSensor(true)
+      .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
 
     this.goalSensorCollider = this.rapierWorld.createCollider(desc);
   }
 
   public getGoalSensorCollider(): RAPIER.Collider | null {
     return this.goalSensorCollider;
+  }
+
+  public getGoalPosition(): THREE.Vector3 | null {
+    return this.goalPosition;
   }
 
   public clear(): void {

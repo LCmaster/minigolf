@@ -136,26 +136,43 @@ export class GameEngine {
     // Update ball physics & visual transform
     this.ballController.update();
 
-    // Check goal sensor collision
+    // Check goal sensor collision or proximity
     const goalCollider = this.courseManager.getGoalSensorCollider();
-    if (goalCollider && this.ballController.collider) {
-      this.physicsWorld.drainCollisionEvents((h1, h2, intersecting) => {
-        const goalHandle = goalCollider.handle;
-        const ballHandle = this.ballController.collider.handle;
+    const goalPos = this.courseManager.getGoalPosition();
+    let ballEnteredHole = false;
 
-        if (intersecting && ((h1 === goalHandle && h2 === ballHandle) || (h2 === goalHandle && h1 === ballHandle))) {
-          if (this.ballController.state !== "in_hole") {
-            this.ballController.state = "in_hole";
-            this.cameraController.mode = "cup_zoom";
-            this.audio.playCupSink();
-            this.emit("cupSink", {
-              holeNumber: 1,
-              totalStrokes: this.ballController.strokes,
-              par: 2,
-              scoreRelative: this.ballController.strokes - 2,
-            });
-          }
+    if (goalCollider && this.ballController.collider) {
+      const goalHandle = goalCollider.handle;
+      const ballHandle = this.ballController.collider.handle;
+
+      this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
+        if (started && ((h1 === goalHandle && h2 === ballHandle) || (h2 === goalHandle && h1 === ballHandle))) {
+          ballEnteredHole = true;
         }
+      });
+    } else {
+      this.physicsWorld.drainCollisionEvents();
+    }
+
+    // Proximity fallback check (within 14cm of cup center horizontally and within 25cm vertically)
+    if (!ballEnteredHole && goalPos && this.ballController.mesh) {
+      const bPos = this.ballController.mesh.position;
+      const horizDist = Math.hypot(bPos.x - goalPos.x, bPos.z - goalPos.z);
+      const vertDist = Math.abs(bPos.y - goalPos.y);
+      if (horizDist < 0.14 && vertDist < 0.25) {
+        ballEnteredHole = true;
+      }
+    }
+
+    if (ballEnteredHole && this.ballController.state !== "in_hole") {
+      this.ballController.state = "in_hole";
+      this.cameraController.mode = "cup_zoom";
+      this.audio.playCupSink();
+      this.emit("cupSink", {
+        holeNumber: 1,
+        totalStrokes: this.ballController.strokes,
+        par: 2,
+        scoreRelative: this.ballController.strokes - 2,
       });
     }
 
