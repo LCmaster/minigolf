@@ -12,67 +12,788 @@
       "name": "Straight Fairway (4m)",
       "category": "straights",
       "glbPath": "models/kit/straight_4m.glb",
-      "dimensions": [4.0, 0.4, 4.0],
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
       "turfWidth": 3.6,
       "railHeight": 0.4,
       "hasDynamicWalls": true,
       "sockets": [
         {
           "id": "LOC_Socket_In",
-          "position": [0, 0, 2.0],
-          "normal": [0, 0, 1],
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
           "type": "track_standard_4m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
-          "position": [0, 0, -2.0],
-          "normal": [0, 0, -1],
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
           "type": "track_standard_4m",
           "elevation": 0.0
         }
       ],
-      "tags": ["fairway", "straight", "basic"]
+      "tags": [
+        "fairway",
+        "straight",
+        "basic"
+      ]
     },
     "tee_box_4x4": {
       "id": "tee_box_4x4",
       "name": "Tee-Off Box (4x4)",
       "category": "foundations",
       "glbPath": "models/kit/tee_box_4x4.glb",
-      "dimensions": [4.0, 0.4, 4.0],
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
       "turfWidth": 3.6,
       "railHeight": 0.4,
       "hasDynamicWalls": true,
       "sockets": [
         {
           "id": "LOC_Socket_Out",
-          "position": [0, 0, -2.0],
-          "normal": [0, 0, -1],
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
           "type": "track_standard_4m",
           "elevation": 0.0
         }
       ],
-      "tags": ["start", "tee", "foundation"]
+      "tags": [
+        "start",
+        "tee",
+        "foundation"
+      ]
     },
     "green_cup_standard_4x4": {
       "id": "green_cup_standard_4x4",
       "name": "Standard Cup Green (4x4)",
       "category": "foundations",
       "glbPath": "models/kit/green_cup_standard_4x4.glb",
-      "dimensions": [4.0, 0.4, 4.0],
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
       "turfWidth": 3.6,
       "railHeight": 0.4,
       "hasDynamicWalls": true,
       "sockets": [
         {
           "id": "LOC_Socket_In",
-          "position": [0, 0, 2.0],
-          "normal": [0, 0, 1],
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
           "type": "track_standard_4m",
           "elevation": 0.0
         }
       ],
-      "tags": ["cup", "green", "terminal", "goal"]
+      "tags": [
+        "cup",
+        "green",
+        "terminal",
+        "goal"
+      ]
+    },
+    "turn_15deg_crisp": {
+      "id": "turn_15deg_crisp",
+      "name": "Crisp Turn (15\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_15deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "15deg"
+      ]
+    },
+    "turn_15deg_rounded": {
+      "id": "turn_15deg_rounded",
+      "name": "Rounded Turn (15\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_15deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "15deg"
+      ]
+    },
+    "turn_30deg_crisp": {
+      "id": "turn_30deg_crisp",
+      "name": "Crisp Turn (30\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_30deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "30deg"
+      ]
+    },
+    "turn_30deg_rounded": {
+      "id": "turn_30deg_rounded",
+      "name": "Rounded Turn (30\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_30deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "30deg"
+      ]
+    },
+    "turn_45deg_crisp": {
+      "id": "turn_45deg_crisp",
+      "name": "Crisp Turn (45\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_45deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "45deg"
+      ]
+    },
+    "turn_45deg_rounded": {
+      "id": "turn_45deg_rounded",
+      "name": "Rounded Turn (45\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_45deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "45deg"
+      ]
+    },
+    "turn_60deg_crisp": {
+      "id": "turn_60deg_crisp",
+      "name": "Crisp Turn (60\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_60deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "60deg"
+      ]
+    },
+    "turn_60deg_rounded": {
+      "id": "turn_60deg_rounded",
+      "name": "Rounded Turn (60\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_60deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "60deg"
+      ]
+    },
+    "turn_75deg_crisp": {
+      "id": "turn_75deg_crisp",
+      "name": "Crisp Turn (75\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_75deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "75deg"
+      ]
+    },
+    "turn_75deg_rounded": {
+      "id": "turn_75deg_rounded",
+      "name": "Rounded Turn (75\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_75deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "75deg"
+      ]
+    },
+    "turn_90deg_crisp": {
+      "id": "turn_90deg_crisp",
+      "name": "Crisp Turn (90\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_90deg_crisp.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "crisp",
+        "90deg"
+      ]
+    },
+    "turn_90deg_rounded": {
+      "id": "turn_90deg_rounded",
+      "name": "Rounded Turn (90\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_90deg_rounded.glb",
+      "dimensions": [
+        4.0,
+        0.4,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "rounded",
+        "90deg"
+      ]
+    },
+    "turn_banked_90deg_4x4": {
+      "id": "turn_banked_90deg_4x4",
+      "name": "Banked Wall-Ride Turn (90\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_banked_90deg_4x4.glb",
+      "dimensions": [
+        4.0,
+        0.6,
+        4.0
+      ],
+      "turfWidth": 3.6,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            2.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -2.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "banked",
+        "wall-ride",
+        "90deg"
+      ]
     }
   }
 }
