@@ -1,0 +1,78 @@
+{
+  "version": "1.0.0",
+  "theme": "country_club",
+  "trimSheet": {
+    "diffuse": "textures/trim_country_club_diff.webp",
+    "normal": "textures/trim_country_club_norm.webp",
+    "roughness": "textures/trim_country_club_rough.webp"
+  },
+  "pieces": {
+    "straight_4m": {
+      "id": "straight_4m",
+      "name": "Straight Fairway (4m)",
+      "category": "straights",
+      "glbPath": "models/kit/straight_4m.glb",
+      "dimensions": [4.0, 0.4, 4.0],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 2.0],
+          "normal": [0, 0, 1],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0, 0, -2.0],
+          "normal": [0, 0, -1],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["fairway", "straight", "basic"]
+    },
+    "tee_box_4x4": {
+      "id": "tee_box_4x4",
+      "name": "Tee-Off Box (4x4)",
+      "category": "foundations",
+      "glbPath": "models/kit/tee_box_4x4.glb",
+      "dimensions": [4.0, 0.4, 4.0],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0, 0, -2.0],
+          "normal": [0, 0, -1],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["start", "tee", "foundation"]
+    },
+    "green_cup_standard_4x4": {
+      "id": "green_cup_standard_4x4",
+      "name": "Standard Cup Green (4x4)",
+      "category": "foundations",
+      "glbPath": "models/kit/green_cup_standard_4x4.glb",
+      "dimensions": [4.0, 0.4, 4.0],
+      "turfWidth": 3.6,
+      "railHeight": 0.4,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 2.0],
+          "normal": [0, 0, 1],
+          "type": "track_standard_4m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["cup", "green", "terminal", "goal"]
+    }
+  }
+}
