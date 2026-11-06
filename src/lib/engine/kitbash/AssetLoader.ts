@@ -132,3 +132,4 @@ export class AssetLoader {
     return this.manifest;
   }
 }
+

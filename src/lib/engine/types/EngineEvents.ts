@@ -58,3 +58,4 @@ export type EngineEventMap = {
   socketClicked: (ev: SocketClickEvent) => void;
   fpsUpdate: (fps: number) => void;
 };
+

@@ -68,3 +68,4 @@ export class PhysicsWorld {
     this.isReady = false;
   }
 }
+

@@ -12,6 +12,7 @@ import { CourseManager } from "./course/CourseManager";
 import { BallController } from "./player/BallController";
 import { SlingshotInput } from "./player/SlingshotInput";
 import { CameraController } from "./scene/CameraController";
+import { AudioManager } from "./audio/AudioManager";
 import type { EngineEventMap } from "./types/EngineEvents";
 import type { HoleData } from "./types/CourseSchema";
 
@@ -23,6 +24,7 @@ export class GameEngine {
   public ballController!: BallController;
   public slingshotInput!: SlingshotInput;
   public cameraController!: CameraController;
+  public audio: AudioManager;
 
   private isRunning: boolean = false;
   private animationFrameId: number | null = null;
@@ -36,6 +38,7 @@ export class GameEngine {
     this.renderPipeline = new RenderPipeline(canvas);
     this.physicsWorld = new PhysicsWorld();
     this.assetLoader = new AssetLoader();
+    this.audio = new AudioManager();
   }
 
   public async init(): Promise<void> {
@@ -68,6 +71,7 @@ export class GameEngine {
     );
 
     this.slingshotInput.onStrokeTaken = (power, impulse) => {
+      this.audio.playPutt(power);
       this.emit("strokeTaken", {
         holeNumber: 1,
         strokeNumber: this.ballController.strokes,
@@ -143,6 +147,7 @@ export class GameEngine {
           if (this.ballController.state !== "in_hole") {
             this.ballController.state = "in_hole";
             this.cameraController.mode = "cup_zoom";
+            this.audio.playCupSink();
             this.emit("cupSink", {
               holeNumber: 1,
               totalStrokes: this.ballController.strokes,
@@ -175,6 +180,7 @@ export class GameEngine {
 
     const linvel = this.ballController.rigidBody ? this.ballController.rigidBody.linvel() : { x: 0, y: 0, z: 0 };
     const speed = Math.sqrt(linvel.x * linvel.x + linvel.y * linvel.y + linvel.z * linvel.z);
+    this.audio.updateRolling(speed);
 
     if (this.ballController.state === "moving") {
       this.cameraController.mode = "following";

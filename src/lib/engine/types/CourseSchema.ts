@@ -42,3 +42,4 @@ export interface CourseData {
   updatedAt: number; // Timestamp ms
   holes: HoleData[];
 }
+

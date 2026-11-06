@@ -84,3 +84,4 @@ export class RenderPipeline {
     this.scene.clear();
   }
 }
+

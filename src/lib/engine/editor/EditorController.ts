@@ -313,3 +313,4 @@ export class EditorController {
     this.history.clear();
   }
 }
+

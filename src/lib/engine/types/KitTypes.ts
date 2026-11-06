@@ -47,3 +47,4 @@ export interface KitManifest {
   theme: string;
   pieces: Record<string, KitPieceMetadata>;
 }
+

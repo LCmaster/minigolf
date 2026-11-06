@@ -46,10 +46,26 @@
     <div class="w-full max-w-sm flex flex-col gap-4 p-8 rounded-3xl bg-white/50 backdrop-blur-lg border border-white/60 shadow-xl">
       
       <button
-        on:click={() => goto("/game")}
-        class="w-full h-16 rounded-full font-black text-2xl tracking-widest bg-gradient-to-b from-[#F6A655] to-[#E57300] text-white shadow-lg hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border-2 border-white/20"
+        on:click={() => goto("/play")}
+        class="w-full h-16 rounded-full font-black text-2xl tracking-widest bg-gradient-to-b from-[#2E7D32] to-[#1B5E20] text-white shadow-xl hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer border-2 border-white/40 flex items-center justify-center gap-2"
       >
-        PLAY
+        <span>⛳</span>
+        <span>PLAY 9-HOLE TOUR</span>
+      </button>
+
+      <button
+        on:click={() => goto("/editor")}
+        class="w-full py-3.5 flex justify-center items-center gap-2 rounded-full font-black text-lg tracking-wider bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 border-2 border-white shadow-lg text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+      >
+        <span>🛠️</span>
+        <span>TRACK RUNNER BUILDER</span>
+      </button>
+
+      <button
+        on:click={() => goto("/game")}
+        class="w-full py-2.5 flex justify-center items-center gap-2 rounded-full font-bold text-sm tracking-wider bg-white/70 hover:bg-white border border-white/60 shadow-sm text-[#4A4A4A] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+      >
+        <span>Legacy Spline Mode</span>
       </button>
 
       <button
