@@ -109,10 +109,11 @@ export class CourseManager {
     let wallBackMesh: THREE.Mesh | undefined;
 
     group.traverse((child) => {
+      const cleanName = child.name.replace(/\.\d+$/, "");
       if (child instanceof THREE.Mesh) {
-        if (child.name === "Mesh_Wall_L") wallLMesh = child;
-        if (child.name === "Mesh_Wall_R") wallRMesh = child;
-        if (child.name === "Mesh_Wall_Back") wallBackMesh = child;
+        if (cleanName === "Mesh_Wall_L") wallLMesh = child;
+        if (cleanName === "Mesh_Wall_R") wallRMesh = child;
+        if (cleanName === "Mesh_Wall_Back") wallBackMesh = child;
       }
     });
 
@@ -128,6 +129,9 @@ export class CourseManager {
     // Apply initial wall visibility
     if (wallLMesh) wallLMesh.visible = tileData.walls.left;
     if (wallRMesh) wallRMesh.visible = tileData.walls.right;
+
+    // Ensure transform matrix is computed before instantiating physics colliders
+    group.updateMatrixWorld(true);
 
     // Create wall colliders in Rapier
     this.updateTileWallPhysics(instantiated);
@@ -198,8 +202,8 @@ export class CourseManager {
   }
 
   private updateTileWallPhysics(tile: InstantiatedTile): void {
-    const worldMatrix = tile.group.matrixWorld;
     tile.group.updateMatrixWorld(true);
+    const worldMatrix = tile.group.matrixWorld.clone();
 
     // Left Wall
     if (tile.wallLCollider) {

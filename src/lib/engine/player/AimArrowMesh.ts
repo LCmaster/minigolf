@@ -85,8 +85,8 @@ export class AimArrowMesh {
     this.group.visible = true;
     this.group.position.copy(origin);
 
-    // Aim direction angle
-    let angle = Math.atan2(direction.x, -direction.z);
+    // Aim direction angle (pointing along -Z natively, rotate around +Y)
+    let angle = Math.atan2(-direction.x, -direction.z);
 
     // High-power jitter when power > 75%
     if (power > 0.75) {

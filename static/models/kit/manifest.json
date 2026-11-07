@@ -1094,11 +1094,11 @@
     "obstacle_windmill_6x12": {
       "id": "obstacle_windmill_6x12",
       "name": "Windmill Gate (6x12)",
-      "category": "hazards",
+      "category": "obstacles",
       "glbPath": "models/kit/obstacle_windmill_6x12.glb",
       "dimensions": [
         6.0,
-        4.8,
+        3.8,
         12.0
       ],
       "turfWidth": 5.2,
@@ -1137,14 +1137,13 @@
         }
       ],
       "tags": [
-        "hazard",
         "obstacle",
         "windmill"
       ]
     },
     "hazard_sand_trap_6x6": {
       "id": "hazard_sand_trap_6x6",
-      "name": "Sand Trap Bunker (6x6)",
+      "name": "Bunker Sand Trap (6x6)",
       "category": "hazards",
       "glbPath": "models/kit/hazard_sand_trap_6x6.glb",
       "dimensions": [
@@ -1194,7 +1193,7 @@
     },
     "hazard_water_channel_6x6": {
       "id": "hazard_water_channel_6x6",
-      "name": "Water Hazard Pond (6x6)",
+      "name": "Water Hazard Channel (6x6)",
       "category": "hazards",
       "glbPath": "models/kit/hazard_water_channel_6x6.glb",
       "dimensions": [

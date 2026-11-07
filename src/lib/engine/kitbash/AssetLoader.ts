@@ -41,13 +41,13 @@ export class AssetLoader {
     // Load PBR Trim Sheet textures
     const diffTex = await this.textureLoader.loadAsync("/" + this.manifest.trimSheet.diffuse);
     diffTex.colorSpace = THREE.SRGBColorSpace;
-    diffTex.flipY = false;
+    diffTex.flipY = true;
 
     const normTex = await this.textureLoader.loadAsync("/" + this.manifest.trimSheet.normal);
-    normTex.flipY = false;
+    normTex.flipY = true;
 
     const roughTex = await this.textureLoader.loadAsync("/" + this.manifest.trimSheet.roughness);
-    roughTex.flipY = false;
+    roughTex.flipY = true;
 
     this.sharedMaterial = new THREE.MeshStandardMaterial({
       map: diffTex,
@@ -81,36 +81,40 @@ export class AssetLoader {
 
     // Traverse scene hierarchy
     root.traverse((child) => {
-      if (child.name.startsWith("Mesh_") && child instanceof THREE.Mesh) {
+      // Strip Blender duplicate suffixes (e.g. "UBX_Wall_L.001" -> "UBX_Wall_L")
+      const cleanName = child.name.replace(/\.\d+$/, "");
+
+      if (cleanName.startsWith("Mesh_") && child instanceof THREE.Mesh) {
         const mesh = child.clone();
+        mesh.name = cleanName;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         if (this.sharedMaterial) {
           mesh.material = this.sharedMaterial;
         }
         visualGroup.add(mesh);
-      } else if (child.name === "UBX_Floor" && child instanceof THREE.Mesh) {
+      } else if (cleanName === "UBX_Floor" && child instanceof THREE.Mesh) {
         ubxFloorGeo = child.geometry.clone();
-      } else if (child.name === "UBX_Wall_L" && child instanceof THREE.Mesh) {
+      } else if (cleanName === "UBX_Wall_L" && child instanceof THREE.Mesh) {
         ubxWallLGeo = child.geometry.clone();
-      } else if (child.name === "UBX_Wall_R" && child instanceof THREE.Mesh) {
+      } else if (cleanName === "UBX_Wall_R" && child instanceof THREE.Mesh) {
         ubxWallRGeo = child.geometry.clone();
-      } else if (child.name === "UBX_Wall_Back" && child instanceof THREE.Mesh) {
+      } else if (cleanName === "UBX_Wall_Back" && child instanceof THREE.Mesh) {
         ubxWallBackGeo = child.geometry.clone();
-      } else if (child.name.startsWith("LOC_Socket_")) {
+      } else if (cleanName.startsWith("LOC_Socket_")) {
         // Extract socket definition, preferring precise metadata from manifest if present
         const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(child.quaternion);
-        const metaSocket = meta.sockets.find((s) => s.id === child.name);
+        const metaSocket = meta.sockets.find((s) => s.id === cleanName || s.id === child.name);
         sockets.push({
-          id: child.name,
+          id: cleanName,
           position: metaSocket ? metaSocket.position : [child.position.x, child.position.y, child.position.z],
           normal: metaSocket ? metaSocket.normal : [forward.x, forward.y, forward.z],
           type: metaSocket ? metaSocket.type : "track_arcade_6m",
           elevation: metaSocket ? metaSocket.elevation : child.position.y,
         });
-        locators.set(child.name, child.position.clone());
-      } else if (child.name.startsWith("LOC_")) {
-        locators.set(child.name, child.position.clone());
+        locators.set(cleanName, child.position.clone());
+      } else if (cleanName.startsWith("LOC_")) {
+        locators.set(cleanName, child.position.clone());
       }
     });
 
