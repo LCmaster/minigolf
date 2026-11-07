@@ -64,23 +64,25 @@ export class EditorController {
     this.canvas.addEventListener("pointerdown", this.handlePointerDown);
 
     // Keyboard shortcuts
-    window.addEventListener("keydown", (ev) => {
-      if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") {
-        ev.preventDefault();
-        if (ev.shiftKey) {
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", (ev) => {
+        if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") {
+          ev.preventDefault();
+          if (ev.shiftKey) {
+            this.history.redo();
+          } else {
+            this.history.undo();
+          }
+          this.refreshOpenSockets();
+          this.onCourseModified?.();
+        } else if ((ev.ctrlKey || ev.metaKey) && ev.key === "y") {
+          ev.preventDefault();
           this.history.redo();
-        } else {
-          this.history.undo();
+          this.refreshOpenSockets();
+          this.onCourseModified?.();
         }
-        this.refreshOpenSockets();
-        this.onCourseModified?.();
-      } else if ((ev.ctrlKey || ev.metaKey) && ev.key === "y") {
-        ev.preventDefault();
-        this.history.redo();
-        this.refreshOpenSockets();
-        this.onCourseModified?.();
-      }
-    });
+      });
+    }
   }
 
   public refreshOpenSockets(): void {

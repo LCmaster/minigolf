@@ -53,8 +53,10 @@ export class SlingshotInput {
 
   private attachEventListeners(): void {
     this.canvas.addEventListener("pointerdown", this.handlePointerDown);
-    window.addEventListener("pointermove", this.handlePointerMove);
-    window.addEventListener("pointerup", this.handlePointerUp);
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", this.handlePointerMove);
+      window.addEventListener("pointerup", this.handlePointerUp);
+    }
   }
 
   private handlePointerDown = (ev: PointerEvent): void => {
@@ -169,8 +171,10 @@ export class SlingshotInput {
 
   public dispose(): void {
     this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
-    window.removeEventListener("pointermove", this.handlePointerMove);
-    window.removeEventListener("pointerup", this.handlePointerUp);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pointermove", this.handlePointerMove);
+      window.removeEventListener("pointerup", this.handlePointerUp);
+    }
     this.arrow.hide();
   }
 }
