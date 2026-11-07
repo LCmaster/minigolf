@@ -1,75 +1,30 @@
 {
-  "version": "1.0.0",
-  "theme": "country_club",
+  "version": "2.0.0",
+  "theme": "country_club_arcade",
   "trimSheet": {
     "diffuse": "textures/trim_country_club_diff.webp",
     "normal": "textures/trim_country_club_norm.webp",
     "roughness": "textures/trim_country_club_rough.webp"
   },
+  "gridSize": 6.0,
+  "turfWidth": 5.2,
+  "railGirth": 0.4,
+  "railHeight": 0.6,
+  "floorSlabDepth": 0.5,
+  "cupRadius": 0.28,
   "pieces": {
-    "straight_4m": {
-      "id": "straight_4m",
-      "name": "Straight Fairway (4m)",
-      "category": "straights",
-      "glbPath": "models/kit/straight_4m.glb",
-      "dimensions": [
-        4.0,
-        0.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            0,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            0,
-            -2.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        }
-      ],
-      "tags": [
-        "fairway",
-        "straight",
-        "basic"
-      ]
-    },
-    "tee_box_4x4": {
-      "id": "tee_box_4x4",
-      "name": "Tee-Off Box (4x4)",
+    "tee_box_6x6": {
+      "id": "tee_box_6x6",
+      "name": "Arcade Tee Box (6x6)",
       "category": "foundations",
-      "glbPath": "models/kit/tee_box_4x4.glb",
+      "glbPath": "models/kit/tee_box_6x6.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -77,14 +32,14 @@
           "position": [
             0,
             0,
-            -2.0
+            -3.0
           ],
           "normal": [
             0,
             0,
             -1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -94,18 +49,18 @@
         "foundation"
       ]
     },
-    "green_cup_standard_4x4": {
-      "id": "green_cup_standard_4x4",
-      "name": "Standard Cup Green (4x4)",
-      "category": "foundations",
-      "glbPath": "models/kit/green_cup_standard_4x4.glb",
+    "straight_6m": {
+      "id": "straight_6m",
+      "name": "Straight Fairway (6m)",
+      "category": "straights",
+      "glbPath": "models/kit/straight_6m.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -113,14 +68,64 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "fairway",
+        "straight"
+      ]
+    },
+    "green_cup_standard_6x6": {
+      "id": "green_cup_standard_6x6",
+      "name": "Arcade Green Cup (6x6)",
+      "category": "foundations",
+      "glbPath": "models/kit/green_cup_standard_6x6.glb",
+      "dimensions": [
+        6.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -131,18 +136,18 @@
         "goal"
       ]
     },
-    "turn_15deg_crisp": {
-      "id": "turn_15deg_crisp",
-      "name": "Crisp Turn (15\u00b0)",
-      "category": "turns",
-      "glbPath": "models/kit/turn_15deg_crisp.glb",
+    "green_cup_funnel_6x6": {
+      "id": "green_cup_funnel_6x6",
+      "name": "Vortex Funnel Cup (6x6)",
+      "category": "foundations",
+      "glbPath": "models/kit/green_cup_funnel_6x6.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -150,29 +155,66 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "cup",
+        "funnel",
+        "terminal",
+        "goal"
+      ]
+    },
+    "turn_15deg_crisp": {
+      "id": "turn_15deg_crisp",
+      "name": "Crisp Turn (15\u00b0)",
+      "category": "turns",
+      "glbPath": "models/kit/turn_15deg_crisp.glb",
+      "dimensions": [
+        6.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            0.20444504226559013,
             0,
-            0,
-            -2.0
+            1.4470857293848756
           ],
           "normal": [
+            0.25881904510252074,
             0,
-            0,
-            -1
+            -0.9659258262890683
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -188,12 +230,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_15deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -201,29 +243,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            0.20444504226559013,
             0,
-            0,
-            -2.0
+            1.4470857293848756
           ],
           "normal": [
+            0.25881904510252074,
             0,
-            0,
-            -1
+            -0.9659258262890683
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -239,12 +281,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_30deg_crisp.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -252,29 +294,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            0.8038475772933678,
             0,
-            0,
-            -2.0
+            4.440892098500626e-16
           ],
           "normal": [
+            0.49999999999999994,
             0,
-            0,
-            -1
+            -0.8660254037844387
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -290,12 +332,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_30deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -303,29 +345,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            0.8038475772933678,
             0,
-            0,
-            -2.0
+            4.440892098500626e-16
           ],
           "normal": [
+            0.49999999999999994,
             0,
-            0,
-            -1
+            -0.8660254037844387
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -341,12 +383,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_45deg_crisp.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -354,29 +396,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            1.7573593128807146,
             0,
-            0,
-            -2.0
+            -1.2426406871192848
           ],
           "normal": [
+            0.7071067811865475,
             0,
-            0,
-            -1
+            -0.7071067811865476
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -392,12 +434,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_45deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -405,29 +447,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            1.7573593128807146,
             0,
-            0,
-            -2.0
+            -1.2426406871192848
           ],
           "normal": [
+            0.7071067811865475,
             0,
-            0,
-            -1
+            -0.7071067811865476
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -443,12 +485,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_60deg_crisp.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -456,29 +498,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            2.999999999999999,
             0,
-            0,
-            -2.0
+            -2.196152422706632
           ],
           "normal": [
+            0.8660254037844386,
             0,
-            0,
-            -1
+            -0.5000000000000001
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -494,12 +536,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_60deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -507,29 +549,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            2.999999999999999,
             0,
-            0,
-            -2.0
+            -2.196152422706632
           ],
           "normal": [
+            0.8660254037844386,
             0,
-            0,
-            -1
+            -0.5000000000000001
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -545,12 +587,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_75deg_crisp.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        7.447085729384876,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -558,29 +600,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            4.447085729384876,
             0,
-            0,
-            -2.0
+            -2.79555495773441
           ],
           "normal": [
+            0.9659258262890683,
             0,
-            0,
-            -1
+            -0.25881904510252074
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -596,12 +638,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_75deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        7.447085729384876,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -609,29 +651,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            4.447085729384876,
             0,
-            0,
-            -2.0
+            -2.79555495773441
           ],
           "normal": [
+            0.9659258262890683,
             0,
-            0,
-            -1
+            -0.25881904510252074
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -647,12 +689,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_90deg_crisp.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        9.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -660,29 +702,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            5.999999999999999,
             0,
-            0,
-            -2.0
+            -3.0
           ],
           "normal": [
+            1.0,
             0,
-            0,
-            -1
+            -6.123233995736766e-17
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -698,12 +740,12 @@
       "category": "turns",
       "glbPath": "models/kit/turn_90deg_rounded.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        9.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -711,29 +753,29 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
           "id": "LOC_Socket_Out",
           "position": [
+            5.999999999999999,
             0,
-            0,
-            -2.0
+            -3.0
           ],
           "normal": [
+            1.0,
             0,
-            0,
-            -1
+            -6.123233995736766e-17
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
@@ -743,17 +785,323 @@
         "90deg"
       ]
     },
-    "turn_banked_90deg_4x4": {
-      "id": "turn_banked_90deg_4x4",
-      "name": "Banked Wall-Ride Turn (90\u00b0)",
+    "turn_banked_90deg_6x6": {
+      "id": "turn_banked_90deg_6x6",
+      "name": "Banked 90\u00b0 Wall Curve (6x6)",
       "category": "turns",
-      "glbPath": "models/kit/turn_banked_90deg_4x4.glb",
+      "glbPath": "models/kit/turn_banked_90deg_6x6.glb",
       "dimensions": [
-        4.0,
-        0.6,
-        4.0
+        9.0,
+        1.2,
+        6.0
       ],
-      "turfWidth": 3.6,
+      "turfWidth": 5.2,
+      "railHeight": 1.2,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            6.0,
+            0,
+            -3.0
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "banked",
+        "90deg"
+      ]
+    },
+    "ramp_up_15deg_6x6": {
+      "id": "ramp_up_15deg_6x6",
+      "name": "Ramp 15\u00b0 (6x6)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_up_15deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        2.1,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0.0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            1.5,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 1.5
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "15deg"
+      ]
+    },
+    "ramp_down_15deg_6x6": {
+      "id": "ramp_down_15deg_6x6",
+      "name": "Ramp -15\u00b0 (6x6)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_down_15deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        2.1,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            1.5,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 1.5
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0.0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "-15deg"
+      ]
+    },
+    "ramp_up_30deg_6x6": {
+      "id": "ramp_up_30deg_6x6",
+      "name": "Ramp 30\u00b0 (6x6)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_up_30deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        3.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0.0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            3.0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 3.0
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "30deg"
+      ]
+    },
+    "ramp_down_30deg_6x6": {
+      "id": "ramp_down_30deg_6x6",
+      "name": "Ramp -30\u00b0 (6x6)",
+      "category": "elevation",
+      "glbPath": "models/kit/ramp_down_30deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        3.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            3.0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 3.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0.0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "-30deg"
+      ]
+    },
+    "bridge_overpass_6x12": {
+      "id": "bridge_overpass_6x12",
+      "name": "Overpass Bridge (6x12)",
+      "category": "elevation",
+      "glbPath": "models/kit/bridge_overpass_6x12.glb",
+      "dimensions": [
+        6.0,
+        3.6,
+        12.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            3.0,
+            6.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 3.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            3.0,
+            -6.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 3.0
+        }
+      ],
+      "tags": [
+        "elevation",
+        "bridge",
+        "overpass"
+      ]
+    },
+    "obstacle_windmill_6x12": {
+      "id": "obstacle_windmill_6x12",
+      "name": "Windmill Gate (6x12)",
+      "category": "hazards",
+      "glbPath": "models/kit/obstacle_windmill_6x12.glb",
+      "dimensions": [
+        6.0,
+        4.8,
+        12.0
+      ],
+      "turfWidth": 5.2,
       "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
@@ -762,14 +1110,14 @@
           "position": [
             0,
             0,
-            2.0
+            6.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
@@ -777,386 +1125,35 @@
           "position": [
             0,
             0,
-            -2.0
+            -6.0
           ],
           "normal": [
             0,
             0,
             -1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
       "tags": [
-        "turn",
-        "banked",
-        "wall-ride",
-        "90deg"
-      ]
-    },
-    "ramp_up_15deg_4x4": {
-      "id": "ramp_up_15deg_4x4",
-      "name": "Gentle Ramp Up (15\u00b0)",
-      "category": "elevation",
-      "glbPath": "models/kit/ramp_up_15deg_4x4.glb",
-      "dimensions": [
-        4.0,
-        1.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            0,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            1.0,
-            -2.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "ramp_top_1m",
-          "elevation": 1.0
-        }
-      ],
-      "tags": [
-        "ramp",
-        "incline",
-        "15deg",
-        "elevation"
-      ]
-    },
-    "ramp_down_15deg_4x4": {
-      "id": "ramp_down_15deg_4x4",
-      "name": "Gentle Ramp Down (15\u00b0)",
-      "category": "elevation",
-      "glbPath": "models/kit/ramp_down_15deg_4x4.glb",
-      "dimensions": [
-        4.0,
-        1.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            1.0,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "ramp_top_1m",
-          "elevation": 1.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            0,
-            -2.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        }
-      ],
-      "tags": [
-        "ramp",
-        "decline",
-        "15deg",
-        "elevation"
-      ]
-    },
-    "ramp_up_30deg_4x4": {
-      "id": "ramp_up_30deg_4x4",
-      "name": "Steep Ramp Up (30\u00b0)",
-      "category": "elevation",
-      "glbPath": "models/kit/ramp_up_30deg_4x4.glb",
-      "dimensions": [
-        4.0,
-        2.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            0,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            2.0,
-            -2.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "ramp_top_2m",
-          "elevation": 2.0
-        }
-      ],
-      "tags": [
-        "ramp",
-        "steep",
-        "30deg",
-        "elevation"
-      ]
-    },
-    "ramp_down_30deg_4x4": {
-      "id": "ramp_down_30deg_4x4",
-      "name": "Steep Ramp Down (30\u00b0)",
-      "category": "elevation",
-      "glbPath": "models/kit/ramp_down_30deg_4x4.glb",
-      "dimensions": [
-        4.0,
-        2.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            2.0,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "ramp_top_2m",
-          "elevation": 2.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            0,
-            -2.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        }
-      ],
-      "tags": [
-        "ramp",
-        "steep",
-        "decline",
-        "30deg",
-        "elevation"
-      ]
-    },
-    "bridge_overpass_4x8": {
-      "id": "bridge_overpass_4x8",
-      "name": "Overpass Bridge (4x8)",
-      "category": "elevation",
-      "glbPath": "models/kit/bridge_overpass_4x8.glb",
-      "dimensions": [
-        4.0,
-        2.4,
-        8.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            2.0,
-            4.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "ramp_top_2m",
-          "elevation": 2.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            2.0,
-            -4.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "ramp_top_2m",
-          "elevation": 2.0
-        }
-      ],
-      "tags": [
-        "bridge",
-        "overpass",
-        "multi-tier",
-        "tunnel"
-      ]
-    },
-    "green_cup_funnel_4x4": {
-      "id": "green_cup_funnel_4x4",
-      "name": "Funnel Dish Green (4x4)",
-      "category": "foundations",
-      "glbPath": "models/kit/green_cup_funnel_4x4.glb",
-      "dimensions": [
-        4.0,
-        0.4,
-        4.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            0.12,
-            2.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.12
-        }
-      ],
-      "tags": [
-        "cup",
-        "green",
-        "funnel",
-        "dish"
-      ]
-    },
-    "obstacle_windmill_4x8": {
-      "id": "obstacle_windmill_4x8",
-      "name": "Classic Windmill Gate (4x8)",
-      "category": "obstacles",
-      "glbPath": "models/kit/obstacle_windmill_4x8.glb",
-      "dimensions": [
-        4.0,
-        4.8,
-        8.0
-      ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
-      "hasDynamicWalls": true,
-      "sockets": [
-        {
-          "id": "LOC_Socket_In",
-          "position": [
-            0,
-            0,
-            4.0
-          ],
-          "normal": [
-            0,
-            0,
-            1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        },
-        {
-          "id": "LOC_Socket_Out",
-          "position": [
-            0,
-            0,
-            -4.0
-          ],
-          "normal": [
-            0,
-            0,
-            -1
-          ],
-          "type": "track_standard_4m",
-          "elevation": 0.0
-        }
-      ],
-      "tags": [
+        "hazard",
         "obstacle",
-        "windmill",
-        "animated",
-        "kinematic"
+        "windmill"
       ]
     },
-    "hazard_sand_trap_4x4": {
-      "id": "hazard_sand_trap_4x4",
-      "name": "Sand Trap Bunker (4x4)",
+    "hazard_sand_trap_6x6": {
+      "id": "hazard_sand_trap_6x6",
+      "name": "Sand Trap Bunker (6x6)",
       "category": "hazards",
-      "glbPath": "models/kit/hazard_sand_trap_4x4.glb",
+      "glbPath": "models/kit/hazard_sand_trap_6x6.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -1164,14 +1161,14 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
@@ -1179,36 +1176,34 @@
           "position": [
             0,
             0,
-            -2.0
+            -3.0
           ],
           "normal": [
             0,
             0,
             -1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
       "tags": [
         "hazard",
-        "sand",
-        "bunker",
-        "damping"
+        "sand"
       ]
     },
-    "hazard_water_channel_4x4": {
-      "id": "hazard_water_channel_4x4",
-      "name": "Water Hazard Channel (4x4)",
+    "hazard_water_channel_6x6": {
+      "id": "hazard_water_channel_6x6",
+      "name": "Water Hazard Pond (6x6)",
       "category": "hazards",
-      "glbPath": "models/kit/hazard_water_channel_4x4.glb",
+      "glbPath": "models/kit/hazard_water_channel_6x6.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        4.0
+        6.0,
+        0.6,
+        6.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -1216,14 +1211,14 @@
           "position": [
             0,
             0,
-            2.0
+            3.0
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
@@ -1231,36 +1226,34 @@
           "position": [
             0,
             0,
-            -2.0
+            -3.0
           ],
           "normal": [
             0,
             0,
             -1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
       "tags": [
         "hazard",
-        "water",
-        "penalty",
-        "respawn"
+        "water"
       ]
     },
-    "hazard_booster_strip_4x2": {
-      "id": "hazard_booster_strip_4x2",
-      "name": "Arcade Booster Strip (4x2)",
+    "hazard_booster_strip_6x3": {
+      "id": "hazard_booster_strip_6x3",
+      "name": "Arcade Booster Strip (6x3)",
       "category": "hazards",
-      "glbPath": "models/kit/hazard_booster_strip_4x2.glb",
+      "glbPath": "models/kit/hazard_booster_strip_6x3.glb",
       "dimensions": [
-        4.0,
-        0.4,
-        2.0
+        6.0,
+        0.6,
+        3.0
       ],
-      "turfWidth": 3.6,
-      "railHeight": 0.4,
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
       "hasDynamicWalls": true,
       "sockets": [
         {
@@ -1268,14 +1261,14 @@
           "position": [
             0,
             0,
-            1.0
+            1.5
           ],
           "normal": [
             0,
             0,
             1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         },
         {
@@ -1283,111 +1276,27 @@
           "position": [
             0,
             0,
-            -1.0
+            -1.5
           ],
           "normal": [
             0,
             0,
             -1
           ],
-          "type": "track_standard_4m",
+          "type": "track_arcade_6m",
           "elevation": 0.0
         }
       ],
       "tags": [
         "hazard",
-        "booster",
-        "speed",
-        "impulse"
+        "booster"
       ]
     },
     "prop_bumper_mushroom": {
       "id": "prop_bumper_mushroom",
-      "name": "Pinball Mushroom Bumper",
+      "name": "Prop Bumper Mushroom",
       "category": "props",
       "glbPath": "models/kit/prop_bumper_mushroom.glb",
-      "dimensions": [
-        0.9,
-        0.4,
-        0.9
-      ],
-      "turfWidth": 0,
-      "railHeight": 0,
-      "hasDynamicWalls": false,
-      "sockets": [],
-      "tags": [
-        "bumper",
-        "mushroom",
-        "pinball",
-        "restitution"
-      ]
-    },
-    "prop_bumper_wedge": {
-      "id": "prop_bumper_wedge",
-      "name": "Triangular Bumper Wedge",
-      "category": "props",
-      "glbPath": "models/kit/prop_bumper_wedge.glb",
-      "dimensions": [
-        1.2,
-        0.35,
-        0.4
-      ],
-      "turfWidth": 0,
-      "railHeight": 0,
-      "hasDynamicWalls": false,
-      "sockets": [],
-      "tags": [
-        "bumper",
-        "wedge",
-        "kicker"
-      ]
-    },
-    "prop_spinner_paddle": {
-      "id": "prop_spinner_paddle",
-      "name": "Rotating Spinner Paddle",
-      "category": "props",
-      "glbPath": "models/kit/prop_spinner_paddle.glb",
-      "dimensions": [
-        2.4,
-        0.5,
-        0.3
-      ],
-      "turfWidth": 0,
-      "railHeight": 0,
-      "hasDynamicWalls": false,
-      "sockets": [],
-      "tags": [
-        "obstacle",
-        "spinner",
-        "rotating"
-      ]
-    },
-    "prop_tree_oak": {
-      "id": "prop_tree_oak",
-      "name": "Stylized Oak Tree",
-      "category": "props",
-      "glbPath": "models/kit/prop_tree_oak.glb",
-      "dimensions": [
-        1.5,
-        3.0,
-        1.5
-      ],
-      "turfWidth": 0,
-      "railHeight": 0,
-      "hasDynamicWalls": false,
-      "sockets": [],
-      "tags": [
-        "tree",
-        "nature",
-        "foliage",
-        "dressing"
-      ]
-    },
-    "prop_rock_mossy": {
-      "id": "prop_rock_mossy",
-      "name": "Mossy Boulder",
-      "category": "props",
-      "glbPath": "models/kit/prop_rock_mossy.glb",
       "dimensions": [
         0.8,
         0.6,
@@ -1398,31 +1307,103 @@
       "hasDynamicWalls": false,
       "sockets": [],
       "tags": [
-        "rock",
-        "boulder",
-        "stone",
-        "dressing"
+        "prop",
+        "bumper"
       ]
     },
-    "prop_lantern_post": {
-      "id": "prop_lantern_post",
-      "name": "Country Club Lantern Post",
+    "prop_bumper_wedge": {
+      "id": "prop_bumper_wedge",
+      "name": "Prop Bumper Wedge",
       "category": "props",
-      "glbPath": "models/kit/prop_lantern_post.glb",
+      "glbPath": "models/kit/prop_bumper_wedge.glb",
       "dimensions": [
-        0.3,
-        1.8,
-        0.3
+        0.7,
+        0.5,
+        0.7
       ],
       "turfWidth": 0,
       "railHeight": 0,
       "hasDynamicWalls": false,
       "sockets": [],
       "tags": [
-        "light",
-        "lantern",
-        "post",
-        "dressing"
+        "prop",
+        "bumper"
+      ]
+    },
+    "prop_spinner_paddle": {
+      "id": "prop_spinner_paddle",
+      "name": "Prop Spinner Paddle",
+      "category": "props",
+      "glbPath": "models/kit/prop_spinner_paddle.glb",
+      "dimensions": [
+        1.0,
+        0.9,
+        1.0
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "spinner"
+      ]
+    },
+    "prop_tree_oak": {
+      "id": "prop_tree_oak",
+      "name": "Prop Tree Oak",
+      "category": "props",
+      "glbPath": "models/kit/prop_tree_oak.glb",
+      "dimensions": [
+        1.6,
+        4.2,
+        1.6
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature"
+      ]
+    },
+    "prop_rock_mossy": {
+      "id": "prop_rock_mossy",
+      "name": "Prop Rock Mossy",
+      "category": "props",
+      "glbPath": "models/kit/prop_rock_mossy.glb",
+      "dimensions": [
+        1.4,
+        1.1,
+        1.4
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature"
+      ]
+    },
+    "prop_lantern_post": {
+      "id": "prop_lantern_post",
+      "name": "Prop Lantern Post",
+      "category": "props",
+      "glbPath": "models/kit/prop_lantern_post.glb",
+      "dimensions": [
+        0.4,
+        2.6,
+        0.4
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "light"
       ]
     }
   }
