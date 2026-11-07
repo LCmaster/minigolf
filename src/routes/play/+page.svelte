@@ -63,7 +63,28 @@
 
     engine.courseManager.loadHole(currentHole);
     engine.ballController.createPhysicsBody(engine.courseManager.spawnPosition);
-    engine.cameraController.setTarget(engine.courseManager.spawnPosition);
+
+    if (engine.courseManager.goalPosition) {
+      engine.cameraController.playIntroFlyover(
+        engine.courseManager.spawnPosition,
+        engine.courseManager.goalPosition,
+        2.0
+      );
+    } else {
+      engine.cameraController.setTarget(engine.courseManager.spawnPosition);
+      engine.cameraController.snapToTarget();
+    }
+  }
+
+  function toggleOverview() {
+    if (!engine) return;
+    engine.cameraController.toggleOverview();
+  }
+
+  function handleKeydown(ev) {
+    if (ev.code === "Space") {
+      toggleOverview();
+    }
   }
 
   function nextHole() {
@@ -91,6 +112,8 @@
     engine?.dispose();
   });
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <svelte:head>
   <title>Play Campaign | Mini Golf Mania</title>
@@ -127,6 +150,14 @@
 
   <!-- Top-Right Controls -->
   <div class="absolute top-4 right-4 flex items-center gap-2">
+    <button
+      on:click={toggleOverview}
+      class="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl text-xs font-mono font-bold text-gray-300 hover:text-white transition-colors shadow-2xl flex items-center gap-1.5"
+      title="Toggle Tactical Overview (Spacebar)"
+    >
+      <span>🔭</span>
+      <span>Overview</span>
+    </button>
     <button
       on:click={toggleAudio}
       class="bg-slate-900/90 backdrop-blur-xl border border-white/10 w-11 h-11 rounded-2xl flex items-center justify-center text-lg hover:bg-white/10 transition-colors shadow-2xl text-white"

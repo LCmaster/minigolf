@@ -6,7 +6,7 @@
 
 import * as THREE from "three";
 
-export type CameraMode = "aiming" | "following" | "cup_zoom" | "overview";
+export type CameraMode = "aiming" | "following" | "cup_zoom" | "overview" | "flyover";
 
 export class CameraController {
   public camera: THREE.PerspectiveCamera;
@@ -23,6 +23,7 @@ export class CameraController {
 
   // Pitch progress in [0.0, 1.0]
   private pitchProgress: number = 0.35; // Default ~29° pleasant natural view
+  private previousPitchProgress: number = 0.35;
   private zoomScale: number = 1.0;
 
   // Orbit angles
@@ -33,6 +34,15 @@ export class CameraController {
 
   private currentCameraPos: THREE.Vector3 = new THREE.Vector3(0, 6, 8);
   private currentLookTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+
+  // Intro flyover animation state
+  private isFlyover: boolean = false;
+  private flyoverProgress: number = 0;
+  private flyoverDuration: number = 2.0;
+  private flyoverStartPos: THREE.Vector3 = new THREE.Vector3();
+  private flyoverEndPos: THREE.Vector3 = new THREE.Vector3();
+  private flyoverStartLook: THREE.Vector3 = new THREE.Vector3();
+  private flyoverEndLook: THREE.Vector3 = new THREE.Vector3();
 
   constructor(camera: THREE.PerspectiveCamera, canvas?: HTMLCanvasElement) {
     this.camera = camera;
@@ -94,7 +104,72 @@ export class CameraController {
     );
   }
 
+  public playIntroFlyover(teePos: THREE.Vector3, cupPos: THREE.Vector3, duration: number = 2.0): void {
+    this.isFlyover = true;
+    this.mode = "flyover";
+    this.flyoverProgress = 0;
+    this.flyoverDuration = duration;
+
+    // Overview starting high over the cup/green
+    this.flyoverStartLook.copy(cupPos);
+    this.flyoverStartPos.set(cupPos.x + 3.0, cupPos.y + 12.0, cupPos.z + 14.0);
+
+    // End at the player's tee position with standard aim pitch
+    this.target.copy(teePos);
+    this.flyoverEndLook.copy(teePos);
+    this.flyoverEndPos.copy(this.calculateDesiredPosition(teePos));
+
+    this.currentCameraPos.copy(this.flyoverStartPos);
+    this.currentLookTarget.copy(this.flyoverStartLook);
+    this.camera.position.copy(this.currentCameraPos);
+    this.camera.lookAt(this.currentLookTarget);
+  }
+
+  public skipFlyover(): void {
+    if (!this.isFlyover) return;
+    this.isFlyover = false;
+    this.mode = "aiming";
+    this.snapToTarget();
+  }
+
+  public toggleOverview(): void {
+    if (this.isFlyover) {
+      this.skipFlyover();
+      return;
+    }
+
+    if (this.pitchProgress > 0.85) {
+      this.setPitchProgress(this.previousPitchProgress);
+      this.mode = "aiming";
+    } else {
+      this.previousPitchProgress = this.pitchProgress;
+      this.setPitchProgress(1.0);
+      this.mode = "overview";
+    }
+  }
+
   public update(deltaTime: number, ballSpeed: number = 0): void {
+    if (this.isFlyover) {
+      this.flyoverProgress += deltaTime / this.flyoverDuration;
+      if (this.flyoverProgress >= 1.0) {
+        this.isFlyover = false;
+        this.mode = "aiming";
+        this.snapToTarget();
+        return;
+      }
+
+      // Smooth cubic ease-in-out curve
+      const t = this.flyoverProgress;
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      this.currentLookTarget.lerpVectors(this.flyoverStartLook, this.flyoverEndLook, ease);
+      this.currentCameraPos.lerpVectors(this.flyoverStartPos, this.flyoverEndPos, ease);
+
+      this.camera.position.copy(this.currentCameraPos);
+      this.camera.lookAt(this.currentLookTarget);
+      return;
+    }
+
     const desiredLook = this.target.clone();
 
     if (this.mode === "cup_zoom") {
@@ -114,6 +189,10 @@ export class CameraController {
   }
 
   public handleOrbitDrag(deltaX: number, deltaY: number): void {
+    if (this.isFlyover) {
+      this.skipFlyover();
+    }
+
     // Horizontal drag = yaw 360°
     this.yawAngle -= deltaX * 0.006;
 

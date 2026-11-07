@@ -53,4 +53,44 @@ describe("CameraController Dual-Pitch & Orbit (TDD)", () => {
     expect(camera.position.z).toBeGreaterThan(startPos.z);
     expect(camera.position.z).toBeLessThan(10 + startPos.z);
   });
+
+  it("handles intro flyover animation and skipping", () => {
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    const controller = new CameraController(camera);
+
+    const teePos = new THREE.Vector3(0, 0, 10);
+    const cupPos = new THREE.Vector3(0, 0, -10);
+
+    controller.playIntroFlyover(teePos, cupPos, 2.0);
+    expect(controller.mode).toBe("flyover");
+
+    // Camera starts near cup (around cupPos.z + 14 = 4)
+    expect(camera.position.z).toBeCloseTo(4, 1);
+
+    // After 1 second (halfway)
+    controller.update(1.0);
+    expect(controller.mode).toBe("flyover");
+
+    // After remaining 1.1 seconds (completed)
+    controller.update(1.1);
+    expect(controller.mode).toBe("aiming");
+    expect(camera.position.z).toBeGreaterThan(10);
+  });
+
+  it("toggles overview mode and back", () => {
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    const controller = new CameraController(camera);
+
+    controller.setPitchProgress(0.35);
+    controller.toggleOverview();
+
+    // Now in overview (pitch progress 1.0)
+    expect(controller.mode).toBe("overview");
+    expect(controller.pitchAngleDeg).toBeCloseTo(60.0, 1);
+
+    // Toggle back
+    controller.toggleOverview();
+    expect(controller.mode).toBe("aiming");
+    expect(controller.pitchAngleDeg).toBeCloseTo(12.5 + 0.35 * (60.0 - 12.5), 1);
+  });
 });

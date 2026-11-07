@@ -67,7 +67,8 @@ export class GameEngine {
       this.renderPipeline.renderer.domElement,
       this.renderPipeline.camera,
       this.renderPipeline.scene,
-      this.ballController
+      this.ballController,
+      this.cameraController
     );
 
     this.slingshotInput.onStrokeTaken = (power, impulse) => {
@@ -154,12 +155,12 @@ export class GameEngine {
       this.physicsWorld.drainCollisionEvents();
     }
 
-    // Proximity fallback check (within 14cm of cup center horizontally and within 25cm vertically)
+    // Proximity fallback check (within 28cm of cup center horizontally and within 25cm vertically)
     if (!ballEnteredHole && goalPos && this.ballController.mesh) {
       const bPos = this.ballController.mesh.position;
       const horizDist = Math.hypot(bPos.x - goalPos.x, bPos.z - goalPos.z);
       const vertDist = Math.abs(bPos.y - goalPos.y);
-      if (horizDist < 0.14 && vertDist < 0.25) {
+      if (horizDist < 0.28 && vertDist < 0.25) {
         ballEnteredHole = true;
       }
     }
@@ -225,26 +226,30 @@ export class GameEngine {
       tiles: [
         {
           instanceId: "tile_tee",
-          kitPieceId: "tee_box_4x4",
-          position: [0, 0, 4.0],
+          kitPieceId: "tee_box_6x6",
+          position: [0, 0, 6.0],
           rotationY: 0,
           walls: { left: true, right: true },
           connectedSockets: { LOC_Socket_Out: "tile_straight" },
         },
         {
           instanceId: "tile_straight",
-          kitPieceId: "straight_4m",
-          position: [0, 0, 0.0],
-          rotationY: 0,
+          kitPieceId: "straight_6m",
           walls: { left: true, right: true },
+          attachedTo: {
+            parentInstanceId: "tile_tee",
+            parentSocketId: "LOC_Socket_Out",
+          },
           connectedSockets: { LOC_Socket_In: "tile_tee", LOC_Socket_Out: "tile_cup" },
         },
         {
           instanceId: "tile_cup",
-          kitPieceId: "green_cup_standard_4x4",
-          position: [0, 0, -4.0],
-          rotationY: 0,
+          kitPieceId: "green_cup_standard_6x6",
           walls: { left: true, right: true },
+          attachedTo: {
+            parentInstanceId: "tile_straight",
+            parentSocketId: "LOC_Socket_Out",
+          },
           connectedSockets: { LOC_Socket_In: "tile_straight" },
         },
       ],
@@ -253,7 +258,15 @@ export class GameEngine {
 
     this.courseManager.loadHole(testHole);
     this.ballController.createPhysicsBody(this.courseManager.spawnPosition);
-    this.cameraController.setTarget(this.courseManager.spawnPosition);
+    if (this.courseManager.goalPosition) {
+      this.cameraController.playIntroFlyover(
+        this.courseManager.spawnPosition,
+        this.courseManager.goalPosition
+      );
+    } else {
+      this.cameraController.setTarget(this.courseManager.spawnPosition);
+      this.cameraController.snapToTarget();
+    }
   }
 
   private setupResizeListener(): void {

@@ -5,14 +5,19 @@
 
 export interface PlacedTile {
   instanceId: string; // UUID of placed instance
-  kitPieceId: string; // Matches KitPieceMetadata.id (e.g. "straight_4m", "turn_90deg_crisp")
-  position: [number, number, number]; // [x, y, z] world coordinates
-  rotationY: number; // Y-axis rotation in degrees (0, 15, 30, 45, 90, 180...)
+  kitPieceId: string; // Matches KitPieceMetadata.id (e.g. "straight_6m", "turn_90deg_crisp")
+  position?: [number, number, number]; // [x, y, z] world coordinates (auto-resolved if attachedTo is provided)
+  rotationY?: number; // Y-axis rotation in degrees (auto-resolved if attachedTo is provided)
   walls: {
     left: boolean; // True = left rail active; False = open cliff/edge
     right: boolean; // True = right rail active; False = open cliff/edge
   };
-  connectedSockets: Record<string, string>; // socketId -> targetTileInstanceId
+  connectedSockets?: Record<string, string>; // socketId -> targetTileInstanceId
+  attachedTo?: {
+    parentInstanceId: string;
+    parentSocketId: string;
+    childSocketId?: string; // defaults to "LOC_Socket_In"
+  };
 }
 
 export interface PlacedProp {

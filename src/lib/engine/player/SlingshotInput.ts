@@ -5,15 +5,21 @@
 
 import * as THREE from "three";
 import type { BallController } from "./BallController";
+import type { CameraController } from "../scene/CameraController";
 import { AimArrowMesh } from "./AimArrowMesh";
 
 export class SlingshotInput {
   private canvas: HTMLCanvasElement;
   private camera: THREE.Camera;
   private ball: BallController;
+  private cameraController?: CameraController;
   public arrow: AimArrowMesh;
 
   private isDragging: boolean = false;
+  private isOrbiting: boolean = false;
+  private lastPointerX: number = 0;
+  private lastPointerY: number = 0;
+
   private raycaster: THREE.Raycaster;
   private groundPlane: THREE.Plane;
   private dragStartPoint: THREE.Vector3 = new THREE.Vector3();
@@ -21,7 +27,7 @@ export class SlingshotInput {
   private shotDirection: THREE.Vector3 = new THREE.Vector3();
 
   private maxDragDistance: number = 4.0; // 4 meters max drag for 100% power
-  private maxImpulseForce: number = 0.55; // Calibrated for 0.045kg ball over 4m grid
+  private maxImpulseForce: number = 0.75; // Calibrated for arcade 6x6m tracks
 
   public onStrokeTaken?: (power: number, impulse: THREE.Vector3) => void;
 
@@ -29,11 +35,13 @@ export class SlingshotInput {
     canvas: HTMLCanvasElement,
     camera: THREE.Camera,
     scene: THREE.Scene,
-    ball: BallController
+    ball: BallController,
+    cameraController?: CameraController
   ) {
     this.canvas = canvas;
     this.camera = camera;
     this.ball = ball;
+    this.cameraController = cameraController;
     this.arrow = new AimArrowMesh();
     scene.add(this.arrow.group);
 
@@ -50,48 +58,73 @@ export class SlingshotInput {
   }
 
   private handlePointerDown = (ev: PointerEvent): void => {
-    if (this.ball.state !== "aiming") return;
-    if (ev.button !== 0) return; // Left mouse button only
-
-    const point = this.getGroundIntersection(ev.clientX, ev.clientY);
-    if (!point) return;
-
-    const ballPos = this.ball.getPosition();
-    const distToBall = point.distanceTo(ballPos);
-
-    // Click near ball (within 2m radius for generous mobile/touch target)
-    if (distToBall < 2.0) {
-      this.isDragging = true;
-      this.dragStartPoint.copy(ballPos);
-      this.currentDragPoint.copy(ballPos);
+    // Right or middle click triggers camera orbit
+    if (ev.button === 2 || ev.button === 1) {
+      this.isOrbiting = true;
+      this.lastPointerX = ev.clientX;
+      this.lastPointerY = ev.clientY;
+      return;
     }
+
+    if (ev.button !== 0) return; // Left mouse button only beyond here
+
+    if (this.ball.state === "aiming") {
+      const point = this.getGroundIntersection(ev.clientX, ev.clientY);
+      if (point) {
+        const ballPos = this.ball.getPosition();
+        const distToBall = point.distanceTo(ballPos);
+
+        // Click near ball (< 0.8m) starts slingshot aiming
+        if (distToBall < 0.8) {
+          this.isDragging = true;
+          this.dragStartPoint.copy(ballPos);
+          this.currentDragPoint.copy(ballPos);
+          return;
+        }
+      }
+    }
+
+    // Clicking anywhere else on canvas orbits the camera
+    this.isOrbiting = true;
+    this.lastPointerX = ev.clientX;
+    this.lastPointerY = ev.clientY;
   };
 
   private handlePointerMove = (ev: PointerEvent): void => {
-    if (!this.isDragging || this.ball.state !== "aiming") return;
+    if (this.isDragging && this.ball.state === "aiming") {
+      const point = this.getGroundIntersection(ev.clientX, ev.clientY);
+      if (!point) return;
 
-    const point = this.getGroundIntersection(ev.clientX, ev.clientY);
-    if (!point) return;
+      this.currentDragPoint.copy(point);
+      const ballPos = this.ball.getPosition();
 
-    this.currentDragPoint.copy(point);
-    const ballPos = this.ball.getPosition();
+      // Slingshot: Dragging backward aims forward!
+      const dragVec = new THREE.Vector3().subVectors(ballPos, this.currentDragPoint);
+      dragVec.y = 0;
 
-    // In direct slingshot: Dragging backward aims forward!
-    const dragVec = new THREE.Vector3().subVectors(ballPos, this.currentDragPoint);
-    dragVec.y = 0; // Pure planar shot
+      const dist = dragVec.length();
+      const power = Math.min(dist / this.maxDragDistance, 1.0);
 
-    const dist = dragVec.length();
-    const power = Math.min(dist / this.maxDragDistance, 1.0);
-
-    if (dist > 0.05) {
-      this.shotDirection.copy(dragVec).normalize();
-      this.arrow.update(ballPos, this.shotDirection, power, performance.now() / 1000);
-    } else {
-      this.arrow.hide();
+      if (dist > 0.05) {
+        this.shotDirection.copy(dragVec).normalize();
+        this.arrow.update(ballPos, this.shotDirection, power, performance.now() / 1000);
+      } else {
+        this.arrow.hide();
+      }
+    } else if (this.isOrbiting && this.cameraController) {
+      const dx = ev.clientX - this.lastPointerX;
+      const dy = ev.clientY - this.lastPointerY;
+      this.lastPointerX = ev.clientX;
+      this.lastPointerY = ev.clientY;
+      this.cameraController.handleOrbitDrag(dx, dy);
     }
   };
 
   private handlePointerUp = (): void => {
+    if (this.isOrbiting) {
+      this.isOrbiting = false;
+    }
+
     if (!this.isDragging) return;
     this.isDragging = false;
     this.arrow.hide();
@@ -106,7 +139,6 @@ export class SlingshotInput {
     const power = Math.min(dist / this.maxDragDistance, 1.0);
 
     if (power > 0.05) {
-      // Calculate shot direction and apply aim jitter if power > 0.75
       let dir = this.shotDirection.clone();
       if (power > 0.75) {
         const jitterFactor = (power - 0.75) / 0.25;

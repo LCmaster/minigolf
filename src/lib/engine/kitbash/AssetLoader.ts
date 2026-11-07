@@ -98,14 +98,15 @@ export class AssetLoader {
       } else if (child.name === "UBX_Wall_Back" && child instanceof THREE.Mesh) {
         ubxWallBackGeo = child.geometry.clone();
       } else if (child.name.startsWith("LOC_Socket_")) {
-        // Extract socket definition
+        // Extract socket definition, preferring precise metadata from manifest if present
         const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(child.quaternion);
+        const metaSocket = meta.sockets.find((s) => s.id === child.name);
         sockets.push({
           id: child.name,
-          position: [child.position.x, child.position.y, child.position.z],
-          normal: [forward.x, forward.y, forward.z],
-          type: "track_standard_4m",
-          elevation: child.position.y,
+          position: metaSocket ? metaSocket.position : [child.position.x, child.position.y, child.position.z],
+          normal: metaSocket ? metaSocket.normal : [forward.x, forward.y, forward.z],
+          type: metaSocket ? metaSocket.type : "track_arcade_6m",
+          elevation: metaSocket ? metaSocket.elevation : child.position.y,
         });
         locators.set(child.name, child.position.clone());
       } else if (child.name.startsWith("LOC_")) {

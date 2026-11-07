@@ -8,6 +8,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, HoleData } from "../types/CourseSchema";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
+import { SocketSolver } from "./SocketSolver";
 
 export interface InstantiatedTile {
   tileData: PlacedTile;
@@ -30,6 +31,7 @@ export class CourseManager {
   private tiles: Map<string, InstantiatedTile> = new Map();
   private unifiedFloorCollider: RAPIER.Collider | null = null;
   private goalSensorCollider: RAPIER.Collider | null = null;
+  private flagSprite: THREE.Sprite | null = null;
 
   public goalPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 0.2, 0);
@@ -64,9 +66,41 @@ export class CourseManager {
       return null;
     }
 
+    // Resolve mathematical socket snapping if attachedTo is provided
+    if (tileData.attachedTo) {
+      const parent = this.tiles.get(tileData.attachedTo.parentInstanceId);
+      if (parent) {
+        parent.group.updateMatrixWorld(true);
+        const parentSocket = parent.pieceTemplate.sockets.find(
+          (s) => s.id === tileData.attachedTo!.parentSocketId
+        );
+        const childSocketId = tileData.attachedTo.childSocketId || "LOC_Socket_In";
+        const childSocket = template.sockets.find((s) => s.id === childSocketId);
+
+        if (parentSocket && childSocket) {
+          const snappedMatrix = SocketSolver.computeSnappedTransform(
+            parent.group.matrixWorld,
+            parentSocket,
+            childSocket
+          );
+          const pos = new THREE.Vector3();
+          const quat = new THREE.Quaternion();
+          const scale = new THREE.Vector3();
+          snappedMatrix.decompose(pos, quat, scale);
+          const euler = new THREE.Euler().setFromQuaternion(quat, "YXZ");
+
+          tileData.position = [pos.x, pos.y, pos.z];
+          tileData.rotationY = (euler.y * 180) / Math.PI;
+        }
+      }
+    }
+
+    const pos = tileData.position || [0, 0, 0];
+    const rotY = tileData.rotationY || 0;
+
     const group = template.visualTemplate.clone(true);
-    group.position.set(...tileData.position);
-    group.rotation.y = (tileData.rotationY * Math.PI) / 180;
+    group.position.set(pos[0], pos[1], pos[2]);
+    group.rotation.y = (rotY * Math.PI) / 180;
     this.scene.add(group);
 
     // Find wall submeshes
@@ -122,6 +156,28 @@ export class CourseManager {
     }
 
     return instantiated;
+  }
+
+  public snapTileToSocket(
+    parentInstanceId: string,
+    parentSocketId: string,
+    childKitPieceId: string,
+    childInstanceId: string,
+    childSocketInId: string = "LOC_Socket_In",
+    walls: { left: boolean; right: boolean } = { left: true, right: true },
+    rebuildFloor: boolean = true
+  ): InstantiatedTile | null {
+    const tileData: PlacedTile = {
+      instanceId: childInstanceId,
+      kitPieceId: childKitPieceId,
+      walls,
+      attachedTo: {
+        parentInstanceId,
+        parentSocketId,
+        childSocketId: childSocketInId,
+      },
+    };
+    return this.addTile(tileData, rebuildFloor);
   }
 
   public toggleWall(instanceId: string, side: "left" | "right"): boolean {
@@ -235,13 +291,77 @@ export class CourseManager {
       this.rapierWorld.removeCollider(this.goalSensorCollider, false);
       this.goalSensorCollider = null;
     }
+    if (this.flagSprite) {
+      this.scene.remove(this.flagSprite);
+      this.flagSprite = null;
+    }
 
-    const desc = this.rapier.ColliderDesc.ball(0.125)
-      .setTranslation(pos.x, pos.y, pos.z)
+    // Arcade enlarged cup sensor: 0.28m radius (0.56m diameter), settled -0.10m deep in floor slab
+    const desc = this.rapier.ColliderDesc.ball(0.28)
+      .setTranslation(pos.x, pos.y - 0.1, pos.z)
       .setSensor(true)
       .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
 
     this.goalSensorCollider = this.rapierWorld.createCollider(desc);
+
+    // Floating camera-facing tournament flag billboard marker (no rigid pole to interfere with ball physics)
+    this.flagSprite = this.createFlagBillboard(pos);
+    this.scene.add(this.flagSprite);
+  }
+
+  private createFlagBillboard(pos: THREE.Vector3): THREE.Sprite {
+    if (typeof document === "undefined") {
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }));
+      sprite.position.set(pos.x, pos.y + 1.2, pos.z);
+      return sprite;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, 128, 128);
+
+      // Slender gold flagpole
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillRect(36, 16, 6, 96);
+      ctx.beginPath();
+      ctx.arc(39, 16, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Vibrant pennant flag
+      ctx.beginPath();
+      ctx.moveTo(42, 20);
+      ctx.lineTo(108, 38);
+      ctx.lineTo(42, 56);
+      ctx.closePath();
+      ctx.fillStyle = "#ef4444";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+
+      // Pin icon
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("⛳", 66, 38);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(1.5, 1.5, 1.0);
+    sprite.position.set(pos.x, pos.y + 1.2, pos.z);
+    return sprite;
   }
 
   public getGoalSensorCollider(): RAPIER.Collider | null {
@@ -268,6 +388,10 @@ export class CourseManager {
     if (this.goalSensorCollider) {
       this.rapierWorld.removeCollider(this.goalSensorCollider, false);
       this.goalSensorCollider = null;
+    }
+    if (this.flagSprite) {
+      this.scene.remove(this.flagSprite);
+      this.flagSprite = null;
     }
   }
 }

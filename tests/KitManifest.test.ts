@@ -56,3 +56,4 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
     expect(fs.statSync(blendPath).size).toBeGreaterThan(10000);
   });
 });
+
