@@ -6,6 +6,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "lint": "eslint ."
   },
   "devDependencies": {
@@ -22,7 +23,8 @@
     "postcss-load-config": "^4.0.1",
     "svelte": "^4.0.5",
     "tailwindcss": "^3.3.2",
-    "vite": "^4.4.2"
+    "vite": "^4.4.2",
+    "vitest": "^0.34.6"
   },
   "type": "module",
   "dependencies": {
