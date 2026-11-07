@@ -73,3 +73,4 @@ describe("GameStores Unit Tests", () => {
     expect(get(stores.shots)).toEqual([1, 2]);
   });
 });
+

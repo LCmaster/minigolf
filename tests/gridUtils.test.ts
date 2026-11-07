@@ -32,3 +32,4 @@ describe("gridUtils Unit Tests", () => {
     expect(point2.z).toBeCloseTo(point1.z, 4);
   });
 });
+

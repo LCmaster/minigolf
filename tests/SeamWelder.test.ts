@@ -152,3 +152,4 @@ describe("SeamWelder Unit Tests", () => {
     expect(colliderDesc).toBeNull();
   });
 });
+

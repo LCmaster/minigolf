@@ -72,3 +72,4 @@ describe("SlingshotInput Unit Tests", () => {
     expect(input.arrow.group.visible).toBe(false);
   });
 });
+

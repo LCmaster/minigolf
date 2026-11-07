@@ -97,3 +97,4 @@ describe("HistoryManager Unit Tests", () => {
     expect(history.canRedo()).toBe(false);
   });
 });
+

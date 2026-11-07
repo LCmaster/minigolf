@@ -98,3 +98,4 @@ describe("HoleGenerator Unit Tests", () => {
     expect(kitIds).toContain("obstacle_windmill_4x8");
   });
 });
+

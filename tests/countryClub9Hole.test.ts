@@ -74,3 +74,4 @@ describe("countryClub9Hole Championship Course Integrity", () => {
     expect(totalPar).toBeLessThanOrEqual(36);
   });
 });
+
