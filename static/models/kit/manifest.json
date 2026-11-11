@@ -1095,6 +1095,7 @@
       "id": "obstacle_windmill_6x12",
       "name": "Windmill Gate (6x12)",
       "category": "obstacles",
+      "propRole": "playable",
       "glbPath": "models/kit/obstacle_windmill_6x12.glb",
       "dimensions": [
         6.0,
@@ -1145,6 +1146,7 @@
       "id": "hazard_sand_trap_6x6",
       "name": "Bunker Sand Trap (6x6)",
       "category": "hazards",
+      "propRole": "playable",
       "glbPath": "models/kit/hazard_sand_trap_6x6.glb",
       "dimensions": [
         6.0,
@@ -1195,6 +1197,7 @@
       "id": "hazard_water_channel_6x6",
       "name": "Water Hazard Channel (6x6)",
       "category": "hazards",
+      "propRole": "playable",
       "glbPath": "models/kit/hazard_water_channel_6x6.glb",
       "dimensions": [
         6.0,
@@ -1245,6 +1248,7 @@
       "id": "hazard_booster_strip_6x3",
       "name": "Arcade Booster Strip (6x3)",
       "category": "hazards",
+      "propRole": "playable",
       "glbPath": "models/kit/hazard_booster_strip_6x3.glb",
       "dimensions": [
         6.0,
@@ -1295,6 +1299,7 @@
       "id": "prop_bumper_mushroom",
       "name": "Prop Bumper Mushroom",
       "category": "props",
+      "propRole": "playable",
       "glbPath": "models/kit/prop_bumper_mushroom.glb",
       "dimensions": [
         0.8,
@@ -1314,6 +1319,7 @@
       "id": "prop_bumper_wedge",
       "name": "Prop Bumper Wedge",
       "category": "props",
+      "propRole": "playable",
       "glbPath": "models/kit/prop_bumper_wedge.glb",
       "dimensions": [
         0.7,
@@ -1333,6 +1339,7 @@
       "id": "prop_spinner_paddle",
       "name": "Prop Spinner Paddle",
       "category": "props",
+      "propRole": "playable",
       "glbPath": "models/kit/prop_spinner_paddle.glb",
       "dimensions": [
         1.0,
@@ -1352,6 +1359,7 @@
       "id": "prop_tree_oak",
       "name": "Prop Tree Oak",
       "category": "props",
+      "propRole": "decorative",
       "glbPath": "models/kit/prop_tree_oak.glb",
       "dimensions": [
         1.6,
@@ -1371,6 +1379,7 @@
       "id": "prop_rock_mossy",
       "name": "Prop Rock Mossy",
       "category": "props",
+      "propRole": "decorative",
       "glbPath": "models/kit/prop_rock_mossy.glb",
       "dimensions": [
         1.4,
@@ -1390,6 +1399,7 @@
       "id": "prop_lantern_post",
       "name": "Prop Lantern Post",
       "category": "props",
+      "propRole": "decorative",
       "glbPath": "models/kit/prop_lantern_post.glb",
       "dimensions": [
         0.4,
@@ -1807,6 +1817,7 @@
       "id": "terrain_hill_knoll_6x6",
       "name": "Grassy Hill Knoll (6x6)",
       "category": "terrain",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/terrain_hill_knoll_6x6.glb",
@@ -1829,6 +1840,7 @@
       "id": "terrain_pond_patch_6x6",
       "name": "Stone Pond Patch (6x6)",
       "category": "terrain",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/terrain_pond_patch_6x6.glb",
@@ -1852,6 +1864,7 @@
       "id": "prop_carnival_arch_6m",
       "name": "Carnival Archway",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_carnival_arch_6m.glb",
@@ -1874,6 +1887,7 @@
       "id": "prop_bumper_peg_yellow",
       "name": "Yellow Carnival Bumper",
       "category": "props",
+      "propRole": "playable",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_bumper_peg_yellow.glb",
@@ -1896,6 +1910,7 @@
       "id": "prop_bumper_peg_blue",
       "name": "Blue Carnival Bumper",
       "category": "props",
+      "propRole": "playable",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_bumper_peg_blue.glb",
@@ -1918,6 +1933,7 @@
       "id": "prop_boulder_faceted",
       "name": "Faceted Boulder",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_boulder_faceted.glb",
@@ -1940,6 +1956,7 @@
       "id": "prop_tree_puffy",
       "name": "Puffy Cartoon Tree",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_tree_puffy.glb",
@@ -1962,6 +1979,7 @@
       "id": "prop_toadstool_pair",
       "name": "Red Toadstools",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_toadstool_pair.glb",
@@ -1984,6 +2002,7 @@
       "id": "prop_lantern_bunting",
       "name": "Lanterns & Bunting",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_lantern_bunting.glb",
@@ -2006,6 +2025,7 @@
       "id": "prop_grass_tuft",
       "name": "Grass Tuft",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_grass_tuft.glb",
@@ -2028,6 +2048,7 @@
       "id": "prop_wildflower_patch",
       "name": "Wildflower Patch",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_wildflower_patch.glb",
@@ -2050,6 +2071,7 @@
       "id": "prop_fence_6m",
       "name": "Park Fence (6m)",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_fence_6m.glb",
@@ -2072,6 +2094,7 @@
       "id": "carnival_windmill_6x12",
       "name": "Carnival Windmill (6x12)",
       "category": "obstacles",
+      "propRole": "playable",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/carnival_windmill_6x12.glb",
@@ -2126,6 +2149,7 @@
       "id": "prop_bigtop_gate_6m",
       "name": "Big Top Gate",
       "category": "props",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_bigtop_gate_6m.glb",
@@ -2149,6 +2173,7 @@
       "id": "prop_bumper_peg_red",
       "name": "Red Carnival Bumper",
       "category": "props",
+      "propRole": "playable",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/prop_bumper_peg_red.glb",
@@ -2171,6 +2196,7 @@
       "id": "terrain_waterfall_lagoon_12x12",
       "name": "Waterfall Lagoon (12x12)",
       "category": "terrain",
+      "propRole": "decorative",
       "theme": "carnival_park",
       "preserveMaterials": true,
       "glbPath": "models/kit/terrain_waterfall_lagoon_12x12.glb",
@@ -2187,6 +2213,55 @@
         "terrain",
         "pond",
         "waterfall",
+        "carnival"
+      ]
+    },
+    "prop_carnival_booster_pad": {
+      "id": "prop_carnival_booster_pad",
+      "name": "Carnival Booster Pad",
+      "category": "props",
+      "propRole": "playable",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_carnival_booster_pad.glb",
+      "dimensions": [
+        1.4,
+        0.12,
+        2.2
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "booster",
+        "playable",
+        "carnival"
+      ]
+    },
+    "prop_carnival_wedge_bumper": {
+      "id": "prop_carnival_wedge_bumper",
+      "name": "Carnival Wedge Bumper",
+      "category": "props",
+      "propRole": "playable",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_carnival_wedge_bumper.glb",
+      "dimensions": [
+        1.6,
+        0.55,
+        1.1
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "bumper",
+        "wedge",
+        "playable",
         "carnival"
       ]
     }

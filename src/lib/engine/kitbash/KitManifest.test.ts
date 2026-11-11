@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { getPiecePropRole, getFreeformPropCatalog } from "../types/KitTypes";
 
 describe("Kit Manifest & Arcade Standard (TDD)", () => {
   const manifestPath = path.resolve("static/models/kit/manifest.json");
@@ -16,9 +17,9 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
     expect(manifest.cupRadius).toBe(0.28);
   });
 
-  it("contains all 32 base arcade pieces and 24 Carnival Park kitbash pieces", () => {
+  it("contains all 32 base arcade pieces and 26 Carnival Park kitbash pieces", () => {
     const pieces = Object.keys(manifest.pieces);
-    expect(pieces.length).toBe(56);
+    expect(pieces.length).toBe(58);
 
     expect(pieces).toContain("tee_box_6x6");
     expect(pieces).toContain("straight_6m");
@@ -56,11 +57,41 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
       "prop_bumper_peg_yellow",
       "prop_bumper_peg_blue",
       "prop_bumper_peg_red",
+      "prop_carnival_booster_pad",
+      "prop_carnival_wedge_bumper",
       "prop_tree_puffy",
       "prop_toadstool_pair",
     ]) {
       expect(pieces).toContain(cid);
     }
+  });
+
+  it("classifies every prop/terrain piece as playable or decorative and excludes socket tiles from freeform palette", () => {
+    const propsAndTerrain = Object.values<any>(manifest.pieces).filter(
+      (p) => p.category === "props" || p.category === "terrain"
+    );
+    expect(propsAndTerrain.length).toBeGreaterThan(0);
+
+    for (const p of propsAndTerrain) {
+      expect(["playable", "decorative"]).toContain(p.propRole);
+      expect(getPiecePropRole(p)).toBe(p.propRole);
+    }
+
+    const carnivalAll = getFreeformPropCatalog(manifest, "carnival_park", "all");
+    const carnivalPlayable = getFreeformPropCatalog(manifest, "carnival_park", "playable");
+    const carnivalDecorative = getFreeformPropCatalog(manifest, "carnival_park", "decorative");
+
+    expect(carnivalPlayable.map((p) => p.id)).toContain("prop_carnival_booster_pad");
+    expect(carnivalPlayable.map((p) => p.id)).toContain("prop_carnival_wedge_bumper");
+    expect(carnivalPlayable.map((p) => p.id)).toContain("prop_bumper_peg_yellow");
+    expect(carnivalDecorative.map((p) => p.id)).toContain("prop_tree_puffy");
+    expect(carnivalAll.length).toBe(carnivalPlayable.length + carnivalDecorative.length);
+
+    // Socket hazard tiles must not leak into the freeform PropPalette catalog
+    const allIds = carnivalAll.map((p) => p.id).concat(getFreeformPropCatalog(manifest, "country_club", "all").map((p) => p.id));
+    expect(allIds).not.toContain("hazard_booster_strip_6x3");
+    expect(allIds).not.toContain("hazard_sand_trap_6x6");
+    expect(allIds).not.toContain("hazard_water_channel_6x6");
   });
 
   it("verifies every piece GLB file actually exists on disk", () => {

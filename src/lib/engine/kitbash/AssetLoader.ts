@@ -16,6 +16,7 @@ export interface ParsedKitPiece {
   ubxWallRGeometry: THREE.BufferGeometry | null;
   ubxWallBackGeometry: THREE.BufferGeometry | null;
   ubxColliderGeometries: THREE.BufferGeometry[];
+  ubxSensorGeometry?: THREE.BufferGeometry | null;
   sockets: SocketDefinition[];
   locators: Map<string, THREE.Vector3>;
 }
@@ -84,6 +85,7 @@ export class AssetLoader {
     let ubxWallLGeo: THREE.BufferGeometry | null = null;
     let ubxWallRGeo: THREE.BufferGeometry | null = null;
     let ubxWallBackGeo: THREE.BufferGeometry | null = null;
+    let ubxSensorGeo: THREE.BufferGeometry | null = null;
     const ubxColliderGeos: THREE.BufferGeometry[] = [];
 
     const locators = new Map<string, THREE.Vector3>();
@@ -145,6 +147,9 @@ export class AssetLoader {
       } else if ((cleanName === "UBX_Wall_Back" || cleanName === "UBX_Wall_B") && child instanceof THREE.Mesh) {
         ubxWallBackGeo = child.geometry.clone();
         ubxWallBackGeo.applyMatrix4(child.matrixWorld);
+      } else if (cleanName.startsWith("UBX_") && cleanName.includes("Sensor") && child instanceof THREE.Mesh) {
+        ubxSensorGeo = child.geometry.clone();
+        ubxSensorGeo.applyMatrix4(child.matrixWorld);
       } else if (cleanName.startsWith("UBX_") && child instanceof THREE.Mesh) {
         const colGeo = child.geometry.clone();
         colGeo.applyMatrix4(child.matrixWorld);
@@ -174,6 +179,7 @@ export class AssetLoader {
       ubxWallRGeometry: ubxWallRGeo,
       ubxWallBackGeometry: ubxWallBackGeo,
       ubxColliderGeometries: ubxColliderGeos,
+      ubxSensorGeometry: ubxSensorGeo,
       sockets: sockets.length > 0 ? sockets : meta.sockets,
       locators,
     });

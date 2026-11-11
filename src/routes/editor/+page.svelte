@@ -408,7 +408,11 @@
   <!-- Bottom-Left Prop Palette (Editor Mode only) -->
   {#if !isPlaytestMode}
     <div class="absolute bottom-6 left-6">
-      <PropPalette bind:selectedPropId theme={activeTheme} />
+      <PropPalette
+        bind:selectedPropId
+        theme={activeTheme}
+        manifest={isReady ? engine?.assetLoader?.getManifest() : null}
+      />
     </div>
 
     <!-- Editor Hint Banner -->

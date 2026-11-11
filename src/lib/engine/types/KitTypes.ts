@@ -31,6 +31,9 @@ export type KitCategory =
   | "terrain"
   | "props";
 
+export type PropRole = "playable" | "decorative";
+export type PropFilterMode = "all" | PropRole;
+
 export interface KitPieceMetadata {
   id: string; // Unique identifier, e.g. "straight_6m", "turn_45deg_rounded"
   name: string; // Display name, e.g. "Straight Fairway (6m)"
@@ -44,6 +47,70 @@ export interface KitPieceMetadata {
   tags: string[];
   theme?: string; // e.g. "country_club" | "carnival_park"
   preserveMaterials?: boolean; // Keep glTF/vertex materials instead of trim sheet override
+  propRole?: PropRole; // Distinguishes interactive gameplay props from decorative scenery
+}
+
+const PLAYABLE_ROLE_TAGS = new Set([
+  "bumper",
+  "booster",
+  "spinner",
+  "obstacle",
+  "hazard",
+  "ramp",
+  "playable",
+]);
+
+/**
+ * Resolves whether a kit piece acts as an interactive gameplay prop ("playable")
+ * or passive scenery ("decorative"). Uses explicit `propRole` first, then falls
+ * back to gameplay tags and categories for backwards compatibility.
+ */
+export function getPiecePropRole(meta?: Partial<KitPieceMetadata>): PropRole {
+  if (meta?.propRole === "playable" || meta?.propRole === "decorative") {
+    return meta.propRole;
+  }
+  if (meta?.category === "obstacles" || meta?.category === "hazards") {
+    return "playable";
+  }
+  if (meta?.tags?.some((tag) => PLAYABLE_ROLE_TAGS.has(tag.toLowerCase()))) {
+    return "playable";
+  }
+  return "decorative";
+}
+
+/**
+ * Returns freeform (zero-socket) props & terrain from a kit manifest,
+ * filtered by active theme and role (`"all" | "playable" | "decorative"`).
+ * Track/hazard tiles with sockets belong in the RadialSocketMenu instead.
+ */
+export function getFreeformPropCatalog(
+  manifest: KitManifest | null | undefined,
+  theme: string,
+  roleFilter: PropFilterMode = "all"
+): KitPieceMetadata[] {
+  if (!manifest?.pieces) return [];
+
+  const freeform = Object.values(manifest.pieces).filter((piece) => {
+    if (piece.sockets && piece.sockets.length > 0) return false;
+    if (piece.category !== "props" && piece.category !== "terrain") return false;
+
+    if (theme === "carnival_park") {
+      return piece.theme === "carnival_park";
+    }
+    return !piece.theme || piece.theme === theme;
+  });
+
+  const filtered =
+    roleFilter === "all"
+      ? freeform
+      : freeform.filter((piece) => getPiecePropRole(piece) === roleFilter);
+
+  return filtered.sort((a, b) => {
+    const roleA = getPiecePropRole(a);
+    const roleB = getPiecePropRole(b);
+    if (roleA === roleB) return 0;
+    return roleA === "playable" ? -1 : 1;
+  });
 }
 
 export interface KitManifest {

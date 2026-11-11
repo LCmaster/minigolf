@@ -33,6 +33,7 @@ export class GameEngine {
   private lastTime: number = 0;
   private fpsCounter: number = 0;
   private fpsTimer: number = 0;
+  private boosterCooldownTimer: number = 0;
 
   private eventListeners: { [K in keyof EngineEventMap]?: Function[] } = {};
 
@@ -215,26 +216,56 @@ export class GameEngine {
     }
 
     this.physicsWorld.step(deltaTime);
+    if (this.boosterCooldownTimer > 0) {
+      this.boosterCooldownTimer = Math.max(0, this.boosterCooldownTimer - deltaTime);
+    }
 
     // Update ball physics & visual transform
     this.ballController.update();
 
-    // Check goal sensor collision or proximity
+    // Check goal sensor collision, booster triggers, and bumper hits
     const goalCollider = this.courseManager.getGoalSensorCollider();
     const goalPos = this.courseManager.getGoalPosition();
+    const ballHandle = this.ballController.collider?.handle;
     let ballEnteredHole = false;
+    let pendingBooster: { direction: THREE.Vector3; impulse: number } | null = null;
+    let hitBumper = false;
 
-    if (goalCollider && this.ballController.collider) {
-      const goalHandle = goalCollider.handle;
-      const ballHandle = this.ballController.collider.handle;
+    this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
+      if (!started || ballHandle === undefined) return;
+      if (h1 !== ballHandle && h2 !== ballHandle) return;
+      const otherHandle = h1 === ballHandle ? h2 : h1;
 
-      this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
-        if (started && ((h1 === goalHandle && h2 === ballHandle) || (h2 === goalHandle && h1 === ballHandle))) {
-          ballEnteredHole = true;
+      if (goalCollider && otherHandle === goalCollider.handle) {
+        ballEnteredHole = true;
+      }
+
+      if (!pendingBooster && this.boosterCooldownTimer <= 0) {
+        const booster = this.courseManager.getBoosterSensor(otherHandle);
+        if (booster) {
+          pendingBooster = booster;
         }
-      });
-    } else {
-      this.physicsWorld.drainCollisionEvents();
+      }
+
+      if (this.courseManager.isBumperCollider(otherHandle)) {
+        hitBumper = true;
+      }
+    });
+
+    if (pendingBooster && this.ballController.rigidBody) {
+      const { direction, impulse } = pendingBooster;
+      this.ballController.rigidBody.applyImpulse(
+        new this.physicsWorld.rapier.Vector3(
+          direction.x * impulse,
+          direction.y * impulse,
+          direction.z * impulse
+        ),
+        true
+      );
+      this.boosterCooldownTimer = 0.35;
+      this.audio.playBumper();
+    } else if (hitBumper) {
+      this.audio.playBumper();
     }
 
     // Proximity fallback check (within 42.5cm of cup center horizontally and within 50cm vertically)

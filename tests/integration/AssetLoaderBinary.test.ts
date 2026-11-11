@@ -137,5 +137,15 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
     const archNames = collectNames(arch);
     expect(archNames).toContain("Mesh_Carnival_Arch");
     expect(archNames).toContain("UBX_Arch_Posts");
+
+    const boosterPad = await parseGlbFromDisk("models/kit/prop_carnival_booster_pad.glb");
+    const boosterNames = collectNames(boosterPad);
+    expect(boosterNames).toContain("Mesh_Booster_Pad");
+    expect(boosterNames).toContain("UBX_Booster_Sensor");
+
+    const wedgeBumper = await parseGlbFromDisk("models/kit/prop_carnival_wedge_bumper.glb");
+    const wedgeNames = collectNames(wedgeBumper);
+    expect(wedgeNames).toContain("Mesh_Wedge_Bumper");
+    expect(wedgeNames).toContain("UBX_Bumper");
   });
 });

@@ -47,10 +47,17 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
 - **Free-Roam Editor Mode (`GameEngine.setEditorMode(true)` & `CameraController` `"editor_free"`)**:
   - While editing, the golf ball, slingshot aiming input, and ball-follow camera lock are disabled (`Playtest / Test Putt` spawns the ball and switches to play mode, then removes the ball again on exit).
   - **Camera Controls**: `WASD` / Arrow keys pan across the course (`Shift` for faster pan), Right-click or Middle-click drag orbits (`12°`–`80°` pitch, `360°` yaw), Scroll wheel zooms freely (`4m`–`65m`), and `F` (or **🎯 Frame**) centers on the course.
+- **Playable vs. Decorative Prop Role System (`KitTypes.ts` & `PropPalette.svelte`)**:
+  - Every `KitPieceMetadata` supports `propRole?: "playable" | "decorative"` (resolved via `getPiecePropRole()`), separating interactive gameplay props (bumpers, booster pads, wedge deflectors, spinners) from passive scenery (trees, boulders, toadstools, flowers, arches, fences, terrain hills/ponds).
+  - `PropPalette.svelte` is driven dynamically from `manifest.json` (`getFreeformPropCatalog()`) with **All / ⚡ Play / 🌿 Decor** filter tabs and visual badges, while socket-snapping hazards (`hazard_booster_strip_6x3`, `hazard_sand_trap_6x6`, `hazard_water_channel_6x6`) are placed through `RadialSocketMenu.svelte` under **Track | Hazards**.
+  - Ghost placement previews tint **amber** (`0xfbbf24`) for playable props and **emerald** (`0x34d399`) for decorative props.
+- **Playable Prop Physics (`AssetLoader.ts`, `CourseManager.ts`, `GameEngine.ts`)**:
+  - GLB proxy meshes containing `Sensor` (`UBX_Booster_Sensor` on `prop_carnival_booster_pad`) are isolated into `ubxSensorGeometry` and instantiated as non-solid Rapier triggers (`setSensor(true)`), whereas solid bumper proxies (`UBX_Bumper`) get high restitution (`1.15`).
+  - Rolling over `prop_carnival_booster_pad` or `hazard_booster_strip_6x3` applies a forward directional impulse (`0.038`) with a `0.35s` cooldown.
 - **Manual Building & Editing (`/editor`)**:
   - Toggle between **🎪 Carnival** and **🏌️ Classic** kits in the top bar.
-  - Click glowing cyan socket rings to snap modular tiles via `SocketSolver` (`RadialSocketMenu.svelte`).
-  - Select props or terrain pieces from `PropPalette.svelte` to preview a translucent cyan ghost under the cursor, then left-click to place (`R` rotates 45°, `Esc` cancels).
+  - Click glowing cyan socket rings to snap modular track or hazard tiles via `SocketSolver` (`RadialSocketMenu.svelte`).
+  - Select props or terrain pieces from `PropPalette.svelte` to preview a role-tinted ghost under the cursor, then left-click to place (`R` rotates 45°, `Esc` cancels).
   - Left-click an existing prop to select it, drag to reposition, press `R` to rotate, or press `Delete`/`Backspace` to remove.
   - Toggle **🧹 Erase (`X`)** to left-click delete any prop or non-root track tile (re-opening parent sockets and rebuilding `SeamWelder` floor physics), or click **🗑️ Clear** to reset to a single tee tile.
   - Click **🌉 Sunny Creek** or **🎡 Big Top** to load the Carnival Park showcase holes for inspection or remixing.

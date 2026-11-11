@@ -9,6 +9,7 @@ import type { CourseManager } from "../course/CourseManager";
 import { SocketSolver } from "../course/SocketSolver";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp } from "../types/CourseSchema";
+import { getPiecePropRole } from "../types/KitTypes";
 import { HistoryManager, type EditorCommand } from "./HistoryManager";
 
 export interface OpenSocketInfo {
@@ -236,13 +237,16 @@ export class EditorController {
     const template = this.assetLoader.getPiece(this.selectedPropId);
     if (!template || !template.visualTemplate) return;
 
+    const propRole = getPiecePropRole(template.metadata);
+    const ghostTint = propRole === "playable" ? 0xfbbf24 : 0x34d399;
+
     const ghostClone = template.visualTemplate.clone(true);
     ghostClone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = false;
         child.receiveShadow = false;
         child.material = new THREE.MeshBasicMaterial({
-          color: 0x22d3ee,
+          color: ghostTint,
           transparent: true,
           opacity: 0.5,
           depthWrite: false,

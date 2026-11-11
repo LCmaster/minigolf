@@ -20,6 +20,13 @@ export interface InstantiatedTile {
   wallLCollider?: RAPIER.Collider;
   wallRCollider?: RAPIER.Collider;
   wallBackCollider?: RAPIER.Collider;
+  boosterSensorCollider?: RAPIER.Collider;
+}
+
+export interface BoosterSensorInfo {
+  direction: THREE.Vector3;
+  impulse: number;
+  center: THREE.Vector3;
 }
 
 export interface InstantiatedProp {
@@ -39,6 +46,8 @@ export class CourseManager {
   private props: Map<string, InstantiatedProp> = new Map();
   private unifiedFloorCollider: RAPIER.Collider | null = null;
   private goalSensorCollider: RAPIER.Collider | null = null;
+  private boosterSensors: Map<number, BoosterSensorInfo> = new Map();
+  private bumperColliderHandles: Set<number> = new Set();
   private flagSprite: THREE.Sprite | null = null;
   private visualCupGroup: THREE.Group | null = null;
 
@@ -169,6 +178,23 @@ export class CourseManager {
       loc.add(group.position);
       this.goalPosition = loc;
       this.createGoalSensor(loc);
+    }
+
+    // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
+    if (template.metadata?.tags?.includes("booster")) {
+      const boosterDesc = this.rapier.ColliderDesc.cuboid(2.3, 0.25, 1.4)
+        .setTranslation(group.position.x, group.position.y + 0.15, group.position.z)
+        .setRotation(group.quaternion)
+        .setSensor(true)
+        .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
+      const boosterCol = this.rapierWorld.createCollider(boosterDesc);
+      instantiated.boosterSensorCollider = boosterCol;
+      const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
+      this.boosterSensors.set(boosterCol.handle, {
+        direction: forwardDir,
+        impulse: 0.038,
+        center: group.position.clone(),
+      });
     }
 
     this.tiles.set(tileData.instanceId, instantiated);
@@ -432,6 +458,14 @@ export class CourseManager {
     return this.goalSensorCollider;
   }
 
+  public getBoosterSensor(colliderHandle: number): BoosterSensorInfo | undefined {
+    return this.boosterSensors.get(colliderHandle);
+  }
+
+  public isBumperCollider(colliderHandle: number): boolean {
+    return this.bumperColliderHandles.has(colliderHandle);
+  }
+
   public getGoalPosition(): THREE.Vector3 | null {
     return this.goalPosition;
   }
@@ -452,6 +486,10 @@ export class CourseManager {
     if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
     if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
     if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
+    if (tile.boosterSensorCollider) {
+      this.boosterSensors.delete(tile.boosterSensorCollider.handle);
+      this.rapierWorld.removeCollider(tile.boosterSensorCollider, false);
+    }
     this.tiles.delete(instanceId);
 
     // Clear references to removed tile in remaining connectedSockets
@@ -509,7 +547,8 @@ export class CourseManager {
     group.updateMatrixWorld(true);
 
     const colliders: RAPIER.Collider[] = [];
-    const isBumper = template.metadata?.tags?.includes("bumper");
+    const isBumper = Boolean(template.metadata?.tags?.includes("bumper"));
+    const isBooster = Boolean(template.metadata?.tags?.includes("booster"));
     const colliderGeos: THREE.BufferGeometry[] = [
       ...(template.ubxColliderGeometries || []),
       ...(template.ubxFloorGeometry ? [template.ubxFloorGeometry] : []),
@@ -522,7 +561,28 @@ export class CourseManager {
           desc.setRestitution(1.15);
           desc.setFriction(0.15);
         }
-        colliders.push(this.rapierWorld.createCollider(desc));
+        const col = this.rapierWorld.createCollider(desc);
+        if (isBumper) {
+          this.bumperColliderHandles.add(col.handle);
+        }
+        colliders.push(col);
+      }
+    }
+
+    if (template.ubxSensorGeometry) {
+      const sensorDesc = this.createStaticColliderFromGeo(template.ubxSensorGeometry, group.matrixWorld);
+      if (sensorDesc) {
+        sensorDesc.setSensor(true).setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
+        const sensorCol = this.rapierWorld.createCollider(sensorDesc);
+        colliders.push(sensorCol);
+        if (isBooster) {
+          const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
+          this.boosterSensors.set(sensorCol.handle, {
+            direction: forwardDir,
+            impulse: 0.038,
+            center: group.position.clone(),
+          });
+        }
       }
     }
 
@@ -543,6 +603,8 @@ export class CourseManager {
 
     this.scene.remove(prop.group);
     for (const col of prop.colliders) {
+      this.boosterSensors.delete(col.handle);
+      this.bumperColliderHandles.delete(col.handle);
       this.rapierWorld.removeCollider(col, false);
     }
     this.props.delete(instanceId);
@@ -597,6 +659,7 @@ export class CourseManager {
       if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
       if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
       if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
+      if (tile.boosterSensorCollider) this.rapierWorld.removeCollider(tile.boosterSensorCollider, false);
     }
     this.tiles.clear();
 
@@ -607,6 +670,8 @@ export class CourseManager {
       }
     }
     this.props.clear();
+    this.boosterSensors.clear();
+    this.bumperColliderHandles.clear();
 
     if (this.unifiedFloorCollider) {
       this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
