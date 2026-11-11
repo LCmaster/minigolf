@@ -26,12 +26,18 @@
   let savedCourseId = null;
   let saveFeedback = "";
   let isEraseMode = false;
+  let isTrackPathMode = false;
   let selectedPlacedPropId = null;
+  let selectedSplineNode = null;
 
   // Active socket radial menu state
   let activeSocketMenu = null; // { x, y, socketInfo }
   let showWfcModal = false;
   let selectedPropId = null;
+
+  $: if (editorController) {
+    editorController.setTheme(activeTheme);
+  }
 
   $: if (editorController) {
     editorController.setSelectedProp(isPlaytestMode ? null : selectedPropId);
@@ -70,8 +76,13 @@
 
     editorController.onToolStateChanged = (st) => {
       isEraseMode = st.eraseMode;
+      isTrackPathMode = st.trackPathMode;
       selectedPlacedPropId = st.selectedPlacedPropId;
-      if (st.eraseMode) selectedPropId = null;
+      if (st.eraseMode || st.trackPathMode) selectedPropId = null;
+    };
+
+    editorController.onSplineSelectionChanged = (info) => {
+      selectedSplineNode = info;
     };
 
     // Editor event hooks
@@ -106,43 +117,40 @@
     activeSocketMenu = null;
   }
 
-  function handleWfcGenerate(ev) {
-    if (ev.detail.theme) activeTheme = ev.detail.theme;
-    const holeData = holeGenerator.generateHole(ev.detail);
+  function resetHoleInEditor(holeData) {
     engine.courseManager.loadHole(holeData);
     showBoundary = holeData.showBoundary ?? true;
     editorController.refreshOpenSockets();
+    editorController.syncSplineFromCourse();
     editorController.history.clear();
     engine.frameCameraOnCourse();
+  }
+
+  function handleWfcGenerate(ev) {
+    if (ev.detail.theme) activeTheme = ev.detail.theme;
+    const holeData = holeGenerator.generateHole(ev.detail);
+    resetHoleInEditor(holeData);
   }
 
   function handleLoadSunnyCreek() {
     if (!engine || !editorController) return;
     activeTheme = "carnival_park";
     const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[0]));
-    engine.courseManager.loadHole(hole);
-    showBoundary = hole.showBoundary ?? true;
-    editorController.refreshOpenSockets();
-    editorController.history.clear();
-    engine.frameCameraOnCourse();
+    resetHoleInEditor(hole);
   }
 
   function handleLoadBigTop() {
     if (!engine || !editorController) return;
     activeTheme = "carnival_park";
     const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[1]));
-    engine.courseManager.loadHole(hole);
-    showBoundary = hole.showBoundary ?? true;
-    editorController.refreshOpenSockets();
-    editorController.history.clear();
-    engine.frameCameraOnCourse();
+    resetHoleInEditor(hole);
   }
 
   function handleClearToTee() {
     if (!engine || !editorController) return;
     const teePiece = activeTheme === "carnival_park" ? "carnival_tee_6x6" : "tee_box_6x6";
     const teeId = `tile_tee_${Date.now()}`;
-    engine.courseManager.loadHole({
+    resetHoleInEditor({
       holeNumber: 1,
       par: 2,
       teeTileId: teeId,
@@ -160,15 +168,18 @@
       ],
       props: [],
     });
-    editorController.refreshOpenSockets();
-    editorController.history.clear();
-    engine.frameCameraOnCourse();
   }
 
   function toggleEraseMode() {
     if (!editorController) return;
     if (!isEraseMode) selectedPropId = null;
     editorController.setEraseMode(!isEraseMode);
+  }
+
+  function toggleTrackPathMode() {
+    if (!editorController) return;
+    if (!isTrackPathMode) selectedPropId = null;
+    editorController.setTrackPathMode(!isTrackPathMode);
   }
 
   function handleAutoDecorate() {
@@ -204,23 +215,22 @@
       strokes = 0;
       isCupSunk = false;
     } else {
-      // Return to editor: remove ball, restore free-roam camera & socket gizmos
+      // Return to editor: remove ball, restore free-roam camera & socket/spline gizmos
       engine.setEditorMode(true);
       editorController.setGizmosVisible(true);
       editorController.refreshOpenSockets();
+      editorController.syncSplineFromCourse();
     }
   }
 
   function handleUndo() {
     if (!editorController) return;
-    editorController.history.undo();
-    editorController.refreshOpenSockets();
+    editorController.undo();
   }
 
   function handleRedo() {
     if (!editorController) return;
-    editorController.history.redo();
-    editorController.refreshOpenSockets();
+    editorController.redo();
   }
 
   function handleSaveCourse() {
@@ -337,6 +347,14 @@
         </button>
 
         <button
+          on:click={toggleTrackPathMode}
+          class="px-2.5 py-2 rounded-xl border text-xs font-bold font-mono transition-all {isTrackPathMode ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10 text-gray-300'}"
+          title="Edit spline track path, handles & elevation (T)"
+        >
+          〰️ Edit Track
+        </button>
+
+        <button
           on:click={toggleEraseMode}
           class="px-2.5 py-2 rounded-xl border text-xs font-bold font-mono transition-all {isEraseMode ? 'bg-red-500/30 border-red-400 text-red-200 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10 text-gray-300'}"
           title="Erase props or non-root track tiles (X)"
@@ -415,16 +433,73 @@
       />
     </div>
 
+    <!-- Selected Spline Waypoint Inspector (Track Edit Mode only) -->
+    {#if isTrackPathMode && selectedSplineNode}
+      <div class="absolute bottom-6 right-6 bg-slate-900/90 backdrop-blur-xl border border-cyan-400/30 p-3.5 rounded-2xl shadow-2xl text-white font-mono space-y-2.5 w-64">
+        <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
+          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider">
+            {#if selectedSplineNode.isRoot}
+              ⛳ Tee Start (#0)
+            {:else if selectedSplineNode.index === selectedSplineNode.nodeCount - 1}
+              🏁 Path End (#{selectedSplineNode.index})
+            {:else}
+              〰️ Waypoint #{selectedSplineNode.index}
+            {/if}
+          </span>
+          <span class="text-[11px] text-amber-300 font-bold">
+            Y: {selectedSplineNode.elevationMeters.toFixed(1)}m
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
+          <button
+            on:click={() => editorController?.stepSelectedNodeElevation(-1)}
+            class="py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 transition-colors"
+            title="Lower elevation step (-1.5m)"
+          >
+            ⬇️ -1.5m
+          </button>
+          <button
+            on:click={() => editorController?.stepSelectedNodeElevation(1)}
+            class="py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 transition-colors"
+            title="Raise elevation step (+1.5m)"
+          >
+            ⬆️ +1.5m
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
+          <button
+            on:click={() => editorController?.toggleSelectedNodeCorner()}
+            class="py-1.5 px-2 rounded-xl border transition-colors {selectedSplineNode.corner ? 'bg-amber-500/20 border-amber-400/50 text-amber-200' : 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200'}"
+            title="Toggle between C1 smooth curve and sharp corner"
+          >
+            {selectedSplineNode.corner ? '📐 Sharp' : '〰️ Smooth'}
+          </button>
+          <button
+            on:click={() => editorController?.deleteSelectedSplineNode()}
+            disabled={!selectedSplineNode.canDelete}
+            class="py-1.5 px-2 rounded-xl border text-xs font-bold transition-colors {selectedSplineNode.canDelete ? 'bg-red-500/20 hover:bg-red-500/35 border-red-400/40 text-red-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
+            title="Delete selected waypoint (Del)"
+          >
+            🗑️ Del Node
+          </button>
+        </div>
+      </div>
+    {/if}
+
     <!-- Editor Hint Banner -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none whitespace-nowrap">
-      {#if isEraseMode}
+      {#if isTrackPathMode}
+        〰️ <span class="text-cyan-300 font-bold">Track Path:</span> Drag Node move &bull; Drag Diamond bend curve &bull; <span class="text-amber-300 font-bold">Double-Click</span> add point &bull; <span class="text-red-300 font-bold">Del</span> remove
+      {:else if isEraseMode}
         🧹 <span class="text-red-300 font-bold">Erase Mode:</span> Click prop or track tile to remove &bull; <span class="text-gray-200 font-bold">X / Esc</span> exit
       {:else if selectedPropId}
         🎯 Click to place &bull; <span class="text-amber-400 font-bold">R</span> rotate &bull; <span class="text-gray-200 font-bold">Esc</span> cancel
       {:else if selectedPlacedPropId}
         ✨ Drag prop to move &bull; <span class="text-amber-400 font-bold">R</span> rotate &bull; <span class="text-red-400 font-bold">Del</span> remove
       {:else}
-        🎥 <span class="text-cyan-300 font-bold">WASD</span> Pan &bull; <span class="text-cyan-300 font-bold">Right-drag</span> Orbit &bull; <span class="text-cyan-300 font-bold">Scroll</span> Zoom &bull; <span class="text-amber-300 font-bold">F</span> Frame &bull; <span class="text-red-300 font-bold">X</span> Erase
+        🎥 <span class="text-cyan-300 font-bold">WASD</span> Pan &bull; <span class="text-cyan-300 font-bold">Right-drag</span> Orbit &bull; <span class="text-cyan-300 font-bold">Scroll</span> Zoom &bull; <span class="text-cyan-300 font-bold">T</span> Edit Track &bull; <span class="text-amber-300 font-bold">F</span> Frame
       {/if}
     </div>
   {/if}

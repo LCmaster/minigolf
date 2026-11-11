@@ -12,6 +12,8 @@
 
   const carnivalOptions = [
     { id: "carnival_straight_6m", label: "Carnival Straight", icon: "🟩" },
+    { id: "carnival_turn_15deg_rounded", label: "Carnival Turn 15°", icon: "↗️" },
+    { id: "carnival_turn_30deg_rounded", label: "Carnival Turn 30°", icon: "↗️" },
     { id: "carnival_turn_45deg_rounded", label: "Carnival Turn 45°", icon: "↗️" },
     { id: "carnival_turn_90deg_rounded", label: "Carnival Turn 90°", icon: "⤵️" },
     { id: "carnival_ramp_up_15deg_6x6", label: "Carnival Ramp Up", icon: "📈" },

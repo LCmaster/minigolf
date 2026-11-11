@@ -8,9 +8,26 @@ import * as THREE from "three";
 import type { CourseManager } from "../course/CourseManager";
 import { SocketSolver } from "../course/SocketSolver";
 import type { AssetLoader } from "../kitbash/AssetLoader";
-import type { PlacedTile, PlacedProp } from "../types/CourseSchema";
+import type {
+  HoleData,
+  PlacedTile,
+  PlacedProp,
+  SplinePathData,
+  SplineWaypoint,
+} from "../types/CourseSchema";
 import { getPiecePropRole } from "../types/KitTypes";
 import { HistoryManager, type EditorCommand } from "./HistoryManager";
+import {
+  ELEVATION_STEP_METERS,
+  cloneSplinePath,
+  getElevationStep,
+} from "../spline/SplineMath";
+import {
+  deriveSplineFromTiles,
+  syncSplineAfterSocketChange,
+} from "../spline/SplineTrackSync";
+import { fitTilesToSpline } from "../spline/DiscreteKitFitter";
+import { SplineOverlay } from "../spline/SplineOverlay";
 
 export interface OpenSocketInfo {
   tileInstanceId: string;
@@ -20,7 +37,17 @@ export interface OpenSocketInfo {
   elevation: number;
 }
 
-export type EditorToolMode = "select" | "place_prop" | "erase";
+export interface SelectedSplineNodeInfo {
+  index: number;
+  nodeCount: number;
+  elevationStep: number;
+  elevationMeters: number;
+  corner: boolean;
+  isRoot: boolean;
+  canDelete: boolean;
+}
+
+export type EditorToolMode = "select" | "place_prop" | "erase" | "track_path";
 
 export class EditorController {
   private canvas: HTMLCanvasElement;
@@ -43,7 +70,22 @@ export class EditorController {
   private selectedPropId: string | null = null;
   private propRotationY: number = 0;
   private eraseMode: boolean = false;
+  private trackPathMode: boolean = false;
+  private activeTheme: string = "carnival_park";
   private selectedPlacedPropId: string | null = null;
+
+  // Spline Track Editor state
+  private splineOverlay: SplineOverlay;
+  private activeSpline: SplinePathData | null = null;
+  private selectedSplineNodeIndex: number = 0;
+  private draggingSpline: {
+    kind: "node" | "handle";
+    nodeIndex: number;
+    initialHole: HoleData;
+    workingSpline: SplinePathData;
+    planeY: number;
+    moved: boolean;
+  } | null = null;
 
   // Prop drag state
   private draggingProp: {
@@ -58,11 +100,13 @@ export class EditorController {
   public onSocketClick?: (info: OpenSocketInfo, screenX: number, screenY: number) => void;
   public onCourseModified?: () => void;
   public onPropPlaced?: (prop: PlacedProp) => void;
+  public onSplineSelectionChanged?: (info: SelectedSplineNodeInfo | null) => void;
   public onToolStateChanged?: (state: {
     tool: EditorToolMode;
     selectedPropId: string | null;
     selectedPlacedPropId: string | null;
     eraseMode: boolean;
+    trackPathMode: boolean;
   }) => void;
 
   constructor(
@@ -102,10 +146,13 @@ export class EditorController {
     this.selectionRing.visible = false;
     this.scene.add(this.selectionRing);
 
+    this.splineOverlay = new SplineOverlay(this.scene);
+
     this.attachEventListeners();
   }
 
   public get toolMode(): EditorToolMode {
+    if (this.trackPathMode) return "track_path";
     if (this.eraseMode) return "erase";
     if (this.selectedPropId) return "place_prop";
     return "select";
@@ -115,8 +162,34 @@ export class EditorController {
     return this.eraseMode;
   }
 
+  public get isTrackPathMode(): boolean {
+    return this.trackPathMode;
+  }
+
   public getSelectedPlacedPropId(): string | null {
     return this.selectedPlacedPropId;
+  }
+
+  public getSelectedSplineNodeInfo(): SelectedSplineNodeInfo | null {
+    if (!this.trackPathMode || !this.activeSpline || this.activeSpline.nodes.length === 0) {
+      return null;
+    }
+    const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, this.activeSpline.nodes.length - 1));
+    const node = this.activeSpline.nodes[idx];
+    const step = getElevationStep(node);
+    return {
+      index: idx,
+      nodeCount: this.activeSpline.nodes.length,
+      elevationStep: step,
+      elevationMeters: step * ELEVATION_STEP_METERS,
+      corner: Boolean(node.corner),
+      isRoot: idx === 0,
+      canDelete: idx > 0 && this.activeSpline.nodes.length > 2,
+    };
+  }
+
+  public setTheme(theme: string): void {
+    this.activeTheme = theme;
   }
 
   private emitToolState(): void {
@@ -125,7 +198,32 @@ export class EditorController {
       selectedPropId: this.selectedPropId,
       selectedPlacedPropId: this.selectedPlacedPropId,
       eraseMode: this.eraseMode,
+      trackPathMode: this.trackPathMode,
     });
+  }
+
+  private emitSplineSelection(): void {
+    this.onSplineSelectionChanged?.(this.getSelectedSplineNodeInfo());
+  }
+
+  public undo(): boolean {
+    const ok = this.history.undo();
+    if (!ok) return false;
+    this.clearSelectionIfMissing();
+    this.refreshOpenSockets();
+    this.syncSplineFromCourse();
+    this.onCourseModified?.();
+    return true;
+  }
+
+  public redo(): boolean {
+    const ok = this.history.redo();
+    if (!ok) return false;
+    this.clearSelectionIfMissing();
+    this.refreshOpenSockets();
+    this.syncSplineFromCourse();
+    this.onCourseModified?.();
+    return true;
   }
 
   private handleKeyDown = (ev: KeyboardEvent): void => {
@@ -135,19 +233,13 @@ export class EditorController {
     if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") {
       ev.preventDefault();
       if (ev.shiftKey) {
-        this.history.redo();
+        this.redo();
       } else {
-        this.history.undo();
+        this.undo();
       }
-      this.clearSelectionIfMissing();
-      this.refreshOpenSockets();
-      this.onCourseModified?.();
     } else if ((ev.ctrlKey || ev.metaKey) && ev.key === "y") {
       ev.preventDefault();
-      this.history.redo();
-      this.clearSelectionIfMissing();
-      this.refreshOpenSockets();
-      this.onCourseModified?.();
+      this.redo();
     } else if (ev.key === "r" || ev.key === "R") {
       if (this.selectedPlacedPropId && !this.selectedPropId && !this.eraseMode) {
         this.rotatePlacedProp(this.selectedPlacedPropId, 45);
@@ -155,16 +247,22 @@ export class EditorController {
         this.propRotationY = (this.propRotationY + 45) % 360;
         this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
       }
+    } else if (ev.key === "t" || ev.key === "T") {
+      this.setTrackPathMode(!this.trackPathMode);
     } else if (ev.key === "x" || ev.key === "X") {
       this.setEraseMode(!this.eraseMode);
     } else if (ev.key === "Delete" || ev.key === "Backspace") {
-      if (this.selectedPlacedPropId) {
+      if (this.trackPathMode) {
+        ev.preventDefault();
+        this.deleteSelectedSplineNode();
+      } else if (this.selectedPlacedPropId) {
         ev.preventDefault();
         const id = this.selectedPlacedPropId;
         this.selectPlacedProp(null);
         this.deleteProp(id);
       }
     } else if (ev.key === "Escape") {
+      this.setTrackPathMode(false);
       this.setEraseMode(false);
       this.setSelectedProp(null);
       this.selectPlacedProp(null);
@@ -174,6 +272,7 @@ export class EditorController {
   private attachEventListeners(): void {
     this.canvas.addEventListener("pointermove", this.handlePointerMove);
     this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("dblclick", this.handleDoubleClick);
 
     if (typeof window !== "undefined") {
       window.addEventListener("pointerup", this.handlePointerUp);
@@ -181,10 +280,35 @@ export class EditorController {
     }
   }
 
+  public setTrackPathMode(enabled: boolean): void {
+    this.trackPathMode = enabled;
+    if (enabled) {
+      this.eraseMode = false;
+      this.selectedPropId = null;
+      this.rebuildGhostPreview();
+      this.selectPlacedProp(null);
+      this.socketGizmoGroup.visible = false;
+      this.syncSplineFromCourse();
+      if (this.activeSpline && this.activeSpline.nodes.length > 0) {
+        this.selectedSplineNodeIndex = this.activeSpline.nodes.length - 1;
+      }
+      this.splineOverlay.setVisible(true);
+      this.refreshSplineOverlay();
+    } else {
+      this.draggingSpline = null;
+      this.splineOverlay.setVisible(false);
+      this.socketGizmoGroup.visible = true;
+      this.refreshOpenSockets();
+      this.onSplineSelectionChanged?.(null);
+    }
+    this.emitToolState();
+  }
+
   public setSelectedProp(propId: string | null): void {
     this.selectedPropId = propId;
     if (propId) {
       this.eraseMode = false;
+      if (this.trackPathMode) this.setTrackPathMode(false);
       this.selectPlacedProp(null);
     }
     this.rebuildGhostPreview();
@@ -195,6 +319,7 @@ export class EditorController {
     this.eraseMode = enabled;
     if (enabled) {
       this.selectedPropId = null;
+      if (this.trackPathMode) this.setTrackPathMode(false);
       this.rebuildGhostPreview();
       this.selectPlacedProp(null);
     }
@@ -256,6 +381,218 @@ export class EditorController {
     this.ghostGroup.add(ghostClone);
     this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
     this.ghostGroup.visible = true;
+  }
+
+  public syncSplineFromCourse(): SplinePathData | null {
+    if (typeof this.courseManager.exportHoleData !== "function") return null;
+    const stored = this.courseManager.getSplinePath?.() || null;
+    const tiles = this.courseManager.exportHoleData().tiles;
+    const synced =
+      stored && stored.nodes.length >= 2
+        ? cloneSplinePath(stored)
+        : deriveSplineFromTiles(tiles, this.assetLoader);
+    this.courseManager.setSplinePath?.(synced);
+    this.activeSpline = synced;
+    if (synced.nodes.length > 0) {
+      this.selectedSplineNodeIndex = Math.max(
+        0,
+        Math.min(this.selectedSplineNodeIndex, synced.nodes.length - 1)
+      );
+    }
+    if (this.trackPathMode) {
+      this.refreshSplineOverlay();
+    }
+    return this.activeSpline;
+  }
+
+  private refreshSplineOverlay(isDragging: boolean = false): void {
+    if (!this.trackPathMode || !this.activeSpline) return;
+    this.splineOverlay.renderOverlay(
+      this.activeSpline.nodes,
+      this.selectedSplineNodeIndex,
+      isDragging
+    );
+    this.emitSplineSelection();
+  }
+
+  private getPointOnPlane(clientX: number, clientY: number, planeY: number): THREE.Vector3 | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
+    const pt = new THREE.Vector3();
+    return this.raycaster.ray.intersectPlane(plane, pt) ? pt : null;
+  }
+
+  private commitSplineEdit(
+    commandName: string,
+    oldHole: HoleData,
+    draftSpline: SplinePathData,
+    nextSelectedIdx?: number
+  ): void {
+    const fit = fitTilesToSpline(
+      draftSpline,
+      oldHole.tiles,
+      this.activeTheme,
+      this.assetLoader
+    );
+
+    const nextSpline: SplinePathData = {
+      closed: false,
+      nodes: fit.snappedNodes,
+    };
+    const newHole: HoleData = {
+      ...oldHole,
+      teeTileId: fit.tiles[0]?.instanceId || oldHole.teeTileId,
+      cupTileId:
+        fit.tiles.find((t) => t.kitPieceId.includes("cup"))?.instanceId ||
+        fit.tiles[fit.tiles.length - 1]?.instanceId ||
+        "",
+      tiles: fit.tiles,
+      splinePath: nextSpline,
+    };
+
+    const targetSelect =
+      typeof nextSelectedIdx === "number"
+        ? Math.max(0, Math.min(nextSelectedIdx, nextSpline.nodes.length - 1))
+        : Math.max(0, Math.min(this.selectedSplineNodeIndex, nextSpline.nodes.length - 1));
+    const prevSelect = this.selectedSplineNodeIndex;
+
+    const cmd: EditorCommand = {
+      name: commandName,
+      execute: () => {
+        this.courseManager.loadHole(newHole);
+        this.activeSpline = cloneSplinePath(nextSpline);
+        this.selectedSplineNodeIndex = targetSelect;
+        this.refreshOpenSockets();
+        this.refreshSplineOverlay();
+      },
+      undo: () => {
+        this.courseManager.loadHole(oldHole);
+        this.activeSpline = oldHole.splinePath
+          ? cloneSplinePath(oldHole.splinePath)
+          : deriveSplineFromTiles(oldHole.tiles, this.assetLoader);
+        this.selectedSplineNodeIndex = Math.max(
+          0,
+          Math.min(prevSelect, this.activeSpline.nodes.length - 1)
+        );
+        this.refreshOpenSockets();
+        this.refreshSplineOverlay();
+      },
+    };
+
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+  }
+
+  public stepSelectedNodeElevation(deltaStep: 1 | -1): boolean {
+    if (!this.trackPathMode) return false;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length === 0) return false;
+
+    const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, spline.nodes.length - 1));
+    const oldHole = this.courseManager.exportHoleData(3, 1);
+    oldHole.splinePath = cloneSplinePath(spline);
+
+    const draft = cloneSplinePath(spline);
+    const node = draft.nodes[idx];
+    const nextStep = Math.max(-3, Math.min(4, getElevationStep(node) + deltaStep));
+    if (nextStep === getElevationStep(node)) return false;
+
+    node.elevationStep = nextStep;
+    node.position[1] = nextStep * ELEVATION_STEP_METERS;
+    this.commitSplineEdit(`Step elevation (${deltaStep > 0 ? "+" : "-"}1.5m)`, oldHole, draft, idx);
+    return true;
+  }
+
+  public toggleSelectedNodeCorner(): boolean {
+    if (!this.trackPathMode) return false;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length === 0) return false;
+
+    const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, spline.nodes.length - 1));
+    const oldHole = this.courseManager.exportHoleData(3, 1);
+    oldHole.splinePath = cloneSplinePath(spline);
+
+    const draft = cloneSplinePath(spline);
+    draft.nodes[idx].corner = !draft.nodes[idx].corner;
+    this.commitSplineEdit("Toggle spline corner", oldHole, draft, idx);
+    return true;
+  }
+
+  public insertSplineWaypointAt(worldPoint: THREE.Vector3): boolean {
+    if (!this.trackPathMode) return false;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length === 0) return false;
+
+    const oldHole = this.courseManager.exportHoleData(3, 1);
+    oldHole.splinePath = cloneSplinePath(spline);
+
+    const draft = cloneSplinePath(spline);
+    const insertAfterIdx = Math.max(
+      0,
+      Math.min(this.selectedSplineNodeIndex, draft.nodes.length - 1)
+    );
+    const anchor = draft.nodes[insertAfterIdx];
+    const step = getElevationStep(anchor);
+    const anchorY = step * ELEVATION_STEP_METERS;
+
+    let handleX = anchor.handleOffset[0];
+    let handleZ = anchor.handleOffset[1];
+    if (insertAfterIdx < draft.nodes.length - 1) {
+      const nextNode = draft.nodes[insertAfterIdx + 1];
+      const chord = new THREE.Vector2(
+        nextNode.position[0] - anchor.position[0],
+        nextNode.position[2] - anchor.position[2]
+      );
+      if (chord.lengthSq() > 1e-4) {
+        chord.normalize().multiplyScalar(2.4);
+        handleX = chord.x;
+        handleZ = chord.y;
+      }
+    } else {
+      const dir = new THREE.Vector2(
+        worldPoint.x - anchor.position[0],
+        worldPoint.z - anchor.position[2]
+      );
+      if (dir.lengthSq() > 1e-4) {
+        dir.normalize().multiplyScalar(2.4);
+        handleX = dir.x;
+        handleZ = dir.y;
+      }
+    }
+
+    const newNode: SplineWaypoint = {
+      id: `wp_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      position: [worldPoint.x, anchorY, worldPoint.z],
+      handleOffset: [handleX, handleZ],
+      corner: false,
+      elevationStep: step,
+    };
+
+    const newIdx = insertAfterIdx + 1;
+    draft.nodes.splice(newIdx, 0, newNode);
+    this.commitSplineEdit("Insert spline waypoint", oldHole, draft, newIdx);
+    return true;
+  }
+
+  public deleteSelectedSplineNode(): boolean {
+    if (!this.trackPathMode) return false;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length <= 2) return false;
+
+    const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, spline.nodes.length - 1));
+    if (idx === 0) return false; // Root Tee protected from Delete
+
+    const oldHole = this.courseManager.exportHoleData(3, 1);
+    oldHole.splinePath = cloneSplinePath(spline);
+
+    const draft = cloneSplinePath(spline);
+    draft.nodes.splice(idx, 1);
+    const nextIdx = Math.max(0, Math.min(idx - 1, draft.nodes.length - 1));
+    this.commitSplineEdit("Delete spline waypoint", oldHole, draft, nextIdx);
+    return true;
   }
 
   public getPropRotationY(): number {
@@ -375,6 +712,45 @@ export class EditorController {
 
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
+    // 00. Spline Track Edit Mode hover & live drag
+    if (this.trackPathMode) {
+      if (this.draggingSpline) {
+        const pt = this.getPointOnPlane(ev.clientX, ev.clientY, this.draggingSpline.planeY);
+        if (pt) {
+          const node = this.draggingSpline.workingSpline.nodes[this.draggingSpline.nodeIndex];
+          if (this.draggingSpline.kind === "node") {
+            node.position[0] = pt.x;
+            node.position[2] = pt.z;
+          } else {
+            const dx = pt.x - node.position[0];
+            const dz = pt.z - node.position[2];
+            const len = Math.hypot(dx, dz);
+            const clampedLen = Math.max(0.5, Math.min(14.0, len || 0.5));
+            const scale = len > 1e-4 ? clampedLen / len : 1;
+            node.handleOffset = [dx * scale, dz * scale];
+            node.corner = false;
+          }
+          this.draggingSpline.moved = true;
+          this.activeSpline = this.draggingSpline.workingSpline;
+          this.refreshSplineOverlay(true);
+          const preview = fitTilesToSpline(
+            this.draggingSpline.workingSpline,
+            this.draggingSpline.initialHole.tiles,
+            this.activeTheme,
+            this.assetLoader
+          );
+          this.splineOverlay.renderGhostSegments(preview.ghostSegments, this.assetLoader);
+          this.canvas.style.cursor = "grabbing";
+        }
+        return;
+      }
+
+      const handleHits = this.raycaster.intersectObjects(this.splineOverlay.handleMeshes);
+      const nodeHits = this.raycaster.intersectObjects(this.splineOverlay.nodeMeshes);
+      this.canvas.style.cursor = handleHits.length > 0 || nodeHits.length > 0 ? "grab" : "crosshair";
+      return;
+    }
+
     // 0. Dragging existing placed prop
     if (this.draggingProp) {
       const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
@@ -473,6 +849,49 @@ export class EditorController {
     const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
+    // -1. Spline Track Edit Mode click / begin drag
+    if (this.trackPathMode) {
+      const spline = this.activeSpline || this.syncSplineFromCourse();
+      if (!spline) return;
+
+      const handleHits = this.raycaster.intersectObjects(this.splineOverlay.handleMeshes);
+      if (handleHits.length > 0) {
+        const idx = handleHits[0].object.userData.splineHandleIndex as number;
+        this.selectedSplineNodeIndex = idx;
+        const oldHole = this.courseManager.exportHoleData(3, 1);
+        oldHole.splinePath = cloneSplinePath(spline);
+        this.draggingSpline = {
+          kind: "handle",
+          nodeIndex: idx,
+          initialHole: oldHole,
+          workingSpline: cloneSplinePath(spline),
+          planeY: spline.nodes[idx].position[1] + 0.68,
+          moved: false,
+        };
+        this.refreshSplineOverlay();
+        return;
+      }
+
+      const nodeHits = this.raycaster.intersectObjects(this.splineOverlay.nodeMeshes);
+      if (nodeHits.length > 0) {
+        const idx = nodeHits[0].object.userData.splineNodeIndex as number;
+        this.selectedSplineNodeIndex = idx;
+        const oldHole = this.courseManager.exportHoleData(3, 1);
+        oldHole.splinePath = cloneSplinePath(spline);
+        this.draggingSpline = {
+          kind: "node",
+          nodeIndex: idx,
+          initialHole: oldHole,
+          workingSpline: cloneSplinePath(spline),
+          planeY: spline.nodes[idx].position[1] + 0.68,
+          moved: false,
+        };
+        this.refreshSplineOverlay();
+        return;
+      }
+      return;
+    }
+
     // 0. Erase mode
     if (this.eraseMode) {
       const hitPropId = this.findHitPropId();
@@ -541,7 +960,39 @@ export class EditorController {
     this.selectPlacedProp(null);
   };
 
+  private handleDoubleClick = (ev: MouseEvent): void => {
+    if (!this.trackPathMode) return;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length === 0) return;
+
+    const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, spline.nodes.length - 1));
+    const planeY = spline.nodes[idx].position[1];
+    const pt = this.getPointOnPlane(ev.clientX, ev.clientY, planeY);
+    if (pt) {
+      this.insertSplineWaypointAt(pt);
+    }
+  };
+
   private handlePointerUp = (): void => {
+    if (this.draggingSpline) {
+      const drag = this.draggingSpline;
+      this.draggingSpline = null;
+      this.splineOverlay.clearGhost();
+      this.canvas.style.cursor = "default";
+
+      if (drag.moved) {
+        this.commitSplineEdit(
+          drag.kind === "node" ? "Move spline node" : "Adjust spline curve handle",
+          drag.initialHole,
+          drag.workingSpline,
+          drag.nodeIndex
+        );
+      } else {
+        this.refreshSplineOverlay(false);
+      }
+      return;
+    }
+
     if (!this.draggingProp) return;
     const drag = this.draggingProp;
     this.draggingProp = null;
@@ -676,10 +1127,21 @@ export class EditorController {
       }
     }
 
+    const prevSpline = this.courseManager.getSplinePath?.() || null;
+
     const cmd: EditorCommand = {
       name: `Remove ${savedTile.kitPieceId}`,
       execute: () => {
         this.courseManager.removeTile(tileInstanceId);
+        if (typeof this.courseManager.exportHoleData === "function") {
+          const synced = syncSplineAfterSocketChange(
+            prevSpline,
+            this.courseManager.exportHoleData().tiles,
+            this.assetLoader
+          );
+          this.courseManager.setSplinePath?.(synced);
+          this.activeSpline = synced;
+        }
         this.refreshOpenSockets();
       },
       undo: () => {
@@ -697,6 +1159,8 @@ export class EditorController {
             parent.tileData.connectedSockets[link.socketId] = tileInstanceId;
           }
         }
+        this.courseManager.setSplinePath?.(prevSpline);
+        this.activeSpline = prevSpline;
         this.refreshOpenSockets();
       },
     };
@@ -770,6 +1234,8 @@ export class EditorController {
       },
     };
 
+    const prevSpline = this.courseManager.getSplinePath?.() || null;
+
     const pieceLabel = template.metadata?.name || (template as any).name || newKitPieceId;
     const cmd: EditorCommand = {
       name: `Add ${pieceLabel}`,
@@ -781,6 +1247,13 @@ export class EditorController {
           targetTile.tileData.connectedSockets = targetTile.tileData.connectedSockets || {};
           targetTile.tileData.connectedSockets[targetSocket.socketId] = newInstanceId;
         }
+        const synced = syncSplineAfterSocketChange(
+          prevSpline,
+          this.courseManager.exportHoleData?.().tiles || [],
+          this.assetLoader
+        );
+        this.courseManager.setSplinePath?.(synced);
+        this.activeSpline = synced;
         this.refreshOpenSockets();
       },
       undo: () => {
@@ -790,6 +1263,8 @@ export class EditorController {
           delete targetTile.tileData.connectedSockets[targetSocket.socketId];
         }
         this.courseManager.removeTile(newInstanceId);
+        this.courseManager.setSplinePath?.(prevSpline);
+        this.activeSpline = prevSpline;
         this.refreshOpenSockets();
       },
     };
@@ -799,7 +1274,8 @@ export class EditorController {
   }
 
   public setGizmosVisible(visible: boolean): void {
-    this.socketGizmoGroup.visible = visible;
+    this.socketGizmoGroup.visible = visible && !this.trackPathMode;
+    this.splineOverlay.setVisible(visible && this.trackPathMode);
     if (!visible) {
       this.ghostGroup.visible = false;
       this.selectionRing.visible = false;
@@ -809,10 +1285,12 @@ export class EditorController {
   public dispose(): void {
     this.canvas.removeEventListener("pointermove", this.handlePointerMove);
     this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("dblclick", this.handleDoubleClick);
     if (typeof window !== "undefined") {
       window.removeEventListener("pointerup", this.handlePointerUp);
       window.removeEventListener("keydown", this.handleKeyDown);
     }
+    this.splineOverlay.dispose();
     this.scene.remove(this.socketGizmoGroup);
     this.scene.remove(this.ghostGroup);
     this.scene.remove(this.selectionRing);

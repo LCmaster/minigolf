@@ -234,5 +234,119 @@ describe("EditorController Unit Tests", () => {
 
     editor.dispose();
   });
+
+  it("supports track_path spline editing, waypoint insert/delete, elevation steps, corner toggle, and undo/redo", () => {
+    let storedSpline: any = null;
+    const realTiles = new Map<string, any>();
+    const realProps = new Map<string, any>();
+
+    const makeSockets = (id: string) => {
+      if (id.includes("tee")) {
+        return [{ id: "LOC_Socket_Out", position: [0, 0, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 0 }];
+      }
+      if (id.includes("cup")) {
+        return [{ id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 }];
+      }
+      if (id.includes("ramp_up")) {
+        return [
+          { id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 },
+          { id: "LOC_Socket_Out", position: [0, 1.5, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 1.5 },
+        ];
+      }
+      return [
+        { id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 },
+        { id: "LOC_Socket_Out", position: [0, 0, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 0 },
+      ];
+    };
+
+    const splineCourseMock: any = {
+      tiles: realTiles,
+      setSplinePath: (p: any) => { storedSpline = p; },
+      getSplinePath: () => storedSpline,
+      loadHole: (hole: any) => {
+        realTiles.clear();
+        realProps.clear();
+        storedSpline = hole.splinePath || null;
+        for (const t of hole.tiles) {
+          realTiles.set(t.instanceId, {
+            tileData: t,
+            group: new THREE.Group(),
+            pieceTemplate: { sockets: makeSockets(t.kitPieceId) },
+          });
+        }
+        for (const p of hole.props || []) {
+          realProps.set(p.instanceId, { propData: p, group: new THREE.Group() });
+        }
+      },
+      exportHoleData: () => ({
+        holeNumber: 1,
+        par: 3,
+        teeTileId: "tee_0",
+        cupTileId: "cup_0",
+        tiles: Array.from(realTiles.values()).map((v) => v.tileData),
+        props: Array.from(realProps.values()).map((v) => v.propData),
+        splinePath: storedSpline || undefined,
+      }),
+      getAllProps: () => Array.from(realProps.values()),
+      getProp: (id: string) => realProps.get(id),
+    };
+
+    const splineAssetsMock: any = {
+      getPiece: (id: string) => ({
+        metadata: { id, name: id, dimensions: [6, 0.6, 6] },
+        visualTemplate: new THREE.Group(),
+        sockets: makeSockets(id),
+        locators: new Map(),
+      }),
+    };
+
+    splineCourseMock.loadHole({
+      holeNumber: 1,
+      par: 2,
+      teeTileId: "tee_0",
+      cupTileId: "cup_0",
+      tiles: [
+        { instanceId: "tee_0", kitPieceId: "carnival_tee_6x6", position: [0, 0, 0], rotationY: 0, walls: { left: true, right: true }, connectedSockets: { LOC_Socket_Out: "cup_0" } },
+        { instanceId: "cup_0", kitPieceId: "carnival_green_cup_6x6", position: [0, 0, -6], rotationY: 0, walls: { left: true, right: true }, attachedTo: { parentInstanceId: "tee_0", parentSocketId: "LOC_Socket_Out" }, connectedSockets: { LOC_Socket_In: "tee_0" } },
+      ],
+      props: [
+        { instanceId: "p_tree", propId: "prop_tree_puffy", position: [12, 0, -8], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      ],
+    });
+
+    const editor = new EditorController(canvasMock, camera, scene, splineCourseMock, splineAssetsMock);
+    editor.setTrackPathMode(true);
+    expect(editor.toolMode).toBe("track_path");
+    expect(editor.isTrackPathMode).toBe(true);
+    expect(scene.getObjectByName("Editor_SplineOverlay")?.visible).toBe(true);
+    expect(scene.getObjectByName("Editor_SocketGizmos")?.visible).toBe(false);
+
+    // Selected tail node cannot be deleted when only 2 nodes exist
+    expect(editor.deleteSelectedSplineNode()).toBe(false);
+
+    // Insert waypoint further forward -> Cup moves to stay at tail, props stay intact
+    expect(editor.insertSplineWaypointAt(new THREE.Vector3(0, 0, -18))).toBe(true);
+    expect(splineCourseMock.exportHoleData().tiles.length).toBeGreaterThanOrEqual(3);
+    expect(splineCourseMock.exportHoleData().props.length).toBe(1);
+    expect(splineCourseMock.getSplinePath().nodes.length).toBe(3);
+
+    // Step elevation up +1.5m on tail and toggle corner
+    expect(editor.stepSelectedNodeElevation(1)).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.elevationStep).toBe(1);
+    expect(editor.toggleSelectedNodeCorner()).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
+
+    // Undo restores smooth corner and previous elevation
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(false);
+
+    // Delete inserted tail node works (cannot delete root node 0)
+    expect(editor.deleteSelectedSplineNode()).toBe(true);
+    expect(splineCourseMock.getSplinePath().nodes.length).toBe(2);
+    // Root protection: only 2 nodes remain so delete returns false
+    expect(editor.deleteSelectedSplineNode()).toBe(false);
+
+    editor.dispose();
+  });
 });
 
