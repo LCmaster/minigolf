@@ -55,16 +55,19 @@ describe("GameEngine Headless Orchestrator Tests", () => {
     expect(oobEvents.length).toBe(1);
     expect(engine.ballController.state).toBe("aiming");
 
-    // 4. Test cup sink via proximity during stepFrame
-    const goalPos = engine.courseManager.getGoalPosition()!;
+    // 4. Test cup sink at cup bottom and immediate ball stop during stepFrame
+    const cupBottomPos =
+      engine.courseManager.getCupBottomPosition() || engine.courseManager.getGoalPosition()!;
     engine.ballController.rigidBody.setTranslation(
-      { x: goalPos.x + 0.1, y: goalPos.y + 0.1, z: goalPos.z },
+      { x: cupBottomPos.x + 0.1, y: cupBottomPos.y + 0.1, z: cupBottomPos.z },
       true
     );
     engine.stepFrame(1 / 60);
     expect(cupSinkEvents.length).toBe(1);
     expect(engine.ballController.state).toBe("in_hole");
     expect(engine.cameraController.mode).toBe("cup_zoom");
+    const sunkVel = engine.ballController.rigidBody.linvel();
+    expect(Math.hypot(sunkVel.x, sunkVel.y, sunkVel.z)).toBe(0);
 
     // 5. Start and stop loop cleanly
     engine.start();

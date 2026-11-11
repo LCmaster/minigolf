@@ -45,7 +45,9 @@ export class CourseManager {
   private tiles: Map<string, InstantiatedTile> = new Map();
   private props: Map<string, InstantiatedProp> = new Map();
   private unifiedFloorCollider: RAPIER.Collider | null = null;
+  private terrainCollider: RAPIER.Collider | null = null;
   private goalSensorCollider: RAPIER.Collider | null = null;
+  private cupBottomCollider: RAPIER.Collider | null = null;
   private boosterSensors: Map<number, BoosterSensorInfo> = new Map();
   private bumperColliderHandles: Set<number> = new Set();
   private flagSprite: THREE.Sprite | null = null;
@@ -53,6 +55,7 @@ export class CourseManager {
   private splinePath: SplinePathData | null = null;
 
   public goalPosition: THREE.Vector3 | null = null;
+  public cupBottomPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
   public showBoundary: boolean = true;
   public onHoleChanged?: () => void;
@@ -182,13 +185,13 @@ export class CourseManager {
       this.spawnPosition.copy(loc);
     }
 
-    // Check for Goal sensor locator
+    // Check for Goal sensor locator (anchor rim at tile surface, cup cavity & indicator at true bottom)
     if (template.locators.has("LOC_Sensor_Goal")) {
       const loc = template.locators.get("LOC_Sensor_Goal")!.clone();
       loc.applyEuler(group.rotation);
       loc.add(group.position);
-      this.goalPosition = loc;
-      this.createGoalSensor(loc);
+      const cupRimPos = new THREE.Vector3(loc.x, group.position.y, loc.z);
+      this.createGoalSensor(cupRimPos);
     }
 
     // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
@@ -346,10 +349,14 @@ export class CourseManager {
     this.onHoleChanged?.();
   }
 
-  private createGoalSensor(pos: THREE.Vector3): void {
+  private createGoalSensor(cupRimPos: THREE.Vector3): void {
     if (this.goalSensorCollider) {
       this.rapierWorld.removeCollider(this.goalSensorCollider, false);
       this.goalSensorCollider = null;
+    }
+    if (this.cupBottomCollider) {
+      this.rapierWorld.removeCollider(this.cupBottomCollider, false);
+      this.cupBottomCollider = null;
     }
     if (this.flagSprite) {
       this.scene.remove(this.flagSprite);
@@ -359,28 +366,48 @@ export class CourseManager {
       this.scene.remove(this.visualCupGroup);
       this.visualCupGroup = null;
     }
-    if (this.visualCupGroup) {
-      this.scene.remove(this.visualCupGroup);
-      this.visualCupGroup = null;
-    }
 
-    // High-visibility real 3D circular cup liner and rim
+    const CUP_DEPTH = 0.30;
+    const cupFloorY = cupRimPos.y - CUP_DEPTH;
+    this.goalPosition = cupRimPos.clone();
+    this.cupBottomPosition = new THREE.Vector3(cupRimPos.x, cupFloorY, cupRimPos.z);
+
+    // High-visibility real 3D circular cup liner and bottom indicator
     const cupGroup = new THREE.Group();
-    cupGroup.position.set(pos.x, pos.y, pos.z);
+    cupGroup.name = "Visual_Cup_Cavity";
+    cupGroup.position.set(cupRimPos.x, cupRimPos.y, cupRimPos.z);
 
     // 1. Dark matte cup interior cavity
-    const interiorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.30, 32, 1, false);
+    const interiorGeo = new THREE.CylinderGeometry(0.38, 0.38, CUP_DEPTH, 32, 1, false);
     const interiorMat = new THREE.MeshStandardMaterial({
       color: 0x121214,
       roughness: 0.85,
       metalness: 0.05,
     });
     const interiorMesh = new THREE.Mesh(interiorGeo, interiorMat);
-    interiorMesh.position.y = -0.15;
+    interiorMesh.position.y = -CUP_DEPTH * 0.5;
     interiorMesh.receiveShadow = true;
     cupGroup.add(interiorMesh);
 
-    // 2. Crisp ceramic white cup rim collar at turf edge
+    // 2. High-contrast target indicator ring seated cleanly at the bottom of the hole
+    const bottomDiscGeo = new THREE.CircleGeometry(0.36, 32);
+    bottomDiscGeo.rotateX(-Math.PI / 2);
+    const bottomDiscMat = new THREE.MeshBasicMaterial({ color: 0x09090b });
+    const bottomDisc = new THREE.Mesh(bottomDiscGeo, bottomDiscMat);
+    bottomDisc.position.y = -CUP_DEPTH + 0.008;
+    cupGroup.add(bottomDisc);
+
+    const targetRingGeo = new THREE.RingGeometry(0.18, 0.30, 32);
+    targetRingGeo.rotateX(-Math.PI / 2);
+    const targetRingMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      side: THREE.DoubleSide,
+    });
+    const targetRing = new THREE.Mesh(targetRingGeo, targetRingMat);
+    targetRing.position.y = -CUP_DEPTH + 0.012;
+    cupGroup.add(targetRing);
+
+    // 3. Crisp ceramic white cup rim collar at turf edge
     const rimGeo = new THREE.RingGeometry(0.36, 0.425, 32);
     rimGeo.rotateX(-Math.PI / 2);
     const rimMat = new THREE.MeshStandardMaterial({
@@ -397,23 +424,31 @@ export class CourseManager {
     this.visualCupGroup = cupGroup;
     this.scene.add(this.visualCupGroup);
 
-    // Master Arcade cup sensor: 0.425m radius (0.85m diameter), settled at cup floor
+    // Solid cup floor collider to physically catch and support balls at the bottom of the cup
+    const bottomDesc = this.rapier.ColliderDesc.cylinder(0.05, 0.44)
+      .setTranslation(cupRimPos.x, cupFloorY - 0.05, cupRimPos.z)
+      .setFriction(1.5)
+      .setRestitution(0.05);
+    this.cupBottomCollider = this.rapierWorld.createCollider(bottomDesc);
+
+    // Goal sensor seated directly on the bottom floor of the cup cavity
     const desc = this.rapier.ColliderDesc.cylinder(0.025, 0.425)
-      .setTranslation(pos.x, pos.y - 0.15, pos.z)
+      .setTranslation(cupRimPos.x, cupFloorY + 0.025, cupRimPos.z)
       .setSensor(true)
       .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
-
     this.goalSensorCollider = this.rapierWorld.createCollider(desc);
 
-    // Floating camera-facing tournament flag billboard marker (no rigid pole to interfere with ball physics)
-    this.flagSprite = this.createFlagBillboard(pos);
+    // Tournament flag billboard planted with pole base at the true bottom of the cup
+    this.flagSprite = this.createFlagBillboard(this.cupBottomPosition);
     this.scene.add(this.flagSprite);
   }
 
-  private createFlagBillboard(pos: THREE.Vector3): THREE.Sprite {
+  private createFlagBillboard(cupFloorPos: THREE.Vector3): THREE.Sprite {
     if (typeof document === "undefined") {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }));
-      sprite.position.set(pos.x, pos.y + 1.2, pos.z);
+      sprite.center.set(0.5, 0);
+      sprite.scale.set(1.5, 1.5, 1.0);
+      sprite.position.set(cupFloorPos.x, cupFloorPos.y, cupFloorPos.z);
       return sprite;
     }
 
@@ -424,18 +459,18 @@ export class CourseManager {
     if (ctx) {
       ctx.clearRect(0, 0, 128, 128);
 
-      // Slender gold flagpole
+      // Slender gold flagpole extending flush to the bottom edge (cup bottom)
       ctx.fillStyle = "#f59e0b";
-      ctx.fillRect(36, 16, 6, 96);
+      ctx.fillRect(61, 16, 6, 112);
       ctx.beginPath();
-      ctx.arc(39, 16, 5, 0, Math.PI * 2);
+      ctx.arc(64, 16, 5, 0, Math.PI * 2);
       ctx.fill();
 
       // Vibrant pennant flag
       ctx.beginPath();
-      ctx.moveTo(42, 20);
-      ctx.lineTo(108, 38);
-      ctx.lineTo(42, 56);
+      ctx.moveTo(67, 20);
+      ctx.lineTo(122, 36);
+      ctx.lineTo(67, 52);
       ctx.closePath();
       ctx.fillStyle = "#ef4444";
       ctx.fill();
@@ -445,10 +480,10 @@ export class CourseManager {
 
       // Pin icon
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 20px sans-serif";
+      ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("⛳", 66, 38);
+      ctx.fillText("⛳", 88, 36);
     }
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -460,9 +495,38 @@ export class CourseManager {
       depthWrite: false,
     });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(1.5, 1.5, 1.0);
-    sprite.position.set(pos.x, pos.y + 1.2, pos.z);
+    sprite.center.set(0.5, 0);
+    sprite.scale.set(1.6, 1.6, 1.0);
+    sprite.position.set(cupFloorPos.x, cupFloorPos.y, cupFloorPos.z);
     return sprite;
+  }
+
+  public getCupBottomCollider(): RAPIER.Collider | null {
+    return this.cupBottomCollider;
+  }
+
+  public getCupBottomPosition(): THREE.Vector3 | null {
+    return this.cupBottomPosition;
+  }
+
+  public updateTerrainCollider(
+    geometry: THREE.BufferGeometry,
+    worldMatrix: THREE.Matrix4 = new THREE.Matrix4()
+  ): void {
+    if (this.terrainCollider) {
+      this.rapierWorld.removeCollider(this.terrainCollider, false);
+      this.terrainCollider = null;
+    }
+    const desc = this.createStaticColliderFromGeo(geometry, worldMatrix);
+    if (desc) {
+      desc.setFriction(0.75);
+      desc.setRestitution(0.2);
+      this.terrainCollider = this.rapierWorld.createCollider(desc);
+    }
+  }
+
+  public getTerrainCollider(): RAPIER.Collider | null {
+    return this.terrainCollider;
   }
 
   public getGoalSensorCollider(): RAPIER.Collider | null {
@@ -720,6 +784,14 @@ export class CourseManager {
     if (this.goalSensorCollider) {
       this.rapierWorld.removeCollider(this.goalSensorCollider, false);
       this.goalSensorCollider = null;
+    }
+    if (this.cupBottomCollider) {
+      this.rapierWorld.removeCollider(this.cupBottomCollider, false);
+      this.cupBottomCollider = null;
+    }
+    if (this.terrainCollider) {
+      this.rapierWorld.removeCollider(this.terrainCollider, false);
+      this.terrainCollider = null;
     }
     if (this.flagSprite) {
       this.scene.remove(this.flagSprite);

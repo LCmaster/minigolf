@@ -122,6 +122,8 @@ export class ParkBackdrop {
   public updateFromCourse(courseManager: {
     getAllTiles: () => Array<{ group: THREE.Object3D }>;
     getAllProps?: () => Array<{ group: THREE.Object3D }>;
+    getCupBottomPosition?: () => THREE.Vector3 | null;
+    getGoalPosition?: () => THREE.Vector3 | null;
     showBoundary?: boolean;
   }): void {
     const positions: Array<{ x: number; z: number }> = [];
@@ -135,16 +137,41 @@ export class ParkBackdrop {
     }
     const bounds = this.computeCourseBounds(positions);
     const show = courseManager.showBoundary ?? this.showBoundary;
-    this.updateBounds(bounds, show);
+    const cupFloorPos =
+      courseManager.getCupBottomPosition?.() ??
+      (courseManager.getGoalPosition?.()
+        ? new THREE.Vector3(
+            courseManager.getGoalPosition()!.x,
+            courseManager.getGoalPosition()!.y - 0.3,
+            courseManager.getGoalPosition()!.z
+          )
+        : null);
+    this.updateBounds(bounds, show, cupFloorPos);
   }
 
-  public updateBounds(bounds: CourseBounds, showBoundary: boolean = true): void {
+  public updateBounds(
+    bounds: CourseBounds,
+    showBoundary: boolean = true,
+    cupFloorPos: THREE.Vector3 | null = null
+  ): void {
     this.showBoundary = showBoundary;
-    this.rebuildGroundGeometry(bounds);
+    this.rebuildGroundGeometry(bounds, cupFloorPos);
     this.rebuildPerimeterFence(bounds, showBoundary);
   }
 
-  private rebuildGroundGeometry(bounds: CourseBounds): void {
+  public getGroundGeometry(): THREE.PlaneGeometry {
+    return this.groundGeo;
+  }
+
+  public getGroundWorldMatrix(): THREE.Matrix4 {
+    this.groundMesh.updateMatrixWorld(true);
+    return this.groundMesh.matrixWorld;
+  }
+
+  private rebuildGroundGeometry(
+    bounds: CourseBounds,
+    cupFloorPos: THREE.Vector3 | null = null
+  ): void {
     const posAttr = this.groundGeo.attributes.position as THREE.BufferAttribute;
     const count = posAttr.count;
     const colors = new Float32Array(count * 3);
@@ -166,7 +193,16 @@ export class ParkBackdrop {
         Math.max(0, this.noise2D(x * 0.022, z * 0.022) * 0.5 + 0.5) * 7.5 +
         this.noise2D(x * 0.055 + 11.3, z * 0.055 - 7.1) * 1.8;
 
-      const y = ParkBackdrop.LAWN_Y + blend * Math.max(0, hillRaw);
+      let y = ParkBackdrop.LAWN_Y + blend * Math.max(0, hillRaw);
+
+      // Recess park ground collider underneath a ground-level cup so the cup floor remains reachable
+      if (cupFloorPos && cupFloorPos.y < 0.05) {
+        const cupDist = Math.hypot(x - cupFloorPos.x, z - cupFloorPos.z);
+        if (cupDist < 3.6) {
+          y = Math.min(y, cupFloorPos.y - 0.18);
+        }
+      }
+
       posAttr.setY(i, y);
 
       const c = innerColor.clone().lerp(hillColor, blend * 0.85);
@@ -264,3 +300,4 @@ export class ParkBackdrop {
     }
   }
 }
+

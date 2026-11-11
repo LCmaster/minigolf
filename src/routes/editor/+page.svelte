@@ -539,7 +539,11 @@
         </div>
         <div class="flex gap-3 justify-center">
           <button
-            on:click={() => engine.ballController.respawn()}
+            on:click={() => {
+              engine.resetBallToTee();
+              isCupSunk = false;
+              strokes = 0;
+            }}
             class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
           >
             Putt Again

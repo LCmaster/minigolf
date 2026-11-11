@@ -57,6 +57,10 @@ export class GameEngine {
 
     this.courseManager.onHoleChanged = () => {
       this.renderPipeline.parkBackdrop.updateFromCourse(this.courseManager);
+      this.courseManager.updateTerrainCollider(
+        this.renderPipeline.parkBackdrop.getGroundGeometry(),
+        this.renderPipeline.parkBackdrop.getGroundWorldMatrix()
+      );
     };
 
     this.ballController = new BallController(
@@ -225,7 +229,8 @@ export class GameEngine {
 
     // Check goal sensor collision, booster triggers, and bumper hits
     const goalCollider = this.courseManager.getGoalSensorCollider();
-    const goalPos = this.courseManager.getGoalPosition();
+    const cupBottomPos =
+      this.courseManager.getCupBottomPosition?.() || this.courseManager.getGoalPosition();
     const ballHandle = this.ballController.collider?.handle;
     let ballEnteredHole = false;
     let pendingBooster: { direction: THREE.Vector3; impulse: number } | null = null;
@@ -268,18 +273,20 @@ export class GameEngine {
       this.audio.playBumper();
     }
 
-    // Proximity fallback check (within 42.5cm of cup center horizontally and within 50cm vertically)
-    if (!ballEnteredHole && goalPos && this.ballController.mesh) {
+    // Proximity check anchored strictly to inside of cup cavity (never triggers while skimming across top rim at +0.10)
+    if (!ballEnteredHole && cupBottomPos && this.ballController.mesh) {
       const bPos = this.ballController.mesh.position;
-      const horizDist = Math.hypot(bPos.x - goalPos.x, bPos.z - goalPos.z);
-      const vertDist = Math.abs(bPos.y - goalPos.y);
-      if (horizDist < 0.425 && vertDist < 0.50) {
+      const horizDist = Math.hypot(bPos.x - cupBottomPos.x, bPos.z - cupBottomPos.z);
+      if (horizDist < 0.38 && bPos.y <= cupBottomPos.y + 0.22 && bPos.y >= cupBottomPos.y - 0.25) {
         ballEnteredHole = true;
       }
     }
 
     if (ballEnteredHole && this.ballController.state !== "in_hole") {
-      this.ballController.state = "in_hole";
+      const cupRestPos = cupBottomPos
+        ? new THREE.Vector3(cupBottomPos.x, cupBottomPos.y + this.ballController.radius, cupBottomPos.z)
+        : this.ballController.getPosition().clone();
+      this.ballController.sinkAt(cupRestPos);
       this.cameraController.mode = "cup_zoom";
       this.audio.playCupSink();
       this.emit("cupSink", {
@@ -323,6 +330,15 @@ export class GameEngine {
 
     // Render frame
     this.renderPipeline.render();
+  }
+
+  public resetBallToTee(): void {
+    if (this.isEditorMode || !this.ballController) return;
+    const spawn = this.courseManager.spawnPosition || new THREE.Vector3(0, 1.1, 0);
+    this.ballController.strokes = 0;
+    this.ballController.createPhysicsBody(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
+    this.cameraController.mode = "aiming";
+    this.cameraController.setTarget(this.ballController.getPosition());
   }
 
   /**

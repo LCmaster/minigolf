@@ -86,6 +86,7 @@ export class BallController {
 
   public update(): void {
     if (!this.rigidBody) return;
+    if (this.state === "in_hole") return;
 
     const t = this.rigidBody.translation();
     const r = this.rigidBody.rotation();
@@ -115,6 +116,22 @@ export class BallController {
       } else {
         this.stationaryFrames = 0;
       }
+    }
+  }
+
+  public sinkAt(targetPos: THREE.Vector3): void {
+    this.state = "in_hole";
+    this.stationaryFrames = 0;
+    this.mesh.position.copy(targetPos);
+    if (this.rigidBody) {
+      this.rigidBody.setBodyType(this.rapier.RigidBodyType.Fixed, true);
+      this.rigidBody.setLinvel(new this.rapier.Vector3(0, 0, 0), true);
+      this.rigidBody.setAngvel(new this.rapier.Vector3(0, 0, 0), true);
+      this.rigidBody.setTranslation(
+        new this.rapier.Vector3(targetPos.x, targetPos.y, targetPos.z),
+        true
+      );
+      this.rigidBody.sleep();
     }
   }
 

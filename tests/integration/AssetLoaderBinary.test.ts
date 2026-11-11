@@ -226,4 +226,26 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
       expect(names.some((n) => /chevron/i.test(n))).toBe(false);
     }
   });
+
+  it("includes UBX collision proxies on all modular terrain GLBs so terrain is non-traversable", async () => {
+    const hill = await parseGlbFromDisk("models/kit/terrain_hill_knoll_6x6.glb");
+    const pond = await parseGlbFromDisk("models/kit/terrain_pond_patch_6x6.glb");
+    const lagoon = await parseGlbFromDisk("models/kit/terrain_waterfall_lagoon_12x12.glb");
+
+    const collectUbx = (root: THREE.Group) => {
+      const list: string[] = [];
+      root.traverse((c) => {
+        if (c.name && c.name.startsWith("UBX_")) {
+          list.push(c.name.replace(/(?:\.\d+|\d{3})+$/, ""));
+        }
+      });
+      return list;
+    };
+
+    expect(collectUbx(hill)).toContain("UBX_Hill_Knoll");
+    expect(collectUbx(pond)).toContain("UBX_Pond_Rim");
+    expect(collectUbx(pond)).toContain("UBX_Pond_Water");
+    expect(collectUbx(lagoon)).toContain("UBX_Waterfall_Bluff");
+    expect(collectUbx(lagoon)).toContain("UBX_Waterfall_Water");
+  });
 });
