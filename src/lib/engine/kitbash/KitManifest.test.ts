@@ -17,9 +17,9 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
     expect(manifest.cupRadius).toBe(0.28);
   });
 
-  it("contains all 32 base arcade pieces and 41 Carnival Park kitbash pieces", () => {
+  it("contains all 32 base arcade pieces and 45 Carnival Park kitbash pieces", () => {
     const pieces = Object.keys(manifest.pieces);
-    expect(pieces.length).toBe(73);
+    expect(pieces.length).toBe(77);
 
     expect(pieces).toContain("tee_box_6x6");
     expect(pieces).toContain("straight_6m");
@@ -44,7 +44,11 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
       "carnival_straight_6m",
       "carnival_ramp_up_15deg_6x6",
       "carnival_ramp_down_15deg_6x6",
+      "carnival_turn_15deg_rounded",
+      "carnival_turn_30deg_rounded",
       "carnival_turn_45deg_rounded",
+      "carnival_turn_60deg_rounded",
+      "carnival_turn_75deg_rounded",
       "carnival_turn_90deg_rounded",
       "carnival_bridge_pond_6x12",
       "carnival_windmill_6x12",

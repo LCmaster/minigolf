@@ -1613,6 +1613,64 @@
         "carnival"
       ]
     },
+    "carnival_turn_15deg_rounded": {
+      "id": "carnival_turn_15deg_rounded",
+      "name": "Carnival Turn 15deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_15deg_rounded.glb",
+      "dimensions": [6.0, 0.6, 6.0],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 3.0],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0.20444504226559013, 0, 1.4470857293848756],
+          "normal": [0.25881904510252074, 0, -0.9659258262890683],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["turn", "15deg", "rounded", "carnival"]
+    },
+    "carnival_turn_30deg_rounded": {
+      "id": "carnival_turn_30deg_rounded",
+      "name": "Carnival Turn 30deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_30deg_rounded.glb",
+      "dimensions": [6.0, 0.6, 6.0],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 3.0],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0.8038475772933678, 0, 0.0],
+          "normal": [0.5, 0, -0.8660254037844387],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["turn", "30deg", "rounded", "carnival"]
+    },
     "carnival_turn_45deg_rounded": {
       "id": "carnival_turn_45deg_rounded",
       "name": "Carnival Turn 45deg",
@@ -1665,6 +1723,64 @@
         "45deg",
         "carnival"
       ]
+    },
+    "carnival_turn_60deg_rounded": {
+      "id": "carnival_turn_60deg_rounded",
+      "name": "Carnival Turn 60deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_60deg_rounded.glb",
+      "dimensions": [6.0, 0.6, 6.0],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 3.0],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [3.0, 0, -2.196152422706632],
+          "normal": [0.8660254037844386, 0, -0.5],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["turn", "60deg", "rounded", "carnival"]
+    },
+    "carnival_turn_75deg_rounded": {
+      "id": "carnival_turn_75deg_rounded",
+      "name": "Carnival Turn 75deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_75deg_rounded.glb",
+      "dimensions": [7.447085729384876, 0.6, 6.0],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 3.0],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [4.447085729384876, 0, -2.79555495773441],
+          "normal": [0.9659258262890683, 0, -0.25881904510252074],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": ["turn", "75deg", "rounded", "carnival"]
     },
     "carnival_turn_90deg_rounded": {
       "id": "carnival_turn_90deg_rounded",

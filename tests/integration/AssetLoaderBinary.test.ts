@@ -187,4 +187,23 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
       expect(visualMesh!.geometry.boundingBox!.min.y).toBeCloseTo(0.0, 1);
     }
   });
+
+  it("parses Carnival 15/30/60/75 degree curved turn GLBs with UBX colliders and aligned sockets", async () => {
+    for (const deg of [15, 30, 60, 75]) {
+      const turnScene = await parseGlbFromDisk(`models/kit/carnival_turn_${deg}deg_rounded.glb`);
+      const names = new Set<string>();
+      turnScene.traverse((c) => {
+        if (c.name) names.add(c.name.replace(/(?:\.\d+|\d{3})+$/, ""));
+      });
+
+      expect(names.has("Mesh_Floor")).toBe(true);
+      expect(names.has("Mesh_Wall_L")).toBe(true);
+      expect(names.has("Mesh_Wall_R")).toBe(true);
+      expect(names.has("UBX_Floor")).toBe(true);
+      expect(names.has("UBX_Wall_L")).toBe(true);
+      expect(names.has("UBX_Wall_R")).toBe(true);
+      expect(names.has("LOC_Socket_In")).toBe(true);
+      expect(names.has("LOC_Socket_Out")).toBe(true);
+    }
+  });
 });
