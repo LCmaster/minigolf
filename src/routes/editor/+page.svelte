@@ -113,6 +113,16 @@
     editorController.history.clear();
   }
 
+  function handleLoadBigTop() {
+    if (!engine || !editorController) return;
+    activeTheme = "carnival_park";
+    const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[1]));
+    engine.courseManager.loadHole(hole);
+    showBoundary = hole.showBoundary ?? true;
+    editorController.refreshOpenSockets();
+    editorController.history.clear();
+  }
+
   function handleAutoDecorate() {
     if (!engine || !editorController) return;
     const current = engine.courseManager.exportHoleData(3, 1);
@@ -243,6 +253,14 @@
           title="Load Sunny Creek & Midway Bend showcase hole"
         >
           🌉 Sunny Creek
+        </button>
+
+        <button
+          on:click={handleLoadBigTop}
+          class="px-2.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/30 text-rose-300 text-xs font-bold font-mono transition-all"
+          title="Load Big Top Windmill showcase hole"
+        >
+          🎡 Big Top
         </button>
 
         <button

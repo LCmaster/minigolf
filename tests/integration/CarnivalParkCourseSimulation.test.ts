@@ -161,4 +161,42 @@ describe("Carnival Park Course Simulation (Sunny Creek & Midway Bend)", () => {
     cm.clear();
     world.free();
   });
+
+  it("loads Hole 2 (Big Top Windmill & Waterfall Lagoon) with horseshoe socket alignment, windmill tunnel, and uphill roll", () => {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+    const cm = new CourseManager(scene, world, RAPIER, mockAssetLoader);
+    const ball = new BallController(scene, world, RAPIER);
+
+    const hole2 = carnivalParkCourse.holes[1];
+    cm.loadHole(hole2);
+
+    expect(cm.getAllTiles().length).toBe(8);
+    expect(cm.getAllProps().length).toBe(hole2.props.length);
+
+    // Tee at Y=0.0, Windmill ridge at Y=1.5, Cup green back at front-right [30, 0, 6]
+    expect(cm.spawnPosition.y).toBeGreaterThan(0.0);
+    expect(cm.spawnPosition.y).toBeLessThan(0.5);
+    expect(cm.goalPosition).not.toBeNull();
+    expect(cm.goalPosition!.y).toBeCloseTo(0.0, 2);
+    expect(cm.goalPosition!.x).toBeCloseTo(30.0, 1);
+    expect(cm.goalPosition!.z).toBeCloseTo(6.0, 1);
+
+    // Putt uphill along -Z up the 15deg ramp onto the elevated ridge (Y = 1.5m)
+    ball.createPhysicsBody(cm.spawnPosition);
+    ball.shoot(new THREE.Vector3(0, 0, -0.068));
+
+    for (let i = 0; i < 160; i++) {
+      world.step();
+      ball.update();
+    }
+
+    const pos = ball.getPosition();
+    expect(pos.y).toBeGreaterThan(1.3);
+    expect(pos.z).toBeLessThan(-2.0);
+
+    ball.dispose();
+    cm.clear();
+    world.free();
+  });
 });

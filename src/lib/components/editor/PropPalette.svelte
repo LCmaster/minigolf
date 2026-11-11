@@ -8,11 +8,14 @@
 
   const carnivalProps = [
     { id: "prop_carnival_arch_6m", name: "Carnival Arch", icon: "🎪", category: "carnival" },
+    { id: "prop_bigtop_gate_6m", name: "Big Top Gate", icon: "⛺", category: "carnival" },
     { id: "prop_bumper_peg_yellow", name: "Yellow Bumper", icon: "🟡", category: "bumpers" },
     { id: "prop_bumper_peg_blue", name: "Blue Bumper", icon: "🔵", category: "bumpers" },
+    { id: "prop_bumper_peg_red", name: "Red Bumper", icon: "🔴", category: "bumpers" },
     { id: "prop_lantern_bunting", name: "Lantern Bunting", icon: "🎏", category: "carnival" },
     { id: "terrain_hill_knoll_6x6", name: "Hill Knoll", icon: "⛰️", category: "terrain" },
     { id: "terrain_pond_patch_6x6", name: "Pond Patch", icon: "💧", category: "terrain" },
+    { id: "terrain_waterfall_lagoon_12x12", name: "Waterfall Lagoon", icon: "🏞️", category: "terrain" },
     { id: "prop_tree_puffy", name: "Puffy Tree", icon: "🌳", category: "nature" },
     { id: "prop_boulder_faceted", name: "Boulder", icon: "🪨", category: "nature" },
     { id: "prop_toadstool_pair", name: "Toadstools", icon: "🍄", category: "nature" },

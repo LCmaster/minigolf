@@ -2067,6 +2067,128 @@
         "park",
         "fence"
       ]
+    },
+    "carnival_windmill_6x12": {
+      "id": "carnival_windmill_6x12",
+      "name": "Carnival Windmill (6x12)",
+      "category": "obstacles",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_windmill_6x12.glb",
+      "dimensions": [
+        7.2,
+        10.0,
+        12.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            6.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -6.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "obstacle",
+        "windmill",
+        "carnival",
+        "boardwalk"
+      ]
+    },
+    "prop_bigtop_gate_6m": {
+      "id": "prop_bigtop_gate_6m",
+      "name": "Big Top Gate",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_bigtop_gate_6m.glb",
+      "dimensions": [
+        6.4,
+        4.6,
+        1.4
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "carnival",
+        "arch",
+        "bigtop"
+      ]
+    },
+    "prop_bumper_peg_red": {
+      "id": "prop_bumper_peg_red",
+      "name": "Red Carnival Bumper",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_bumper_peg_red.glb",
+      "dimensions": [
+        0.75,
+        0.8,
+        0.75
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "bumper",
+        "carnival"
+      ]
+    },
+    "terrain_waterfall_lagoon_12x12": {
+      "id": "terrain_waterfall_lagoon_12x12",
+      "name": "Waterfall Lagoon (12x12)",
+      "category": "terrain",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/terrain_waterfall_lagoon_12x12.glb",
+      "dimensions": [
+        9.0,
+        1.6,
+        11.5
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "terrain",
+        "pond",
+        "waterfall",
+        "carnival"
+      ]
     }
   }
 }

@@ -15,6 +15,7 @@
     { id: "carnival_ramp_up_15deg_6x6", label: "Carnival Ramp Up", icon: "📈" },
     { id: "carnival_ramp_down_15deg_6x6", label: "Carnival Ramp Down", icon: "📉" },
     { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉" },
+    { id: "carnival_windmill_6x12", label: "Windmill Gate (12m)", icon: "🎡" },
     { id: "carnival_green_cup_6x6", label: "Carnival Cup Green", icon: "⛳" },
   ];
 
