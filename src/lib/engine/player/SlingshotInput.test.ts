@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as THREE from "three";
-import { SlingshotInput } from "./SlingshotInput";
+import {
+  SlingshotInput,
+  computeCurvedPower,
+  computeAimJitterAngle,
+  MAX_IMPULSE_FORCE,
+} from "./SlingshotInput";
 
 describe("SlingshotInput Unit Tests", () => {
   let canvasMock: any;
@@ -93,7 +98,17 @@ describe("SlingshotInput Unit Tests", () => {
     input.dispose();
   });
 
-  it("applies calibrated power^1.35 curve capped at 0.10 impulse", () => {
+  it("applies progressive exponential curve (gentle close putts, 0.18 max jump power) and launches along live jittered arrow angle", () => {
+    expect(computeCurvedPower(0)).toBeCloseTo(0, 5);
+    expect(computeCurvedPower(0.25)).toBeLessThan(0.10);
+    expect(computeCurvedPower(0.5)).toBeCloseTo(0.214, 2);
+    expect(computeCurvedPower(1.0)).toBeCloseTo(1.0, 5);
+    expect(MAX_IMPULSE_FORCE).toBeCloseTo(0.18, 4);
+
+    // Zero jitter below 85% raw power; deterministic jitter above 85%
+    expect(computeAimJitterAngle(0.5, 0.04)).toBe(0);
+    expect(Math.abs(computeAimJitterAngle(1.0, 0.04))).toBeGreaterThan(0.05);
+
     camera.position.set(0, 5, 5);
     camera.lookAt(0, 0.2, 0);
     camera.updateMatrixWorld();
@@ -103,26 +118,37 @@ describe("SlingshotInput Unit Tests", () => {
       (c: any[]) => c[0] === "pointerdown"
     )[1];
 
-    // Initiate drag on the ball centered at (400, 300), then pull strongly downward in screen space
+    // Full pullback (>85% power) and tick aim visual at a timestamp with non-zero jitter
     pointerdown({ button: 0, clientX: 400, clientY: 300 });
     (input as any).handlePointerMove({ clientX: 400, clientY: 590 });
+    input.updateAimVisual(0.04); // sin(0.04 * 36) ≈ +0.99
+
+    const expectedArrowDir = new THREE.Vector3(0, 0, -1)
+      .applyEuler(input.arrow.group.rotation)
+      .normalize();
+    expect(Math.abs(expectedArrowDir.x)).toBeGreaterThan(0.03); // Visible jitter offset
+
     (input as any).handlePointerUp();
 
     expect(ballMock.shoot).toHaveBeenCalledTimes(1);
     const maxImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
-    expect(maxImpulse.length()).toBeGreaterThan(0.01);
-    expect(maxImpulse.length()).toBeLessThanOrEqual(0.10 + 1e-6);
-    expect(maxImpulse.z).toBeLessThan(0);
+    expect(maxImpulse.length()).toBeGreaterThan(0.12);
+    expect(maxImpulse.length()).toBeLessThanOrEqual(MAX_IMPULSE_FORCE + 1e-6);
 
-    // Subtle pullback (~0.5 power) produces non-linear curved impulse strictly below linear 0.5 * 0.10
+    // Ball launches along the exact live angle the 3D arrow was pointing at release
+    const launchDir = maxImpulse.clone().normalize();
+    expect(launchDir.distanceTo(expectedArrowDir)).toBeLessThan(1e-4);
+
+    // Gentle short pullback produces very low impulse for precision close putts without jitter
     ballMock.shoot.mockClear();
     pointerdown({ button: 0, clientX: 400, clientY: 300 });
-    (input as any).handlePointerMove({ clientX: 400, clientY: 375 });
+    (input as any).handlePointerMove({ clientX: 400, clientY: 330 });
     (input as any).handlePointerUp();
 
     expect(ballMock.shoot).toHaveBeenCalledTimes(1);
     const gentleImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
-    expect(gentleImpulse.length()).toBeLessThan(maxImpulse.length());
+    expect(gentleImpulse.length()).toBeGreaterThan(0.001);
+    expect(gentleImpulse.length()).toBeLessThan(0.025);
 
     input.dispose();
   });

@@ -76,8 +76,14 @@ export class AimArrowMesh {
     this.group.add(this.arrowMesh);
   }
 
-  public update(origin: THREE.Vector3, direction: THREE.Vector3, power: number, time: number): void {
-    if (power <= 0.02) {
+  public update(
+    origin: THREE.Vector3,
+    direction: THREE.Vector3,
+    power: number,
+    time: number,
+    jitterOffsetAngle?: number
+  ): void {
+    if (power <= 0.01) {
       this.group.visible = false;
       return;
     }
@@ -88,20 +94,21 @@ export class AimArrowMesh {
     // Aim direction angle (pointing along -Z natively, rotate around +Y)
     let angle = Math.atan2(-direction.x, -direction.z);
 
-    // High-power jitter when power > 75%
-    if (power > 0.75) {
-      const jitterFactor = (power - 0.75) / 0.25; // 0.0 to 1.0
-      const jitter = Math.sin(time * 40) * 0.08 * jitterFactor;
-      angle += jitter;
+    if (typeof jitterOffsetAngle === "number") {
+      angle += jitterOffsetAngle;
+    } else if (power > 0.75) {
+      // Fallback visual wobble when caller omits coupled jitter angle
+      const jitterFactor = (power - 0.75) / 0.25;
+      angle += Math.sin(time * 40) * 0.08 * jitterFactor;
     }
 
     this.group.rotation.y = angle;
 
-    // Scale length with power (min 0.8m, max 3.5m)
-    const length = 0.8 + power * 2.7;
+    // Scale length with progressive curved power (min 0.75m, max 4.0m)
+    const length = 0.75 + Math.min(1, Math.max(0, power)) * 3.25;
     this.arrowMesh.scale.set(1.0, 1.0, length);
 
-    this.material.uniforms.uPower.value = power;
+    this.material.uniforms.uPower.value = Math.min(1, Math.max(0, power));
   }
 
   public hide(): void {

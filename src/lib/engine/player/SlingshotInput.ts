@@ -8,6 +8,31 @@ import type { BallController } from "./BallController";
 import type { CameraController } from "../scene/CameraController";
 import { AimArrowMesh } from "./AimArrowMesh";
 
+export const POWER_CURVE_STEEPNESS = 2.6;
+export const MAX_IMPULSE_FORCE = 0.18;
+export const HIGH_POWER_JITTER_THRESHOLD = 0.85;
+export const HIGH_POWER_JITTER_MAX_RAD = 0.065;
+
+/**
+ * Progressive exponential force scaling: fine low-drag control for close putts,
+ * surging sharply above 75% power to clear ramp jump-overs.
+ */
+export function computeCurvedPower(rawPower: number): number {
+  const p = Math.max(0, Math.min(1, rawPower));
+  const k = POWER_CURVE_STEEPNESS;
+  return (Math.exp(k * p) - 1) / (Math.exp(k) - 1);
+}
+
+/**
+ * Deterministic high-power aim tremble shared between AimArrowMesh visuals
+ * and ball launch angle upon release (> 85% raw pullback).
+ */
+export function computeAimJitterAngle(rawPower: number, timeSec: number): number {
+  if (rawPower <= HIGH_POWER_JITTER_THRESHOLD) return 0;
+  const factor = (rawPower - HIGH_POWER_JITTER_THRESHOLD) / (1.0 - HIGH_POWER_JITTER_THRESHOLD);
+  return Math.sin(timeSec * 36) * HIGH_POWER_JITTER_MAX_RAD * factor;
+}
+
 export class SlingshotInput {
   private canvas: HTMLCanvasElement;
   private camera: THREE.Camera;
@@ -26,9 +51,11 @@ export class SlingshotInput {
   private dragStartPoint: THREE.Vector3 = new THREE.Vector3();
   private currentDragPoint: THREE.Vector3 = new THREE.Vector3();
   private shotDirection: THREE.Vector3 = new THREE.Vector3();
+  private currentRawPower: number = 0;
+  private lastJitterAngle: number = 0;
 
-  private maxDragDistance: number = 4.0; // 4 meters max drag for 100% power
-  private maxImpulseForce: number = 0.10; // Calibrated for ~5g golf ball (up to ~20 m/s)
+  private maxDragDistance: number = 2.4; // 2.4m pullback reaches 100% even at default 29° camera pitch
+  private maxImpulseForce: number = MAX_IMPULSE_FORCE; // Calibrated for ~5g golf ball (up to ~20m ramp jump-overs)
 
   public onStrokeTaken?: (power: number, impulse: THREE.Vector3) => void;
 
@@ -65,6 +92,8 @@ export class SlingshotInput {
     if (!enabled) {
       this.isDragging = false;
       this.isOrbiting = false;
+      this.currentRawPower = 0;
+      this.lastJitterAngle = 0;
       this.arrow.hide();
       this.canvas.style.cursor = "default";
     }
@@ -137,11 +166,16 @@ export class SlingshotInput {
 
       const dist = dragVec.length();
       const power = Math.min(dist / this.maxDragDistance, 1.0);
+      this.currentRawPower = power;
 
       if (dist > 0.05) {
         this.shotDirection.copy(dragVec).normalize();
-        this.arrow.update(ballPos, this.shotDirection, power, performance.now() / 1000);
+        const timeSec = performance.now() / 1000;
+        const curvedPower = computeCurvedPower(power);
+        this.lastJitterAngle = computeAimJitterAngle(power, timeSec);
+        this.arrow.update(ballPos, this.shotDirection, curvedPower, timeSec, this.lastJitterAngle);
       } else {
+        this.lastJitterAngle = 0;
         this.arrow.hide();
       }
     } else if (this.isOrbiting && this.cameraController) {
@@ -158,6 +192,25 @@ export class SlingshotInput {
       this.canvas.style.cursor = "default";
     }
   };
+
+  /**
+   * Keeps high-power aim jitter oscillating while the player holds at > 85% power
+   * so release direction stays locked 1:1 with the visible arrow.
+   */
+  public updateAimVisual(timeSec: number = performance.now() / 1000): void {
+    if (!this.enabled || !this.isDragging || this.ball.state !== "aiming") return;
+    if (this.currentRawPower <= 0.02 || this.shotDirection.lengthSq() < 1e-6) return;
+
+    const curvedPower = computeCurvedPower(this.currentRawPower);
+    this.lastJitterAngle = computeAimJitterAngle(this.currentRawPower, timeSec);
+    this.arrow.update(
+      this.ball.getPosition(),
+      this.shotDirection,
+      curvedPower,
+      timeSec,
+      this.lastJitterAngle
+    );
+  }
 
   private handlePointerUp = (): void => {
     if (!this.enabled) {
@@ -187,19 +240,23 @@ export class SlingshotInput {
     const power = Math.min(dist / this.maxDragDistance, 1.0);
 
     if (power > 0.05) {
-      let dir = this.shotDirection.clone();
-      if (power > 0.85) {
-        const jitterFactor = (power - 0.85) / 0.15;
-        const jitter = (Math.random() - 0.5) * 0.03 * jitterFactor;
-        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), jitter);
+      // Launch along the exact live angle the 3D aim arrow was pointing at release
+      const dir = this.shotDirection.clone();
+      if (this.lastJitterAngle !== 0) {
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.lastJitterAngle);
       }
 
-      const curvedPower = Math.pow(power, 1.35);
+      const curvedPower = computeCurvedPower(power);
       const impulseMagnitude = curvedPower * this.maxImpulseForce;
       const impulse = dir.multiplyScalar(impulseMagnitude);
 
+      this.currentRawPower = 0;
+      this.lastJitterAngle = 0;
       this.ball.shoot(impulse);
       this.onStrokeTaken?.(power, impulse);
+    } else {
+      this.currentRawPower = 0;
+      this.lastJitterAngle = 0;
     }
   };
 

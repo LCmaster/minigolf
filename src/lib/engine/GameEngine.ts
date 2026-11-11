@@ -234,6 +234,7 @@ export class GameEngine {
       deltaTime,
       this.slingshotInput?.isDraggingActive?.() ?? false
     );
+    this.slingshotInput?.updateAimVisual?.(performance.now() / 1000);
 
     // Check goal sensor collision, booster triggers, and bumper hits
     const goalCollider = this.courseManager.getGoalSensorCollider();

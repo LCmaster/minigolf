@@ -45,7 +45,7 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
   - When the ball comes to a full stop (`state === "aiming"` after `stationaryFrames > 25`), `BallController.ghostSphereMesh` renders a `0.25m` translucent pulsing ghost sphere around the ball (`±10%` scale) that hides while dragging, moving, sunk, or in Editor mode, and responds to `SlingshotInput` hover/grab.
 - **120Hz Interpolated Simulation & Shot Calibration (`PhysicsWorld.ts`, `BallController.ts`, `SlingshotInput.ts`, `CameraController.ts`)**:
   - `PhysicsWorld` steps Rapier at `120Hz` (`fixedDelta = 1 / 120`, `EventQueue(false)` so multi-substep collision events are never dropped), captures `prevPosition` / `prevQuaternion` via `onBeforeStep`, and interpolates `BallController.update(alpha)` (`lerp`/`slerp` when `state === "moving"`) using the accumulator remainder to eliminate post-shot substep-count jitter.
-  - `SlingshotInput` calibrates launch impulses against the `~5g` ball (`maxImpulseForce = 0.10` with a `Math.pow(power, 1.35)` response curve and `0.03` jitter only above `0.85` power), paired with tightened third-person `CameraController` follow damping (`10.5`).
+  - `SlingshotInput` & `AimArrowMesh` apply a progressive exponential force curve (`(e^(2.6·p) - 1)/(e^2.6 - 1)`, `maxImpulseForce = 0.18`, `maxDragDistance = 2.4m`) for delicate short putts and `~20m` ramp jump-overs even at default camera pitch, with coupled high-power jitter above `0.85` raw drag so the ball launches along the exact live jittered arrow angle upon release, paired with `CameraController` follow damping (`10.5`).
 
 ---
 
