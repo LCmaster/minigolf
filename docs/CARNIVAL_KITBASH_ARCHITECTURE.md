@@ -39,9 +39,10 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
 - A `280m × 280m` grassy park plane (`Y = -0.08m`) flattened cleanly inside the active hole's padded bounding box and smoothly blending outward into rolling `simplex-noise` hills and sky fog (`#9be0ff`).
 - Whenever `CourseManager` loads or modifies tiles/props, `onHoleChanged` updates `ParkBackdrop.updateFromCourse()` to refit the flattened area, dips any ground-level cup cavity clearance (`3.6m` around `goalPos`), rebuilds the instanced wooden perimeter fence (`Park_Perimeter_Fence`), and regenerates a static Rapier trimesh terrain collider (`CourseManager.updateTerrainCollider()`) so balls cannot pass through the park ground.
 - Elevated tiles (`Y = +1.5m`) sit naturally on modular `terrain_hill_knoll_6x6` props, and ponds sit inside stone-rimmed basins (`carnival_bridge_pond_6x12` and `terrain_pond_patch_6x6`). All `terrain_*` kitbash GLBs (`terrain_hill_knoll_6x6`, `terrain_pond_patch_6x6`, `terrain_waterfall_lagoon_12x12`) include `UBX_*` collision proxies so hills, rims, and bluffs are physically solid.
-- **Cup Bottom Indicator & Immediate Ball Stop (`CourseManager.ts`, `BallController.ts`, `GameEngine.ts`)**:
+- **Cup Bottom Indicator, Immediate Ball Stop & Ready Pulse (`CourseManager.ts`, `BallController.ts`, `GameEngine.ts`, `SlingshotInput.ts`)**:
   - The goal flag pole (`center.y = 0`), bottom target ring, solid `cupBottomCollider`, and `goalSensorCollider` all anchor at the true bottom of the cup (`cupRimY - 0.30m`).
   - Sinking triggers `BallController.sinkAt()`, immediately zeroing linear/angular velocity and locking the ball at `[goalX, cupFloorY + radius, goalZ]` so it never falls through the green or terrain beneath; **Putt Again** (`GameEngine.resetBallToTee()`) restores dynamic physics at the tee.
+  - When the ball comes to a full stop (`state === "aiming"` after `stationaryFrames > 25`), `BallController.ghostSphereMesh` renders a `0.25m` translucent pulsing ghost sphere around the ball (`±10%` scale) that hides while dragging, moving, sunk, or in Editor mode, and responds to `SlingshotInput` hover/grab.
 
 ---
 

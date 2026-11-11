@@ -9,6 +9,7 @@ import type { BallPlayState } from "../types/EngineEvents";
 
 export class BallController {
   public mesh: THREE.Mesh;
+  public ghostSphereMesh: THREE.Mesh;
   public rigidBody!: RAPIER.RigidBody;
   public collider!: RAPIER.Collider;
 
@@ -21,6 +22,7 @@ export class BallController {
   public radius: number = 0.1; // 10cm radius
 
   private stationaryFrames: number = 0;
+  private pulseTime: number = 0;
   private lastSafePosition: THREE.Vector3 = new THREE.Vector3();
 
   constructor(scene: THREE.Scene, rapierWorld: RAPIER.World, rapier: typeof RAPIER) {
@@ -39,6 +41,18 @@ export class BallController {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
     this.scene.add(this.mesh);
+
+    // Translucent pulsing ghost sphere shown around stationary ball when ready to shoot
+    const ghostGeo = new THREE.SphereGeometry(this.radius * 2.5, 24, 16);
+    const ghostMat = new THREE.MeshBasicMaterial({
+      color: 0xe0f7ff,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    });
+    this.ghostSphereMesh = new THREE.Mesh(ghostGeo, ghostMat);
+    this.ghostSphereMesh.name = "Ball_Ready_Ghost";
+    this.scene.add(this.ghostSphereMesh);
 
     this.createPhysicsBody(new THREE.Vector3(0, 0.2, 0));
   }
@@ -65,6 +79,9 @@ export class BallController {
     this.collider = this.rapierWorld.createCollider(colliderDesc, this.rigidBody);
 
     this.mesh.position.copy(spawnPos);
+    this.ghostSphereMesh.position.copy(spawnPos);
+    this.ghostSphereMesh.scale.set(1, 1, 1);
+    this.ghostSphereMesh.visible = this.mesh.visible;
     this.lastSafePosition.copy(spawnPos);
     this.state = "aiming";
   }
@@ -75,6 +92,7 @@ export class BallController {
     this.strokes++;
     this.state = "moving";
     this.stationaryFrames = 0;
+    this.ghostSphereMesh.visible = false;
     this.lastSafePosition.copy(this.mesh.position);
 
     // Apply impulse to Rapier body
@@ -123,6 +141,7 @@ export class BallController {
     this.state = "in_hole";
     this.stationaryFrames = 0;
     this.mesh.position.copy(targetPos);
+    this.ghostSphereMesh.visible = false;
     if (this.rigidBody) {
       this.rigidBody.setBodyType(this.rapier.RigidBodyType.Fixed, true);
       this.rigidBody.setLinvel(new this.rapier.Vector3(0, 0, 0), true);
@@ -145,6 +164,24 @@ export class BallController {
 
   public setVisible(visible: boolean): void {
     this.mesh.visible = visible;
+    if (!visible) {
+      this.ghostSphereMesh.visible = false;
+    } else {
+      this.ghostSphereMesh.visible = this.state === "aiming";
+    }
+  }
+
+  public updateReadyIndicator(deltaTime: number, isAimDragging: boolean = false): void {
+    const shouldShow = this.mesh.visible && this.state === "aiming" && !isAimDragging;
+    this.ghostSphereMesh.visible = shouldShow;
+    this.ghostSphereMesh.position.copy(this.mesh.position);
+    if (shouldShow) {
+      this.pulseTime += deltaTime;
+      const scale = 1.0 + Math.sin(this.pulseTime * 5.0) * 0.1;
+      this.ghostSphereMesh.scale.set(scale, scale, scale);
+    } else {
+      this.ghostSphereMesh.scale.set(1, 1, 1);
+    }
   }
 
   public disablePhysics(): void {
@@ -157,6 +194,7 @@ export class BallController {
 
   public dispose(): void {
     this.scene.remove(this.mesh);
+    this.scene.remove(this.ghostSphereMesh);
     this.disablePhysics();
   }
 }

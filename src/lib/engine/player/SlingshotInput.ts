@@ -66,7 +66,31 @@ export class SlingshotInput {
       this.isDragging = false;
       this.isOrbiting = false;
       this.arrow.hide();
+      this.canvas.style.cursor = "default";
     }
+  }
+
+  public isDraggingActive(): boolean {
+    return this.isDragging;
+  }
+
+  private isPointerOverBallOrGhost(clientX: number, clientY: number): boolean {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+
+    const targets: THREE.Object3D[] = [this.ball.mesh];
+    if (this.ball.ghostSphereMesh) targets.push(this.ball.ghostSphereMesh);
+    if (this.raycaster.intersectObjects(targets, false).length > 0) {
+      return true;
+    }
+
+    const point = this.getGroundIntersection(clientX, clientY);
+    if (point) {
+      return point.distanceTo(this.ball.getPosition()) < 0.8;
+    }
+    return false;
   }
 
   private handlePointerDown = (ev: PointerEvent): void => {
@@ -82,20 +106,13 @@ export class SlingshotInput {
 
     if (ev.button !== 0) return; // Left mouse button only beyond here
 
-    if (this.ball.state === "aiming") {
-      const point = this.getGroundIntersection(ev.clientX, ev.clientY);
-      if (point) {
-        const ballPos = this.ball.getPosition();
-        const distToBall = point.distanceTo(ballPos);
-
-        // Click near ball (< 0.8m) starts slingshot aiming
-        if (distToBall < 0.8) {
-          this.isDragging = true;
-          this.dragStartPoint.copy(ballPos);
-          this.currentDragPoint.copy(ballPos);
-          return;
-        }
-      }
+    if (this.ball.state === "aiming" && this.isPointerOverBallOrGhost(ev.clientX, ev.clientY)) {
+      const ballPos = this.ball.getPosition();
+      this.isDragging = true;
+      this.dragStartPoint.copy(ballPos);
+      this.currentDragPoint.copy(ballPos);
+      this.canvas.style.cursor = "grabbing";
+      return;
     }
 
     // Clicking anywhere else on canvas orbits the camera
@@ -133,6 +150,12 @@ export class SlingshotInput {
       this.lastPointerX = ev.clientX;
       this.lastPointerY = ev.clientY;
       this.cameraController.handleOrbitDrag(dx, dy);
+    } else if (this.ball.state === "aiming") {
+      this.canvas.style.cursor = this.isPointerOverBallOrGhost(ev.clientX, ev.clientY)
+        ? "grab"
+        : "default";
+    } else {
+      this.canvas.style.cursor = "default";
     }
   };
 
@@ -141,6 +164,7 @@ export class SlingshotInput {
       this.isDragging = false;
       this.isOrbiting = false;
       this.arrow.hide();
+      this.canvas.style.cursor = "default";
       return;
     }
 
@@ -151,6 +175,7 @@ export class SlingshotInput {
     if (!this.isDragging) return;
     this.isDragging = false;
     this.arrow.hide();
+    this.canvas.style.cursor = "default";
 
     if (this.ball.state !== "aiming") return;
 

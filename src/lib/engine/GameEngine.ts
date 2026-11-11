@@ -224,8 +224,12 @@ export class GameEngine {
       this.boosterCooldownTimer = Math.max(0, this.boosterCooldownTimer - deltaTime);
     }
 
-    // Update ball physics & visual transform
+    // Update ball physics, ready indicator pulse & visual transform
     this.ballController.update();
+    this.ballController.updateReadyIndicator(
+      deltaTime,
+      this.slingshotInput?.isDraggingActive?.() ?? false
+    );
 
     // Check goal sensor collision, booster triggers, and bumper hits
     const goalCollider = this.courseManager.getGoalSensorCollider();
