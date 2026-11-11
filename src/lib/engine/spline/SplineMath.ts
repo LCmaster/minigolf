@@ -78,6 +78,182 @@ export interface SplineSample {
   spanIndex: number;
   t: number;
   targetElevationStep: number;
+  isBevelArc?: boolean;
+  isSharpCorner?: boolean;
+}
+
+export const MAX_BEVEL_RADIUS = 24.0;
+export const BEVEL_HANDLE_BASE_OFFSET = 1.6;
+
+export interface CornerBevelGeometry {
+  isValidCorner: boolean;
+  isBeveled: boolean;
+  turnAngle: number; // Radians in [0, PI]
+  trimDist: number;
+  effectiveRadius: number;
+  maxRadius: number;
+  sagitta: number;
+  bisectorXZ: THREE.Vector2;
+  handlePosXZ: THREE.Vector2;
+  entryXZ: THREE.Vector2;
+  exitXZ: THREE.Vector2;
+  arcCenterXZ: THREE.Vector2;
+  arcMidXZ: THREE.Vector2;
+  startAngle: number;
+  dAngle: number;
+}
+
+/**
+ * Computes exact 2D XZ circular fillet (bevel) geometry at an intermediate polyline vertex.
+ * Returns bisector and maxRadius even when `requestedRadius === 0` (sharp corner).
+ */
+export function getCornerBevelGeometry(
+  prevPos: [number, number, number],
+  cornerPos: [number, number, number],
+  nextPos: [number, number, number],
+  requestedRadius: number = 0
+): CornerBevelGeometry {
+  const c = new THREE.Vector2(cornerPos[0], cornerPos[2]);
+  const vIn = new THREE.Vector2(prevPos[0] - cornerPos[0], prevPos[2] - cornerPos[2]);
+  const vOut = new THREE.Vector2(nextPos[0] - cornerPos[0], nextPos[2] - cornerPos[2]);
+
+  const lenIn = vIn.length();
+  const lenOut = vOut.length();
+  if (lenIn < 1e-4 || lenOut < 1e-4) {
+    return {
+      isValidCorner: false,
+      isBeveled: false,
+      turnAngle: 0,
+      trimDist: 0,
+      effectiveRadius: 0,
+      maxRadius: 0,
+      sagitta: 0,
+      bisectorXZ: new THREE.Vector2(1, 0),
+      handlePosXZ: c.clone().add(new THREE.Vector2(BEVEL_HANDLE_BASE_OFFSET, 0)),
+      entryXZ: c.clone(),
+      exitXZ: c.clone(),
+      arcCenterXZ: c.clone(),
+      arcMidXZ: c.clone(),
+      startAngle: 0,
+      dAngle: 0,
+    };
+  }
+
+  const uIn = vIn.clone().divideScalar(lenIn);
+  const uOut = vOut.clone().divideScalar(lenOut);
+  const dIn = uIn.clone().negate(); // Incoming forward tangent
+
+  const cosTurn = THREE.MathUtils.clamp(dIn.dot(uOut), -1, 1);
+  const turnAngle = Math.acos(cosTurn);
+
+  // Inside-corner bisector; if collinear (180° straight), pick right-hand normal to dIn
+  let bisector = uIn.clone().add(uOut);
+  if (bisector.lengthSq() < 1e-6) {
+    bisector.set(-dIn.y, dIn.x);
+  }
+  bisector.normalize();
+
+  if (turnAngle < 0.03 || turnAngle > Math.PI - 0.03) {
+    return {
+      isValidCorner: turnAngle >= 0.03,
+      isBeveled: false,
+      turnAngle,
+      trimDist: 0,
+      effectiveRadius: 0,
+      maxRadius: 0,
+      sagitta: 0,
+      bisectorXZ: bisector,
+      handlePosXZ: c.clone().addScaledVector(bisector, BEVEL_HANDLE_BASE_OFFSET),
+      entryXZ: c.clone(),
+      exitXZ: c.clone(),
+      arcCenterXZ: c.clone(),
+      arcMidXZ: c.clone(),
+      startAngle: 0,
+      dAngle: 0,
+    };
+  }
+
+  const tanHalf = Math.tan(turnAngle * 0.5);
+  const maxTrim = 0.45 * Math.min(lenIn, lenOut);
+  const maxRadius = Math.min(MAX_BEVEL_RADIUS, tanHalf > 1e-4 ? maxTrim / tanHalf : 0);
+
+  const clampedRadius = Math.max(0, Math.min(maxRadius, requestedRadius || 0));
+  if (clampedRadius <= 0.15) {
+    return {
+      isValidCorner: true,
+      isBeveled: false,
+      turnAngle,
+      trimDist: 0,
+      effectiveRadius: 0,
+      maxRadius,
+      sagitta: 0,
+      bisectorXZ: bisector,
+      handlePosXZ: c.clone().addScaledVector(bisector, BEVEL_HANDLE_BASE_OFFSET),
+      entryXZ: c.clone(),
+      exitXZ: c.clone(),
+      arcCenterXZ: c.clone(),
+      arcMidXZ: c.clone(),
+      startAngle: 0,
+      dAngle: 0,
+    };
+  }
+
+  const trimDist = clampedRadius * tanHalf;
+  const entryXZ = c.clone().addScaledVector(uIn, trimDist);
+  const exitXZ = c.clone().addScaledVector(uOut, trimDist);
+  const centerDist = Math.hypot(clampedRadius, trimDist);
+  const sagitta = centerDist - clampedRadius;
+  const arcCenterXZ = c.clone().addScaledVector(bisector, centerDist);
+  const arcMidXZ = arcCenterXZ.clone().addScaledVector(bisector, -clampedRadius);
+
+  const startAngle = Math.atan2(entryXZ.y - arcCenterXZ.y, entryXZ.x - arcCenterXZ.x);
+  const endAngle = Math.atan2(exitXZ.y - arcCenterXZ.y, exitXZ.x - arcCenterXZ.x);
+  let dAngle = endAngle - startAngle;
+  while (dAngle <= -Math.PI) dAngle += Math.PI * 2;
+  while (dAngle > Math.PI) dAngle -= Math.PI * 2;
+
+  return {
+    isValidCorner: true,
+    isBeveled: true,
+    turnAngle,
+    trimDist,
+    effectiveRadius: clampedRadius,
+    maxRadius,
+    sagitta,
+    bisectorXZ: bisector,
+    handlePosXZ: c.clone().addScaledVector(bisector, BEVEL_HANDLE_BASE_OFFSET + sagitta),
+    entryXZ,
+    exitXZ,
+    arcCenterXZ,
+    arcMidXZ,
+    startAngle,
+    dAngle,
+  };
+}
+
+/**
+ * Converts a dragged world XZ handle position along the corner's inside bisector
+ * into a clamped bevel radius (0 = sharp corner).
+ */
+export function bisectorBevelDragToRadius(
+  prevPos: [number, number, number],
+  cornerPos: [number, number, number],
+  nextPos: [number, number, number],
+  dragWorldXZ: [number, number]
+): number {
+  const geom = getCornerBevelGeometry(prevPos, cornerPos, nextPos, 0);
+  if (!geom.isValidCorner || geom.maxRadius <= 0) return 0;
+
+  const dx = dragWorldXZ[0] - cornerPos[0];
+  const dz = dragWorldXZ[1] - cornerPos[2];
+  const projDist = dx * geom.bisectorXZ.x + dz * geom.bisectorXZ.y;
+  const sagitta = projDist - BEVEL_HANDLE_BASE_OFFSET;
+  if (sagitta <= 0.12) return 0;
+
+  const secMinusOne = 1 / Math.cos(geom.turnAngle * 0.5) - 1;
+  if (secMinusOne <= 1e-5) return 0;
+  const radius = sagitta / secMinusOne;
+  return THREE.MathUtils.clamp(radius, 0, geom.maxRadius);
 }
 
 export function cloneSplineWaypoints(nodes: SplineWaypoint[]): SplineWaypoint[] {
@@ -183,7 +359,9 @@ export function evaluateCubicBezierTangent2D(
 }
 
 /**
- * Samples the ordered spline node chain into cumulative arc-length lookup samples.
+ * Samples the ordered waypoint polyline with circular corner bevels into cumulative arc-length samples.
+ * Straight legs run linearly between corner entry/exit points; corners are either sharp turns
+ * or smooth circular bevel arcs when `node.bevelRadius > 0`.
  */
 export function sampleSplineChain(
   nodes: SplineWaypoint[],
@@ -207,39 +385,112 @@ export function sampleSplineChain(
     ];
   }
 
+  // Precompute bevel geometry for every intermediate corner
+  const corners: Array<CornerBevelGeometry | null> = nodes.map((node, i) => {
+    if (i === 0 || i === nodes.length - 1) return null;
+    const reqRadius = node.corner ? 0 : node.bevelRadius ?? 0;
+    return getCornerBevelGeometry(
+      nodes[i - 1].position,
+      node.position,
+      nodes[i + 1].position,
+      reqRadius
+    );
+  });
+
   const samples: SplineSample[] = [];
   let cumulativeS = 0;
-  let prevPos: THREE.Vector3 | null = null;
+  let prevSamplePos: THREE.Vector3 | null = null;
+
+  const pushSample = (
+    pos: THREE.Vector3,
+    tangentXZ: THREE.Vector2,
+    spanIndex: number,
+    t: number,
+    targetElevationStep: number,
+    flags?: { isBevelArc?: boolean; isSharpCorner?: boolean }
+  ) => {
+    if (prevSamplePos) {
+      cumulativeS += pos.distanceTo(prevSamplePos);
+    }
+    prevSamplePos = pos;
+    samples.push({
+      s: cumulativeS,
+      position: pos,
+      tangentXZ: tangentXZ.clone(),
+      spanIndex,
+      t,
+      targetElevationStep,
+      ...flags,
+    });
+  };
 
   for (let span = 0; span < nodes.length - 1; span++) {
     const a = nodes[span];
     const b = nodes[span + 1];
-    const isTerminalSpan = span === nodes.length - 2;
-    const ctrl = resolveSpanControlPoints(a, b, { relaxedEnd: isTerminalSpan });
+    const bevelA = corners[span];
+    const bevelB = corners[span + 1];
+
     const stepA = getElevationStep(a);
     const stepB = getElevationStep(b);
 
+    const pA2 = new THREE.Vector2(a.position[0], a.position[2]);
+    const pB2 = new THREE.Vector2(b.position[0], b.position[2]);
+    const legVec = pB2.clone().sub(pA2);
+    const legLen = legVec.length();
+    const legTan = legLen > 1e-6 ? legVec.clone().divideScalar(legLen) : new THREE.Vector2(0, -1);
+
+    const startTrim = bevelA?.isBeveled ? bevelA.trimDist : 0;
+    const endTrim = bevelB?.isBeveled ? bevelB.trimDist : 0;
+
+    const startXZ = bevelA?.isBeveled ? bevelA.exitXZ.clone() : pA2.clone();
+    const endXZ = bevelB?.isBeveled ? bevelB.entryXZ.clone() : pB2.clone();
+    const yStart = legLen > 1e-6 ? THREE.MathUtils.lerp(a.position[1], b.position[1], startTrim / legLen) : a.position[1];
+    const yEnd = legLen > 1e-6 ? THREE.MathUtils.lerp(a.position[1], b.position[1], 1 - endTrim / legLen) : b.position[1];
+
     const startIdx = span === 0 ? 0 : 1;
-    for (let i = startIdx; i <= samplesPerSpan; i++) {
-      const t = i / samplesPerSpan;
-      const ptXZ = evaluateCubicBezier2D(ctrl.p0, ctrl.p1, ctrl.p2, ctrl.p3, t);
-      const tanXZ = evaluateCubicBezierTangent2D(ctrl.p0, ctrl.p1, ctrl.p2, ctrl.p3, t);
-      const y = THREE.MathUtils.lerp(a.position[1], b.position[1], t);
-      const pos = new THREE.Vector3(ptXZ.x, y, ptXZ.y);
+    const stepsOnLeg = Math.max(2, samplesPerSpan);
+    for (let i = startIdx; i <= stepsOnLeg; i++) {
+      const t = i / stepsOnLeg;
+      const pt = startXZ.clone().lerp(endXZ, t);
+      const y = THREE.MathUtils.lerp(yStart, yEnd, t);
+      const fracGlobal =
+        legLen > 1e-6 ? (startTrim + t * Math.max(0, legLen - startTrim - endTrim)) / legLen : t;
+      const isSharpAtEnd = Boolean(bevelB && !bevelB.isBeveled && i === stepsOnLeg);
 
-      if (prevPos) {
-        cumulativeS += pos.distanceTo(prevPos);
-      }
-      prevPos = pos;
-
-      samples.push({
-        s: cumulativeS,
-        position: pos,
-        tangentXZ: tanXZ,
-        spanIndex: span,
+      pushSample(
+        new THREE.Vector3(pt.x, y, pt.y),
+        legTan,
+        span,
         t,
-        targetElevationStep: t >= 0.5 ? stepB : stepA,
-      });
+        fracGlobal >= 0.5 ? stepB : stepA,
+        isSharpAtEnd ? { isSharpCorner: true } : undefined
+      );
+    }
+
+    // Sample beveled corner arc right after leg [span] ends at entry_B
+    if (bevelB && bevelB.isBeveled && span + 1 < nodes.length - 1) {
+      const c = nodes[span + 1];
+      const next = nodes[span + 2];
+      const lenNext = Math.hypot(next.position[0] - c.position[0], next.position[2] - c.position[2]);
+      const yArcEnd =
+        lenNext > 1e-6
+          ? THREE.MathUtils.lerp(c.position[1], next.position[1], bevelB.trimDist / lenNext)
+          : c.position[1];
+
+      const arcSteps = Math.max(6, Math.round(samplesPerSpan * 0.6));
+      for (let j = 1; j <= arcSteps; j++) {
+        const u = j / arcSteps;
+        const ang = bevelB.startAngle + bevelB.dAngle * u;
+        const px = bevelB.arcCenterXZ.x + Math.cos(ang) * bevelB.effectiveRadius;
+        const pz = bevelB.arcCenterXZ.y + Math.sin(ang) * bevelB.effectiveRadius;
+        const py = THREE.MathUtils.lerp(yEnd, yArcEnd, u);
+
+        const dirSign = bevelB.dAngle >= 0 ? 1 : -1;
+        const tan = new THREE.Vector2(-Math.sin(ang) * dirSign, Math.cos(ang) * dirSign).normalize();
+        pushSample(new THREE.Vector3(px, py, pz), tan, span + 1, u, getElevationStep(c), {
+          isBevelArc: true,
+        });
+      }
     }
   }
 

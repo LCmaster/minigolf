@@ -139,4 +139,36 @@ describe("DiscreteKitFitter Beam Search Solver", () => {
     expect(gapTile!.isGap).toBe(true);
     assertWatertightChain(result.tiles);
   });
+
+  it("fits straight legs + Classic _crisp sharp turns when bevelRadius=0, and wide _rounded arc when beveled", () => {
+    const existing: PlacedTile[] = [
+      { instanceId: "tee", kitPieceId: "tee_box_6x6", position: [0, 0, 0], rotationY: 0, walls: { left: true, right: true } },
+      { instanceId: "cup", kitPieceId: "green_cup_standard_6x6", walls: { left: true, right: true } },
+    ];
+
+    // 1. Sharp 90° corner (bevelRadius = 0)
+    const sharpPath: SplinePathData = {
+      nodes: [
+        { id: "n0", position: [0, 0, 0], handleOffset: [0, -3], elevationStep: 0 },
+        { id: "n1", position: [0, 0, -18], handleOffset: [0, -3], elevationStep: 0, bevelRadius: 0 },
+        { id: "n2", position: [18, 0, -18], handleOffset: [3, 0], elevationStep: 0 },
+      ],
+    };
+    const sharpRes = fitTilesToSpline(sharpPath, existing, "country_club", mockLoader);
+    expect(sharpRes.tiles.some((t) => t.kitPieceId === "straight_6m")).toBe(true);
+    expect(sharpRes.tiles.some((t) => t.kitPieceId === "turn_90deg_crisp")).toBe(true);
+    assertWatertightChain(sharpRes.tiles);
+
+    // 2. Wide beveled corner (bevelRadius = 12m on 24x24 legs) -> uses _rounded arc pieces
+    const bevelPath: SplinePathData = {
+      nodes: [
+        { id: "n0", position: [0, 0, 0], handleOffset: [0, -3], elevationStep: 0 },
+        { id: "n1", position: [0, 0, -24], handleOffset: [0, -3], elevationStep: 0, bevelRadius: 12 },
+        { id: "n2", position: [24, 0, -24], handleOffset: [3, 0], elevationStep: 0 },
+      ],
+    };
+    const bevelRes = fitTilesToSpline(bevelPath, existing, "country_club", mockLoader);
+    expect(bevelRes.tiles.some((t) => t.kitPieceId.endsWith("_rounded"))).toBe(true);
+    assertWatertightChain(bevelRes.tiles);
+  });
 });

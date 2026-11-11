@@ -9,6 +9,8 @@ import {
   getSampleAtArcLength,
   tangentToPerpHandleOffset,
   perpHandleOffsetToTangent,
+  getCornerBevelGeometry,
+  bisectorBevelDragToRadius,
 } from "./SplineMath";
 import type { SplineWaypoint } from "../types/CourseSchema";
 
@@ -88,6 +90,50 @@ describe("SplineMath Unit Tests", () => {
     const expectedDir = new THREE.Vector2(12 - 0, -18 - -3).normalize();
     expect(arrivalTan.x).toBeCloseTo(expectedDir.x, 4);
     expect(arrivalTan.y).toBeCloseTo(expectedDir.y, 4);
+  });
+
+  it("samples straight polyline legs with exact circular corner bevel geometry & bisector dragging", () => {
+    const p0: [number, number, number] = [0, 0, 0];
+    const p1: [number, number, number] = [0, 0, -18];
+    const p2: [number, number, number] = [18, 0, -18];
+
+    // Sharp corner (R = 0): valid bisector pointing (+X, +Z), no arc trim
+    const sharp = getCornerBevelGeometry(p0, p1, p2, 0);
+    expect(sharp.isValidCorner).toBe(true);
+    expect(sharp.isBeveled).toBe(false);
+    expect(sharp.turnAngle).toBeCloseTo(Math.PI / 2, 4);
+    expect(sharp.bisectorXZ.x).toBeCloseTo(Math.SQRT1_2, 4);
+    expect(sharp.bisectorXZ.y).toBeCloseTo(Math.SQRT1_2, 4);
+
+    // Bevel radius R = 6m on 90° corner -> trimDist = 6m, arc center = (6, -12)
+    const beveled = getCornerBevelGeometry(p0, p1, p2, 6.0);
+    expect(beveled.isBeveled).toBe(true);
+    expect(beveled.trimDist).toBeCloseTo(6.0, 4);
+    expect(beveled.entryXZ.x).toBeCloseTo(0, 4);
+    expect(beveled.entryXZ.y).toBeCloseTo(-12, 4);
+    expect(beveled.exitXZ.x).toBeCloseTo(6, 4);
+    expect(beveled.exitXZ.y).toBeCloseTo(-18, 4);
+    expect(beveled.arcCenterXZ.x).toBeCloseTo(6, 4);
+    expect(beveled.arcCenterXZ.y).toBeCloseTo(-12, 4);
+
+    // Dragging handle along bisector recovers exact bevel radius and snaps to 0 near apex
+    const recoveredR = bisectorBevelDragToRadius(p0, p1, p2, [beveled.handlePosXZ.x, beveled.handlePosXZ.y]);
+    expect(recoveredR).toBeCloseTo(6.0, 3);
+    expect(bisectorBevelDragToRadius(p0, p1, p2, [0.5, -17.5])).toBe(0);
+
+    // Polyline sample chain tracks straight legs and circular bevel samples accurately
+    const nodes: SplineWaypoint[] = [
+      { id: "n0", position: p0, handleOffset: [0, -3], bevelRadius: 0 },
+      { id: "n1", position: p1, handleOffset: [0, -3], bevelRadius: 6 },
+      { id: "n2", position: p2, handleOffset: [3, 0], bevelRadius: 0 },
+    ];
+    const samples = sampleSplineChain(nodes, 16);
+    const bevelSamples = samples.filter((s) => s.isBevelArc);
+    expect(bevelSamples.length).toBeGreaterThan(0);
+    for (const s of bevelSamples) {
+      const distFromCenter = Math.hypot(s.position.x - 6, s.position.z - -12);
+      expect(distFromCenter).toBeCloseTo(6.0, 3);
+    }
   });
 });
 

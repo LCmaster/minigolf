@@ -526,11 +526,12 @@
 
         <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
           <button
-            on:click={() => editorController?.toggleSelectedNodeCorner()}
-            class="py-1.5 px-2 rounded-xl border transition-colors {selectedSplineNode.corner ? 'bg-amber-500/20 border-amber-400/50 text-amber-200' : 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200'}"
-            title="Toggle between C1 smooth curve and sharp corner"
+            on:click={() => editorController?.toggleSelectedNodeBevel()}
+            disabled={!selectedSplineNode.canBevel}
+            class="py-1.5 px-2 rounded-xl border transition-colors {!selectedSplineNode.canBevel ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed' : selectedSplineNode.bevelRadius > 0.15 ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200' : 'bg-amber-500/20 border-amber-400/50 text-amber-200'}"
+            title="Toggle between Sharp corner turn and rounded Bevel arc"
           >
-            {selectedSplineNode.corner ? '📐 Sharp' : '〰️ Smooth'}
+            {selectedSplineNode.bevelRadius > 0.15 ? `⭕ Bevel ${selectedSplineNode.bevelRadius.toFixed(1)}m` : '📐 Sharp'}
           </button>
           <button
             on:click={() => editorController?.deleteSelectedSplineNode()}
@@ -541,13 +542,34 @@
             🗑️ Del Node
           </button>
         </div>
+
+        {#if selectedSplineNode.canBevel}
+          <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
+            <button
+              on:click={() => editorController?.stepSelectedNodeBevel(-3.0)}
+              disabled={selectedSplineNode.bevelRadius <= 0.15}
+              class="py-1 px-2 rounded-xl border transition-colors {selectedSplineNode.bevelRadius > 0.15 ? 'bg-white/5 hover:bg-white/15 border-white/10 text-gray-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
+              title="Decrease corner bevel radius (-3m)"
+            >
+              ➖ Bevel
+            </button>
+            <button
+              on:click={() => editorController?.stepSelectedNodeBevel(3.0)}
+              disabled={selectedSplineNode.bevelRadius >= selectedSplineNode.maxBevelRadius - 0.15}
+              class="py-1 px-2 rounded-xl border transition-colors {selectedSplineNode.bevelRadius < selectedSplineNode.maxBevelRadius - 0.15 ? 'bg-white/5 hover:bg-white/15 border-white/10 text-gray-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
+              title="Increase corner bevel radius (+3m)"
+            >
+              ➕ Bevel
+            </button>
+          </div>
+        {/if}
       </div>
     {/if}
 
     <!-- Editor Hint Banner -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none whitespace-nowrap">
       {#if isTrackPathMode}
-        〰️ <span class="text-cyan-300 font-bold">Track Path:</span> Drag Node move &bull; Drag Diamond bend curve &bull; <span class="text-amber-300 font-bold">Double-Click</span> add point &bull; <span class="text-red-300 font-bold">Del</span> remove
+        📏 <span class="text-cyan-300 font-bold">Track Path:</span> Drag Corner move &bull; Drag Bevel Diamond round corner &bull; <span class="text-amber-300 font-bold">Double-Click</span> add &bull; <span class="text-red-300 font-bold">Del</span> remove
       {:else if isEraseMode}
         🧹 <span class="text-red-300 font-bold">Erase Mode:</span> Click prop or track tile to remove &bull; <span class="text-gray-200 font-bold">X / Esc</span> exit
       {:else if selectedPropId}

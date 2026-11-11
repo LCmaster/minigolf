@@ -19,9 +19,10 @@ import { getPiecePropRole } from "../types/KitTypes";
 import { HistoryManager, type EditorCommand } from "./HistoryManager";
 import {
   ELEVATION_STEP_METERS,
+  bisectorBevelDragToRadius,
   cloneSplinePath,
+  getCornerBevelGeometry,
   getElevationStep,
-  perpHandleOffsetToTangent,
 } from "../spline/SplineMath";
 import {
   deriveSplineFromTiles,
@@ -44,6 +45,9 @@ export interface SelectedSplineNodeInfo {
   nodeCount: number;
   elevationStep: number;
   elevationMeters: number;
+  bevelRadius: number;
+  maxBevelRadius: number;
+  canBevel: boolean;
   corner: boolean;
   isRoot: boolean;
   canDelete: boolean;
@@ -195,16 +199,36 @@ export class EditorController {
       return null;
     }
     const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, this.activeSpline.nodes.length - 1));
-    const node = this.activeSpline.nodes[idx];
+    const nodes = this.activeSpline.nodes;
+    const node = nodes[idx];
     const step = getElevationStep(node);
+    const isIntermediate = idx > 0 && idx < nodes.length - 1;
+    let bevelRadius = 0;
+    let maxBevelRadius = 0;
+    let canBevel = false;
+    if (isIntermediate) {
+      const geom = getCornerBevelGeometry(
+        nodes[idx - 1].position,
+        node.position,
+        nodes[idx + 1].position,
+        node.corner ? 0 : node.bevelRadius ?? 0
+      );
+      canBevel = geom.isValidCorner && geom.maxRadius > 0.2;
+      bevelRadius = geom.effectiveRadius;
+      maxBevelRadius = geom.maxRadius;
+    }
+
     return {
       index: idx,
-      nodeCount: this.activeSpline.nodes.length,
+      nodeCount: nodes.length,
       elevationStep: step,
       elevationMeters: step * ELEVATION_STEP_METERS,
-      corner: Boolean(node.corner),
+      bevelRadius,
+      maxBevelRadius,
+      canBevel,
+      corner: bevelRadius <= 0.15,
       isRoot: idx === 0,
-      canDelete: idx > 0 && this.activeSpline.nodes.length > 2,
+      canDelete: idx > 0 && nodes.length > 2,
     };
   }
 
@@ -529,19 +553,50 @@ export class EditorController {
     return true;
   }
 
-  public toggleSelectedNodeCorner(): boolean {
+  public setSelectedNodeBevelRadius(radiusMeters: number): boolean {
     if (!this.trackPathMode) return false;
     const spline = this.activeSpline || this.syncSplineFromCourse();
-    if (!spline || spline.nodes.length === 0) return false;
+    if (!spline || spline.nodes.length < 3) return false;
 
     const idx = Math.max(0, Math.min(this.selectedSplineNodeIndex, spline.nodes.length - 1));
+    if (idx === 0 || idx === spline.nodes.length - 1) return false;
+
     const oldHole = this.courseManager.exportHoleData(3, 1);
     oldHole.splinePath = cloneSplinePath(spline);
 
     const draft = cloneSplinePath(spline);
-    draft.nodes[idx].corner = !draft.nodes[idx].corner;
-    this.commitSplineEdit("Toggle spline corner", oldHole, draft, idx);
+    const geom = getCornerBevelGeometry(
+      draft.nodes[idx - 1].position,
+      draft.nodes[idx].position,
+      draft.nodes[idx + 1].position,
+      radiusMeters
+    );
+    draft.nodes[idx].bevelRadius = geom.effectiveRadius;
+    draft.nodes[idx].corner = false;
+    this.commitSplineEdit(
+      geom.isBeveled ? `Bevel corner (${geom.effectiveRadius.toFixed(1)}m)` : "Make corner sharp",
+      oldHole,
+      draft,
+      idx
+    );
     return true;
+  }
+
+  public stepSelectedNodeBevel(deltaMeters: number): boolean {
+    const info = this.getSelectedSplineNodeInfo();
+    if (!info || !info.canBevel) return false;
+    return this.setSelectedNodeBevelRadius(Math.max(0, info.bevelRadius + deltaMeters));
+  }
+
+  public toggleSelectedNodeBevel(): boolean {
+    const info = this.getSelectedSplineNodeInfo();
+    if (!info || !info.canBevel) return false;
+    const target = info.bevelRadius > 0.15 ? 0 : Math.min(6.0, info.maxBevelRadius);
+    return this.setSelectedNodeBevelRadius(target);
+  }
+
+  public toggleSelectedNodeCorner(): boolean {
+    return this.toggleSelectedNodeBevel();
   }
 
   public insertSplineWaypointAt(worldPoint: THREE.Vector3): boolean {
@@ -853,17 +908,15 @@ export class EditorController {
           } else {
             const nodes = this.draggingSpline.workingSpline.nodes;
             const idx = this.draggingSpline.nodeIndex;
-            const prevNode = idx > 0 ? nodes[idx - 1] : undefined;
-            const nextNode = idx < nodes.length - 1 ? nodes[idx + 1] : undefined;
-            const nx = pt.x - node.position[0];
-            const nz = pt.z - node.position[2];
-            node.handleOffset = perpHandleOffsetToTangent(
-              nx,
-              nz,
-              prevNode?.position,
-              nextNode?.position
-            );
-            node.corner = false;
+            if (idx > 0 && idx < nodes.length - 1) {
+              node.bevelRadius = bisectorBevelDragToRadius(
+                nodes[idx - 1].position,
+                node.position,
+                nodes[idx + 1].position,
+                [pt.x, pt.z]
+              );
+              node.corner = false;
+            }
           }
           this.draggingSpline.moved = true;
           this.activeSpline = this.draggingSpline.workingSpline;

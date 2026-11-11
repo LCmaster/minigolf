@@ -317,17 +317,14 @@ export function fitTilesToSpline(
   const samples = sampleSplineChain(nodes, 28);
   const totalLength = samples[samples.length - 1]?.s ?? 0;
 
-  // Initial Tee direction from Node 0 tangent (or chord to Node 1)
+  // Aim Tee straight along the first leg [P0 -> P1] so starting fairway stays straight
   const startTan =
-    !nodes[0].corner &&
-    (nodes[0].handleOffset[0] ** 2 + nodes[0].handleOffset[1] ** 2 > 1e-4)
-      ? new THREE.Vector2(nodes[0].handleOffset[0], nodes[0].handleOffset[1]).normalize()
-      : nodes.length > 1
-        ? new THREE.Vector2(
-            nodes[1].position[0] - nodes[0].position[0],
-            nodes[1].position[2] - nodes[0].position[2]
-          )
-        : new THREE.Vector2(0, -1);
+    nodes.length > 1
+      ? new THREE.Vector2(
+          nodes[1].position[0] - nodes[0].position[0],
+          nodes[1].position[2] - nodes[0].position[2]
+        )
+      : new THREE.Vector2(nodes[0].handleOffset[0], nodes[0].handleOffset[1]);
 
   if (startTan.lengthSq() < 1e-6) startTan.set(0, -1);
   else startTan.normalize();
@@ -494,6 +491,20 @@ export function fitTilesToSpline(
           0.18 +
           heroBonus;
 
+        const onBevelArc = Boolean(proj.isBevelArc);
+        let kitPieceId = cand.kitPieceId;
+        if (
+          theme !== "carnival_park" &&
+          cand.kind === "turn" &&
+          !onBevelArc &&
+          kitPieceId.endsWith("_rounded")
+        ) {
+          const crispId = kitPieceId.replace(/_rounded$/, "_crisp");
+          if (assetLoader.getPiece(crispId)) {
+            kitPieceId = crispId;
+          }
+        }
+
         const nextState: BeamState = {
           s: nextS,
           score: state.score + stepScore,
@@ -505,7 +516,7 @@ export function fitTilesToSpline(
           steps: [
             ...state.steps,
             {
-              kitPieceId: cand.kitPieceId,
+              kitPieceId,
               instanceId: heroIdx !== undefined ? heroes[heroIdx].instanceId : undefined,
               walls: heroIdx !== undefined ? heroes[heroIdx].walls : undefined,
               isGap: heroIdx !== undefined ? heroes[heroIdx].isGap : undefined,

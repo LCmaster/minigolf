@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { SplineWaypoint } from "../types/CourseSchema";
 import type { GhostSegmentPreview } from "./DiscreteKitFitter";
-import { sampleSplineChain, tangentToPerpHandleOffset } from "./SplineMath";
+import { getCornerBevelGeometry, sampleSplineChain } from "./SplineMath";
 
 const OVERLAY_Y_OFFSET = 0.68;
 
@@ -137,70 +137,59 @@ export class SplineOverlay {
       );
       this.overlayGroup.add(stemLine);
 
-      // Render perpendicular symmetric handle ONLY for intermediate non-corner nodes (Tee & Cup never have handles)
-      if (isIntermediate && !node.corner) {
-        const [perpX, perpZ] = tangentToPerpHandleOffset(
-          node.handleOffset[0],
-          node.handleOffset[1]
+      // Render inside-bisector Bevel Handle ONLY for valid intermediate corners (Tee & Cup never have handles)
+      if (isIntermediate) {
+        const reqRadius = node.corner ? 0 : node.bevelRadius ?? 0;
+        const bevel = getCornerBevelGeometry(
+          nodes[i - 1].position,
+          node.position,
+          nodes[i + 1].position,
+          reqRadius
         );
-        const handleWorld = new THREE.Vector3(
-          node.position[0] + perpX,
-          node.position[1] + OVERLAY_Y_OFFSET,
-          node.position[2] + perpZ
-        );
+        if (bevel.isValidCorner) {
+          const handleWorld = new THREE.Vector3(
+            bevel.handlePosXZ.x,
+            node.position[1] + OVERLAY_Y_OFFSET,
+            bevel.handlePosXZ.y
+          );
 
-        const armGeo = new THREE.BufferGeometry().setFromPoints([nodePos, handleWorld]);
-        const armLine = new THREE.Line(
-          armGeo,
-          new THREE.LineBasicMaterial({
-            color: isSelected ? 0xf59e0b : 0x94a3b8,
-            transparent: true,
-            opacity: isSelected ? 0.95 : 0.45,
-          })
-        );
-        this.overlayGroup.add(armLine);
-
-        // Subtle symmetric tangent crossbar showing the continuous C1 curve alignment perpendicular to the arm
-        if (isSelected) {
-          const tx = node.handleOffset[0];
-          const tz = node.handleOffset[1];
-          const tLen = Math.hypot(tx, tz) || 1;
-          const barHalf = 1.6;
-          const ux = (tx / tLen) * barHalf;
-          const uz = (tz / tLen) * barHalf;
-          const barGeo = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(
-              node.position[0] - ux,
-              node.position[1] + OVERLAY_Y_OFFSET,
-              node.position[2] - uz
-            ),
-            new THREE.Vector3(
-              node.position[0] + ux,
-              node.position[1] + OVERLAY_Y_OFFSET,
-              node.position[2] + uz
-            ),
-          ]);
-          const barLine = new THREE.Line(
-            barGeo,
+          const armGeo = new THREE.BufferGeometry().setFromPoints([nodePos, handleWorld]);
+          const armLine = new THREE.Line(
+            armGeo,
             new THREE.LineBasicMaterial({
-              color: 0x22d3ee,
+              color: isSelected ? 0xf59e0b : 0x94a3b8,
               transparent: true,
-              opacity: 0.65,
+              opacity: isSelected ? 0.95 : 0.45,
             })
           );
-          this.overlayGroup.add(barLine);
-        }
+          this.overlayGroup.add(armLine);
 
-        const diamondGeo = new THREE.OctahedronGeometry(isSelected ? 0.34 : 0.24, 0);
-        const diamondMat = new THREE.MeshBasicMaterial({
-          color: isSelected ? 0xf59e0b : 0x94a3b8,
-        });
-        const diamond = new THREE.Mesh(diamondGeo, diamondMat);
-        diamond.position.copy(handleWorld);
-        diamond.name = `SplineOverlay_Handle_${i}`;
-        diamond.userData = { splineHandleIndex: i };
-        this.overlayGroup.add(diamond);
-        this.handleMeshes.push(diamond);
+          // When corner is beveled, draw faint corner guide arms to show sharp apex geometry
+          if (bevel.isBeveled && isSelected) {
+            const apexGuideGeo = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(bevel.entryXZ.x, node.position[1] + OVERLAY_Y_OFFSET, bevel.entryXZ.y),
+              nodePos,
+              new THREE.Vector3(bevel.exitXZ.x, node.position[1] + OVERLAY_Y_OFFSET, bevel.exitXZ.y),
+            ]);
+            this.overlayGroup.add(
+              new THREE.Line(
+                apexGuideGeo,
+                new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.45 })
+              )
+            );
+          }
+
+          const diamondGeo = new THREE.OctahedronGeometry(isSelected ? 0.34 : 0.24, 0);
+          const diamondMat = new THREE.MeshBasicMaterial({
+            color: bevel.isBeveled ? 0x22d3ee : isSelected ? 0xf59e0b : 0x94a3b8,
+          });
+          const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+          diamond.position.copy(handleWorld);
+          diamond.name = `SplineOverlay_Handle_${i}`;
+          diamond.userData = { splineHandleIndex: i };
+          this.overlayGroup.add(diamond);
+          this.handleMeshes.push(diamond);
+        }
       }
     }
   }

@@ -286,6 +286,12 @@ describe("EditorController Unit Tests", () => {
           { id: "LOC_Socket_Out", position: [0, 1.5, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 1.5 },
         ];
       }
+      if (id.includes("turn_90")) {
+        return [
+          { id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 },
+          { id: "LOC_Socket_Out", position: [6, 0, -3], normal: [1, 0, 0], type: "track_arcade_6m", elevation: 0 },
+        ];
+      }
       return [
         { id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 },
         { id: "LOC_Socket_Out", position: [0, 0, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 0 },
@@ -357,23 +363,33 @@ describe("EditorController Unit Tests", () => {
     // Selected tail node cannot be deleted when only 2 nodes exist
     expect(editor.deleteSelectedSplineNode()).toBe(false);
 
-    // Insert waypoint further forward -> Cup moves to stay at tail, props stay intact
-    expect(editor.insertSplineWaypointAt(new THREE.Vector3(0, 0, -18))).toBe(true);
+    // Insert waypoint with 90° bend -> Cup moves to stay at tail, props stay intact
+    expect(editor.insertSplineWaypointAt(new THREE.Vector3(18, 0, -9))).toBe(true);
     expect(splineCourseMock.exportHoleData().tiles.length).toBeGreaterThanOrEqual(3);
     expect(splineCourseMock.exportHoleData().props.length).toBe(1);
     expect(splineCourseMock.getSplinePath().nodes.length).toBe(3);
 
-    // Step elevation up +1.5m on tail and toggle corner
+    // Step elevation up +1.5m on tail; endpoints (Tee/Cup) omit bevels
     expect(editor.stepSelectedNodeElevation(1)).toBe(true);
     expect(editor.getSelectedSplineNodeInfo()?.elevationStep).toBe(1);
-    expect(editor.toggleSelectedNodeCorner()).toBe(true);
-    expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.canBevel).toBe(false);
+    expect(editor.toggleSelectedNodeBevel()).toBe(false);
 
-    // Undo restores smooth corner and previous elevation
-    expect(editor.undo()).toBe(true);
+    // Select intermediate corner (idx 1) -> defaults to Sharp, toggleSelectedNodeBevel rounds it & Undo restores Sharp
+    (editor as any).selectedSplineNodeIndex = 1;
+    expect(editor.getSelectedSplineNodeInfo()?.canBevel).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
+    expect(editor.toggleSelectedNodeBevel()).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.bevelRadius).toBeGreaterThan(0);
     expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(false);
 
+    // Undo restores sharp corner
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
+    expect(editor.getSelectedSplineNodeInfo()?.bevelRadius).toBe(0);
+
     // Delete inserted tail node works (cannot delete root node 0)
+    (editor as any).selectedSplineNodeIndex = 2;
     expect(editor.deleteSelectedSplineNode()).toBe(true);
     expect(splineCourseMock.getSplinePath().nodes.length).toBe(2);
     // Root protection: only 2 nodes remain so delete returns false

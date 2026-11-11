@@ -32,8 +32,9 @@ export interface PlacedProp {
 export interface SplineWaypoint {
   id: string;
   position: [number, number, number]; // World XYZ (Y snapped to 1.5m kit elevation tiers)
-  handleOffset: [number, number]; // Outgoing XZ handle offset from position; C1 mirrors -handleOffset for incoming unless corner=true
-  corner?: boolean; // True = C0 sharp vertex; false/undefined = C1 smooth tangent
+  handleOffset: [number, number]; // Legacy tangent vector (kept for serialization compatibility)
+  bevelRadius?: number; // Circular fillet radius (m) at intermediate corners; 0/undefined = sharp corner
+  corner?: boolean; // Legacy C0 sharp flag
   elevationStep?: number; // Discrete elevation tier (Y = elevationStep * 1.5)
   realizedTileId?: string; // Closest anchor tile instanceId
 }
