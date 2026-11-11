@@ -348,5 +348,50 @@ describe("EditorController Unit Tests", () => {
 
     editor.dispose();
   });
+
+  it("ignores wall clicks and editing inputs when gizmos/editor are disabled in Playtest mode", () => {
+    const editor = new EditorController(
+      canvasMock,
+      camera,
+      scene,
+      courseManagerMock,
+      assetLoaderMock
+    );
+
+    const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 6), new THREE.MeshBasicMaterial());
+    wallMesh.position.set(0, 0.3, 0);
+    wallMesh.updateMatrixWorld(true);
+    scene.add(wallMesh);
+    courseManagerMock.tiles.set("t_wall", {
+      tileData: { instanceId: "t_wall", kitPieceId: "straight_6m", walls: { left: true, right: true } },
+      pieceTemplate: { sockets: [] },
+      group: wallMesh,
+      wallLMesh: wallMesh,
+    });
+
+    camera.position.set(0, 3, 5);
+    camera.lookAt(0, 0.3, 0);
+    camera.updateMatrixWorld(true);
+
+    // Disable editor during Playtest
+    editor.setGizmosVisible(false);
+    expect(editor.isEnabled()).toBe(false);
+
+    // Simulate hovering/clicking wall while disabled
+    const moveCb = canvasMock.addEventListener.mock.calls.find((c: any) => c[0] === "pointermove")![1];
+    const downCb = canvasMock.addEventListener.mock.calls.find((c: any) => c[0] === "pointerdown")![1];
+    moveCb({ clientX: 400, clientY: 300 });
+    downCb({ button: 0, clientX: 400, clientY: 300 });
+    expect(courseManagerMock.toggleWall).not.toHaveBeenCalled();
+
+    // Re-enable editor -> wall toggle works again
+    editor.setGizmosVisible(true);
+    expect(editor.isEnabled()).toBe(true);
+    moveCb({ clientX: 400, clientY: 300 });
+    downCb({ button: 0, clientX: 400, clientY: 300 });
+    expect(courseManagerMock.toggleWall).toHaveBeenCalledWith("t_wall", "left");
+
+    editor.dispose();
+  });
 });
 

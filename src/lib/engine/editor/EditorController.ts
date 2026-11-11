@@ -71,6 +71,7 @@ export class EditorController {
   private propRotationY: number = 0;
   private eraseMode: boolean = false;
   private trackPathMode: boolean = false;
+  private enabled: boolean = true;
   private activeTheme: string = "carnival_park";
   private selectedPlacedPropId: string | null = null;
 
@@ -227,6 +228,7 @@ export class EditorController {
   }
 
   private handleKeyDown = (ev: KeyboardEvent): void => {
+    if (!this.enabled) return;
     const tag = (ev.target as HTMLElement | null)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
@@ -706,6 +708,7 @@ export class EditorController {
   }
 
   private handlePointerMove = (ev: PointerEvent): void => {
+    if (!this.enabled) return;
     const rect = this.canvas.getBoundingClientRect();
     const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
@@ -842,6 +845,7 @@ export class EditorController {
   };
 
   private handlePointerDown = (ev: PointerEvent): void => {
+    if (!this.enabled) return;
     if (ev.button !== 0) return; // Left click only (right/middle reserved for camera orbit)
 
     const rect = this.canvas.getBoundingClientRect();
@@ -961,6 +965,7 @@ export class EditorController {
   };
 
   private handleDoubleClick = (ev: MouseEvent): void => {
+    if (!this.enabled) return;
     if (!this.trackPathMode) return;
     const spline = this.activeSpline || this.syncSplineFromCourse();
     if (!spline || spline.nodes.length === 0) return;
@@ -974,6 +979,11 @@ export class EditorController {
   };
 
   private handlePointerUp = (): void => {
+    if (!this.enabled) {
+      this.draggingSpline = null;
+      this.draggingProp = null;
+      return;
+    }
     if (this.draggingSpline) {
       const drag = this.draggingSpline;
       this.draggingSpline = null;
@@ -1273,7 +1283,26 @@ export class EditorController {
     this.onCourseModified?.();
   }
 
+  public setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.hoveredSocket = null;
+      this.hoveredWall = null;
+      this.draggingProp = null;
+      this.draggingSpline = null;
+      this.splineOverlay.clearGhost();
+      this.ghostGroup.visible = false;
+      this.selectionRing.visible = false;
+      this.canvas.style.cursor = "default";
+    }
+  }
+
+  public isEnabled(): boolean {
+    return this.enabled;
+  }
+
   public setGizmosVisible(visible: boolean): void {
+    this.setEnabled(visible);
     this.socketGizmoGroup.visible = visible && !this.trackPathMode;
     this.splineOverlay.setVisible(visible && this.trackPathMode);
     if (!visible) {
