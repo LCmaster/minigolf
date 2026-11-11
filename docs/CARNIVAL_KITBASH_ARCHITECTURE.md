@@ -6,7 +6,7 @@ This document describes how the stylized **Carnival Park** course kitbash system
 
 ## 1. Blender-to-GLB Modular Standard (`6.0m` Grid)
 
-All modular pieces live in `static/models/kit/` and are indexed in `static/models/kit/manifest.json` (`assets/carnival_kitbash_master.blend` is the Blender source for the 20 Carnival Park assets).
+All modular pieces live in `static/models/kit/` and are indexed in `static/models/kit/manifest.json` (`assets/carnival_kitbash_master.blend` stores the Carnival track/props/obstacles, and `assets/stylized_rock_pack.blend` stores the 15 sculpted Large/Medium/Small stylized rocks baked via Cycles vertex colors with lightweight `UBX_Rock` proxies).
 
 - **Grid & Dimensions**:
   - Straight / standard square footprint: `6.0m × 6.0m` (bridge/overpass: `6.0m × 12.0m`)

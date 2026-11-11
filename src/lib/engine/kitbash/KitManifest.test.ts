@@ -17,9 +17,9 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
     expect(manifest.cupRadius).toBe(0.28);
   });
 
-  it("contains all 32 base arcade pieces and 26 Carnival Park kitbash pieces", () => {
+  it("contains all 32 base arcade pieces and 41 Carnival Park kitbash pieces", () => {
     const pieces = Object.keys(manifest.pieces);
-    expect(pieces.length).toBe(58);
+    expect(pieces.length).toBe(73);
 
     expect(pieces).toContain("tee_box_6x6");
     expect(pieces).toContain("straight_6m");
@@ -59,6 +59,21 @@ describe("Kit Manifest & Arcade Standard (TDD)", () => {
       "prop_bumper_peg_red",
       "prop_carnival_booster_pad",
       "prop_carnival_wedge_bumper",
+      "prop_rock_spire_large",
+      "prop_rock_massif_large",
+      "prop_rock_twin_crag_large",
+      "prop_rock_step_ridge_large",
+      "prop_rock_slabs_med",
+      "prop_rock_pillar_med",
+      "prop_rock_arch_cluster_med",
+      "prop_rock_slant_ledge_med",
+      "prop_rock_pyramid_crag_med",
+      "prop_rock_split_ledge_small",
+      "prop_rock_tall_boulder_small",
+      "prop_rock_wide_boulder_small",
+      "prop_rock_block_stone_small",
+      "prop_rock_wedge_stone_small",
+      "prop_rock_flat_shard_small",
       "prop_tree_puffy",
       "prop_toadstool_pair",
     ]) {

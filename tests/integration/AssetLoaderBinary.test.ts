@@ -148,4 +148,43 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
     expect(wedgeNames).toContain("Mesh_Wedge_Bumper");
     expect(wedgeNames).toContain("UBX_Bumper");
   });
+
+  it("parses all 15 Stylized Rocks Pack GLBs with Mesh_Rock_*, UBX_Rock colliders, and baked vertex colors", async () => {
+    const rockFiles = [
+      "prop_rock_spire_large.glb",
+      "prop_rock_massif_large.glb",
+      "prop_rock_twin_crag_large.glb",
+      "prop_rock_step_ridge_large.glb",
+      "prop_rock_slabs_med.glb",
+      "prop_rock_pillar_med.glb",
+      "prop_rock_arch_cluster_med.glb",
+      "prop_rock_slant_ledge_med.glb",
+      "prop_rock_pyramid_crag_med.glb",
+      "prop_rock_split_ledge_small.glb",
+      "prop_rock_tall_boulder_small.glb",
+      "prop_rock_wide_boulder_small.glb",
+      "prop_rock_block_stone_small.glb",
+      "prop_rock_wedge_stone_small.glb",
+      "prop_rock_flat_shard_small.glb",
+    ];
+
+    for (const file of rockFiles) {
+      const rockScene = await parseGlbFromDisk(`models/kit/${file}`);
+      let visualMesh: THREE.Mesh | null = null;
+      let ubxMesh: THREE.Mesh | null = null;
+
+      rockScene.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
+        if (cleanName.startsWith("Mesh_Rock_")) visualMesh = child;
+        if (cleanName === "UBX_Rock") ubxMesh = child;
+      });
+
+      expect(visualMesh).not.toBeNull();
+      expect(ubxMesh).not.toBeNull();
+      expect(visualMesh!.geometry.attributes.color).toBeDefined();
+      visualMesh!.geometry.computeBoundingBox();
+      expect(visualMesh!.geometry.boundingBox!.min.y).toBeCloseTo(0.0, 1);
+    }
+  });
 });
