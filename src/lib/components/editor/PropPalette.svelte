@@ -2,10 +2,26 @@
   import { createEventDispatcher } from "svelte";
 
   export let selectedPropId = null;
+  export let theme = "carnival_park";
 
   const dispatch = createEventDispatcher();
 
-  const propsList = [
+  const carnivalProps = [
+    { id: "prop_carnival_arch_6m", name: "Carnival Arch", icon: "🎪", category: "carnival" },
+    { id: "prop_bumper_peg_yellow", name: "Yellow Bumper", icon: "🟡", category: "bumpers" },
+    { id: "prop_bumper_peg_blue", name: "Blue Bumper", icon: "🔵", category: "bumpers" },
+    { id: "prop_lantern_bunting", name: "Lantern Bunting", icon: "🎏", category: "carnival" },
+    { id: "terrain_hill_knoll_6x6", name: "Hill Knoll", icon: "⛰️", category: "terrain" },
+    { id: "terrain_pond_patch_6x6", name: "Pond Patch", icon: "💧", category: "terrain" },
+    { id: "prop_tree_puffy", name: "Puffy Tree", icon: "🌳", category: "nature" },
+    { id: "prop_boulder_faceted", name: "Boulder", icon: "🪨", category: "nature" },
+    { id: "prop_toadstool_pair", name: "Toadstools", icon: "🍄", category: "nature" },
+    { id: "prop_grass_tuft", name: "Grass Tuft", icon: "🌿", category: "nature" },
+    { id: "prop_wildflower_patch", name: "Wildflowers", icon: "🌼", category: "nature" },
+    { id: "prop_fence_6m", name: "Park Fence", icon: "🪵", category: "terrain" },
+  ];
+
+  const classicProps = [
     { id: "prop_bumper_mushroom", name: "Mushroom Bumper", icon: "🍄", category: "bumpers" },
     { id: "prop_bumper_wedge", name: "Wedge Deflector", icon: "📐", category: "bumpers" },
     { id: "prop_spinner_paddle", name: "Rotating Paddle", icon: "⚔️", category: "bumpers" },
@@ -16,6 +32,8 @@
     { id: "prop_rock_mossy", name: "Mossy Rock", icon: "🪨", category: "dressing" },
     { id: "prop_lantern_post", name: "Lantern Post", icon: "🏮", category: "dressing" },
   ];
+
+  $: propsList = theme === "carnival_park" ? carnivalProps : classicProps;
 
   function selectProp(id) {
     if (selectedPropId === id) {

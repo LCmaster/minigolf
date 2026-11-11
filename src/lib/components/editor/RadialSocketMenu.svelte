@@ -4,10 +4,21 @@
   export let x = 0;
   export let y = 0;
   export let socketInfo = null;
+  export let theme = "carnival_park";
 
   const dispatch = createEventDispatcher();
 
-  const options = [
+  const carnivalOptions = [
+    { id: "carnival_straight_6m", label: "Carnival Straight", icon: "🟩" },
+    { id: "carnival_turn_45deg_rounded", label: "Carnival Turn 45°", icon: "↗️" },
+    { id: "carnival_turn_90deg_rounded", label: "Carnival Turn 90°", icon: "⤵️" },
+    { id: "carnival_ramp_up_15deg_6x6", label: "Carnival Ramp Up", icon: "📈" },
+    { id: "carnival_ramp_down_15deg_6x6", label: "Carnival Ramp Down", icon: "📉" },
+    { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉" },
+    { id: "carnival_green_cup_6x6", label: "Carnival Cup Green", icon: "⛳" },
+  ];
+
+  const classicOptions = [
     { id: "straight_6m", label: "Straight (6m)", icon: "➡️" },
     { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️" },
     { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️" },
@@ -17,6 +28,8 @@
     { id: "obstacle_windmill_6x12", label: "Windmill Gate", icon: "🎡" },
     { id: "green_cup_standard_6x6", label: "Cup Green", icon: "⛳" },
   ];
+
+  $: options = theme === "carnival_park" ? carnivalOptions : classicOptions;
 
   function selectOption(pieceId) {
     dispatch("select", { socketInfo, pieceId });

@@ -2,6 +2,7 @@
   import { createEventDispatcher } from "svelte";
 
   export let isOpen = false;
+  export let theme = "carnival_park";
 
   const dispatch = createEventDispatcher();
 
@@ -14,6 +15,7 @@
       par: selectedPar,
       style: selectedStyle,
       includeObstacles,
+      theme,
     });
     isOpen = false;
   }
@@ -77,11 +79,32 @@
         </div>
       </div>
 
+      <!-- Kit Theme Selection -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-gray-300 uppercase tracking-wider">Kit Theme</label>
+        <div class="grid grid-cols-2 gap-2">
+          {#each [
+            { id: "carnival_park", label: "Carnival Park", icon: "🎪" },
+            { id: "country_club", label: "Country Club", icon: "🏌️" }
+          ] as t}
+            <button
+              on:click={() => (theme = t.id)}
+              class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all {theme === t.id ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}"
+            >
+              <span class="text-base">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+
       <!-- Obstacles Toggle -->
       <label class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer">
         <div class="flex items-center gap-2">
-          <span class="text-lg">🎡</span>
-          <span class="text-xs font-bold text-gray-300">Include Windmill Obstacle Gate</span>
+          <span class="text-lg">{theme === "carnival_park" ? "🌉" : "🎡"}</span>
+          <span class="text-xs font-bold text-gray-300">
+            {theme === "carnival_park" ? "Include Pond Bridge Crossing" : "Include Windmill Obstacle Gate"}
+          </span>
         </div>
         <input type="checkbox" bind:checked={includeObstacles} class="w-4 h-4 accent-cyan-400 rounded cursor-pointer" />
       </label>

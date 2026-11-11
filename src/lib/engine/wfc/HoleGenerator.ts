@@ -6,6 +6,7 @@
 
 import type { HoleData, PlacedTile } from "../types/CourseSchema";
 import type { AssetLoader } from "../kitbash/AssetLoader";
+import { autoDecorateHole } from "./AutoDecorate";
 
 export interface GenerationOptions {
   par: number; // 2, 3, 4, 5
@@ -185,13 +186,15 @@ export class HoleGenerator {
       next.connectedSockets!["LOC_Socket_In"] = current.instanceId;
     }
 
+    const props = isCarnival ? autoDecorateHole(tiles, [], "carnival_park", idSeed) : [];
+
     return {
       holeNumber: 1,
       par: options.par,
       teeTileId,
       cupTileId,
       tiles,
-      props: [],
+      props,
       showBoundary: isCarnival,
     };
   }

@@ -512,6 +512,39 @@ export class CourseManager {
     return this.props.get(instanceId);
   }
 
+  public setShowBoundary(show: boolean): void {
+    this.showBoundary = show;
+    this.onHoleChanged?.();
+  }
+
+  public exportHoleData(par: number = 3, holeNumber: number = 1): HoleData {
+    const tiles: PlacedTile[] = Array.from(this.tiles.values()).map((t) => ({
+      ...t.tileData,
+      position: t.tileData.position ? ([...t.tileData.position] as [number, number, number]) : undefined,
+      walls: { ...t.tileData.walls },
+      connectedSockets: t.tileData.connectedSockets ? { ...t.tileData.connectedSockets } : undefined,
+    }));
+    const props: PlacedProp[] = Array.from(this.props.values()).map((p) => ({
+      ...p.propData,
+      position: [...p.propData.position] as [number, number, number],
+      rotation: [...p.propData.rotation] as [number, number, number],
+      scale: [...p.propData.scale] as [number, number, number],
+    }));
+
+    const teeTile = tiles.find((t) => t.kitPieceId.includes("tee")) || tiles[0];
+    const cupTile = tiles.find((t) => t.kitPieceId.includes("cup")) || tiles[tiles.length - 1];
+
+    return {
+      holeNumber,
+      par,
+      teeTileId: teeTile?.instanceId || "",
+      cupTileId: cupTile?.instanceId || "",
+      tiles,
+      props,
+      showBoundary: this.showBoundary,
+    };
+  }
+
   public clear(): void {
     for (const tile of this.tiles.values()) {
       this.scene.remove(tile.group);

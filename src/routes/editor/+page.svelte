@@ -3,6 +3,9 @@
   import { GameEngine } from "$lib/engine/GameEngine";
   import { EditorController } from "$lib/engine/editor/EditorController";
   import { HoleGenerator } from "$lib/engine/wfc/HoleGenerator";
+  import { autoDecorateHole } from "$lib/engine/wfc/AutoDecorate";
+  import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
+  import { saveCustomCourse } from "$lib/engine/course/CourseStorage";
   import RadialSocketMenu from "$lib/components/editor/RadialSocketMenu.svelte";
   import PropPalette from "$lib/components/editor/PropPalette.svelte";
   import WfcWizardModal from "$lib/components/editor/WfcWizardModal.svelte";
@@ -17,6 +20,11 @@
   let isPlaytestMode = false;
   let strokes = 0;
   let isCupSunk = false;
+
+  let activeTheme = "carnival_park";
+  let showBoundary = true;
+  let savedCourseId = null;
+  let saveFeedback = "";
 
   // Active socket radial menu state
   let activeSocketMenu = null; // { x, y, socketInfo }
@@ -43,13 +51,15 @@
 
     holeGenerator = new HoleGenerator(engine.assetLoader);
 
-    // Initial default starting tee
+    // Initial default starting Carnival hole
     const initialHole = holeGenerator.generateHole({
-      par: 2,
-      style: "straightforward",
-      includeObstacles: false,
+      par: 3,
+      style: "winding",
+      includeObstacles: true,
+      theme: activeTheme,
     });
     engine.courseManager.loadHole(initialHole);
+    showBoundary = initialHole.showBoundary ?? true;
     editorController.refreshOpenSockets();
 
     // Editor event hooks
@@ -85,10 +95,45 @@
   }
 
   function handleWfcGenerate(ev) {
+    if (ev.detail.theme) activeTheme = ev.detail.theme;
     const holeData = holeGenerator.generateHole(ev.detail);
     engine.courseManager.loadHole(holeData);
+    showBoundary = holeData.showBoundary ?? true;
     editorController.refreshOpenSockets();
     editorController.history.clear();
+  }
+
+  function handleLoadSunnyCreek() {
+    if (!engine || !editorController) return;
+    activeTheme = "carnival_park";
+    const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[0]));
+    engine.courseManager.loadHole(hole);
+    showBoundary = hole.showBoundary ?? true;
+    editorController.refreshOpenSockets();
+    editorController.history.clear();
+  }
+
+  function handleAutoDecorate() {
+    if (!engine || !editorController) return;
+    const current = engine.courseManager.exportHoleData(3, 1);
+    const additions = autoDecorateHole(current.tiles, current.props, activeTheme, Date.now());
+    if (additions.length === 0) return;
+
+    editorController.history.execute({
+      name: `Auto-Decorate (${additions.length} props)`,
+      execute: () => {
+        for (const p of additions) engine.courseManager.addProp(p);
+      },
+      undo: () => {
+        for (const p of additions) engine.courseManager.removeProp(p.instanceId);
+      },
+    });
+  }
+
+  function toggleBoundary() {
+    if (!engine) return;
+    showBoundary = !showBoundary;
+    engine.courseManager.setShowBoundary(showBoundary);
   }
 
   function togglePlaytestMode() {
@@ -120,7 +165,22 @@
   }
 
   function handleSaveCourse() {
-    alert("Course saved to local manifest successfully!");
+    if (!engine) return;
+    const hole = engine.courseManager.exportHoleData(3, 1);
+    const id = savedCourseId || `custom_${Date.now()}`;
+    savedCourseId = id;
+    saveCustomCourse({
+      id,
+      name: activeTheme === "carnival_park" ? "Custom Carnival Course" : "Custom Country Club Course",
+      theme: activeTheme,
+      authorId: "local_player",
+      authorName: "Editor Creator",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      holes: [hole],
+    });
+    saveFeedback = "Saved!";
+    setTimeout(() => (saveFeedback = ""), 2500);
   }
 
   onDestroy(() => {
@@ -153,13 +213,52 @@
     <!-- Center: Primary Action Toolbar -->
     <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl shadow-2xl flex items-center gap-1.5 pointer-events-auto">
       {#if !isPlaytestMode}
+        <div class="flex items-center bg-black/30 rounded-xl p-0.5 border border-white/10">
+          <button
+            on:click={() => (activeTheme = "carnival_park")}
+            class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all {activeTheme === 'carnival_park' ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}"
+          >
+            🎪 Carnival
+          </button>
+          <button
+            on:click={() => (activeTheme = "country_club")}
+            class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all {activeTheme === 'country_club' ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white'}"
+          >
+            🏌️ Classic
+          </button>
+        </div>
+
         <button
           on:click={() => (showWfcModal = true)}
           class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-bold font-mono transition-all active:scale-95"
           title="Auto-generate a complete hole using WFC"
         >
           <span>🤖</span>
-          <span>WFC Auto-Gen</span>
+          <span>Auto-Gen</span>
+        </button>
+
+        <button
+          on:click={handleLoadSunnyCreek}
+          class="px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono transition-all"
+          title="Load Sunny Creek & Midway Bend showcase hole"
+        >
+          🌉 Sunny Creek
+        </button>
+
+        <button
+          on:click={handleAutoDecorate}
+          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-xs font-bold font-mono transition-all"
+          title="Decorate surroundings with hill knolls, trees, boulders & toadstools"
+        >
+          🌲 Decorate
+        </button>
+
+        <button
+          on:click={toggleBoundary}
+          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold font-mono transition-colors {showBoundary ? 'text-amber-300' : 'text-gray-500'}"
+          title="Toggle park perimeter fence"
+        >
+          🪵 Fence
         </button>
 
         <div class="w-px h-5 bg-white/10 mx-1"></div>
@@ -193,8 +292,16 @@
           on:click={handleSaveCourse}
           class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono transition-all"
         >
-          💾 Save
+          {saveFeedback || '💾 Save'}
         </button>
+        {#if savedCourseId}
+          <a
+            href="/play?course={savedCourseId}"
+            class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-mono transition-all"
+          >
+            🎮 Play Saved
+          </a>
+        {/if}
       {/if}
     </div>
 
@@ -210,7 +317,7 @@
   <!-- Bottom-Left Prop Palette (Editor Mode only) -->
   {#if !isPlaytestMode}
     <div class="absolute bottom-6 left-6">
-      <PropPalette bind:selectedPropId />
+      <PropPalette bind:selectedPropId theme={activeTheme} />
     </div>
 
     <!-- Editor Hint Banner -->
@@ -280,6 +387,7 @@
       x={activeSocketMenu.x}
       y={activeSocketMenu.y}
       socketInfo={activeSocketMenu.socketInfo}
+      theme={activeTheme}
       on:select={handleSnapPiece}
       on:close={() => (activeSocketMenu = null)}
     />
@@ -288,6 +396,7 @@
   <!-- WFC Generator Wizard Modal -->
   <WfcWizardModal
     bind:isOpen={showWfcModal}
+    theme={activeTheme}
     on:generate={handleWfcGenerate}
   />
 </div>

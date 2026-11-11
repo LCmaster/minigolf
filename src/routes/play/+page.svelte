@@ -2,12 +2,18 @@
   import { onMount, onDestroy } from "svelte";
   import { GameEngine } from "$lib/engine/GameEngine";
   import { countryClub9Hole } from "$lib/courses/countryClub9Hole";
+  import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
+  import { loadCustomCourses } from "$lib/engine/course/CourseStorage";
 
   let canvas;
   let engine;
 
+  let availableCourses = [countryClub9Hole, carnivalParkCourse];
+  let activeCourse = countryClub9Hole;
+  let selectedCourseId = countryClub9Hole.id;
+
   let currentHoleIndex = 0;
-  let currentHole = countryClub9Hole.holes[0];
+  let currentHole = activeCourse.holes[0];
   let strokes = 0;
   let totalScore = 0;
   let scoreCard = [];
@@ -20,6 +26,21 @@
 
   onMount(async () => {
     if (!canvas) return;
+
+    const custom = loadCustomCourses();
+    if (custom.length > 0) {
+      availableCourses = [countryClub9Hole, carnivalParkCourse, ...custom];
+    }
+
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const reqCourse = params?.get("course");
+    if (reqCourse) {
+      const found = availableCourses.find((c) => c.id === reqCourse);
+      if (found) {
+        activeCourse = found;
+        selectedCourseId = found.id;
+      }
+    }
 
     engine = new GameEngine(canvas);
     await engine.init();
@@ -50,14 +71,22 @@
     isReady = true;
   });
 
+  function selectCourseById(id) {
+    const found = availableCourses.find((c) => c.id === id);
+    if (!found) return;
+    activeCourse = found;
+    selectedCourseId = found.id;
+    restartCourse();
+  }
+
   function loadHole(index) {
-    if (index >= countryClub9Hole.holes.length) {
+    if (index >= activeCourse.holes.length) {
       isCourseFinished = true;
       return;
     }
 
     currentHoleIndex = index;
-    currentHole = countryClub9Hole.holes[index];
+    currentHole = activeCourse.holes[index];
     strokes = 0;
     isCupSunk = false;
 
@@ -123,9 +152,19 @@
   <canvas bind:this={canvas} class="w-full h-full block cursor-crosshair"></canvas>
 
   <!-- Top-Left Hole & Score HUD -->
-  <div class="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl text-white font-mono shadow-2xl space-y-2 min-w-[200px]">
+  <div class="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 p-4 rounded-3xl text-white font-mono shadow-2xl space-y-2 min-w-[220px]">
+    <select
+      bind:value={selectedCourseId}
+      on:change={() => selectCourseById(selectedCourseId)}
+      class="w-full bg-black/40 border border-white/15 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-300 focus:outline-none cursor-pointer"
+    >
+      {#each availableCourses as c}
+        <option value={c.id} class="bg-slate-900 text-white">{c.name}</option>
+      {/each}
+    </select>
+
     <div class="flex items-center justify-between pb-2 border-b border-white/10">
-      <span class="text-xs font-bold text-gray-400">HOLE {currentHole.holeNumber} OF 9</span>
+      <span class="text-xs font-bold text-gray-400">HOLE {currentHole.holeNumber} OF {activeCourse.holes.length}</span>
       <span class="text-xs text-emerald-400 font-bold">{currentFps} FPS</span>
     </div>
 
