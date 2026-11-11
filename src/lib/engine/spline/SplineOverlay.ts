@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { SplineWaypoint } from "../types/CourseSchema";
 import type { GhostSegmentPreview } from "./DiscreteKitFitter";
-import { sampleSplineChain } from "./SplineMath";
+import { sampleSplineChain, tangentToPerpHandleOffset } from "./SplineMath";
 
 const OVERLAY_Y_OFFSET = 0.68;
 
@@ -87,10 +87,12 @@ export class SplineOverlay {
       this.overlayGroup.add(curveLine);
     }
 
-    // 2. Waypoint Spheres & Single Tangent Handles
+    // 2. Waypoint Spheres & Perpendicular Symmetric Curve Handles (intermediate nodes only; Tee & Cup have no handles)
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       const isRoot = i === 0;
+      const isEnd = i === nodes.length - 1;
+      const isIntermediate = !isRoot && !isEnd;
       const isSelected = i === selectedIndex;
 
       const nodePos = new THREE.Vector3(
@@ -135,12 +137,16 @@ export class SplineOverlay {
       );
       this.overlayGroup.add(stemLine);
 
-      // Render single tangent handle for selected node (or faint guide on other non-corner nodes)
-      if (!node.corner && (isSelected || isRoot)) {
+      // Render perpendicular symmetric handle ONLY for intermediate non-corner nodes (Tee & Cup never have handles)
+      if (isIntermediate && !node.corner) {
+        const [perpX, perpZ] = tangentToPerpHandleOffset(
+          node.handleOffset[0],
+          node.handleOffset[1]
+        );
         const handleWorld = new THREE.Vector3(
-          node.position[0] + node.handleOffset[0],
+          node.position[0] + perpX,
           node.position[1] + OVERLAY_Y_OFFSET,
-          node.position[2] + node.handleOffset[1]
+          node.position[2] + perpZ
         );
 
         const armGeo = new THREE.BufferGeometry().setFromPoints([nodePos, handleWorld]);
@@ -149,10 +155,41 @@ export class SplineOverlay {
           new THREE.LineBasicMaterial({
             color: isSelected ? 0xf59e0b : 0x94a3b8,
             transparent: true,
-            opacity: isSelected ? 0.9 : 0.4,
+            opacity: isSelected ? 0.95 : 0.45,
           })
         );
         this.overlayGroup.add(armLine);
+
+        // Subtle symmetric tangent crossbar showing the continuous C1 curve alignment perpendicular to the arm
+        if (isSelected) {
+          const tx = node.handleOffset[0];
+          const tz = node.handleOffset[1];
+          const tLen = Math.hypot(tx, tz) || 1;
+          const barHalf = 1.6;
+          const ux = (tx / tLen) * barHalf;
+          const uz = (tz / tLen) * barHalf;
+          const barGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(
+              node.position[0] - ux,
+              node.position[1] + OVERLAY_Y_OFFSET,
+              node.position[2] - uz
+            ),
+            new THREE.Vector3(
+              node.position[0] + ux,
+              node.position[1] + OVERLAY_Y_OFFSET,
+              node.position[2] + uz
+            ),
+          ]);
+          const barLine = new THREE.Line(
+            barGeo,
+            new THREE.LineBasicMaterial({
+              color: 0x22d3ee,
+              transparent: true,
+              opacity: 0.65,
+            })
+          );
+          this.overlayGroup.add(barLine);
+        }
 
         const diamondGeo = new THREE.OctahedronGeometry(isSelected ? 0.34 : 0.24, 0);
         const diamondMat = new THREE.MeshBasicMaterial({

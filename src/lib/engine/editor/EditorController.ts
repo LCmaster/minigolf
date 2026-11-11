@@ -21,6 +21,7 @@ import {
   ELEVATION_STEP_METERS,
   cloneSplinePath,
   getElevationStep,
+  perpHandleOffsetToTangent,
 } from "../spline/SplineMath";
 import {
   deriveSplineFromTiles,
@@ -582,6 +583,7 @@ export class EditorController {
         dir.normalize().multiplyScalar(2.4);
         handleX = dir.x;
         handleZ = dir.y;
+        anchor.handleOffset = [handleX, handleZ];
       }
     }
 
@@ -849,12 +851,18 @@ export class EditorController {
             node.position[0] = pt.x;
             node.position[2] = pt.z;
           } else {
-            const dx = pt.x - node.position[0];
-            const dz = pt.z - node.position[2];
-            const len = Math.hypot(dx, dz);
-            const clampedLen = Math.max(0.5, Math.min(14.0, len || 0.5));
-            const scale = len > 1e-4 ? clampedLen / len : 1;
-            node.handleOffset = [dx * scale, dz * scale];
+            const nodes = this.draggingSpline.workingSpline.nodes;
+            const idx = this.draggingSpline.nodeIndex;
+            const prevNode = idx > 0 ? nodes[idx - 1] : undefined;
+            const nextNode = idx < nodes.length - 1 ? nodes[idx + 1] : undefined;
+            const nx = pt.x - node.position[0];
+            const nz = pt.z - node.position[2];
+            node.handleOffset = perpHandleOffsetToTangent(
+              nx,
+              nz,
+              prevNode?.position,
+              nextNode?.position
+            );
             node.corner = false;
           }
           this.draggingSpline.moved = true;
@@ -952,19 +960,21 @@ export class EditorController {
       const handleHits = this.raycaster.intersectObjects(this.splineOverlay.handleMeshes);
       if (handleHits.length > 0) {
         const idx = handleHits[0].object.userData.splineHandleIndex as number;
-        this.selectedSplineNodeIndex = idx;
-        const oldHole = this.courseManager.exportHoleData(3, 1);
-        oldHole.splinePath = cloneSplinePath(spline);
-        this.draggingSpline = {
-          kind: "handle",
-          nodeIndex: idx,
-          initialHole: oldHole,
-          workingSpline: cloneSplinePath(spline),
-          planeY: spline.nodes[idx].position[1] + 0.68,
-          moved: false,
-        };
-        this.refreshSplineOverlay();
-        return;
+        if (idx > 0 && idx < spline.nodes.length - 1) {
+          this.selectedSplineNodeIndex = idx;
+          const oldHole = this.courseManager.exportHoleData(3, 1);
+          oldHole.splinePath = cloneSplinePath(spline);
+          this.draggingSpline = {
+            kind: "handle",
+            nodeIndex: idx,
+            initialHole: oldHole,
+            workingSpline: cloneSplinePath(spline),
+            planeY: spline.nodes[idx].position[1] + 0.68,
+            moved: false,
+          };
+          this.refreshSplineOverlay();
+          return;
+        }
       }
 
       const nodeHits = this.raycaster.intersectObjects(this.splineOverlay.nodeMeshes);

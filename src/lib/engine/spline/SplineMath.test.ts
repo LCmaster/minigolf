@@ -7,6 +7,8 @@ import {
   sampleSplineChain,
   projectPointOntoSpline,
   getSampleAtArcLength,
+  tangentToPerpHandleOffset,
+  perpHandleOffsetToTangent,
 } from "./SplineMath";
 import type { SplineWaypoint } from "../types/CourseSchema";
 
@@ -53,4 +55,39 @@ describe("SplineMath Unit Tests", () => {
     expect(projected).not.toBeNull();
     expect(Math.abs(projected!.s - mid.s)).toBeLessThan(1.2);
   });
+
+  it("maps symmetric tangents to 90deg perpendicular handle arms with forward-safe clamping and relaxed Cup ends", () => {
+    // 1. Tangent (0, -3) [North] <-> Right-hand perp (3, 0) [East]
+    const perp = tangentToPerpHandleOffset(0, -3);
+    expect(perp[0]).toBeCloseTo(3, 4);
+    expect(perp[1]).toBeCloseTo(0, 4);
+    expect(perp[0] * 0 + perp[1] * -3).toBeCloseTo(0, 5); // Orthogonal
+
+    const recovered = perpHandleOffsetToTangent(perp[0], perp[1], [0, 0, 0], [0, 0, -24]);
+    expect(recovered[0]).toBeCloseTo(0, 4);
+    expect(recovered[1]).toBeCloseTo(-3, 4);
+
+    // 2. Pulling handle opposite/backward side clamps tangent within ±105° of neighbor chord (never 180° loop)
+    const backwardPerp = [-4, 0] as [number, number]; // Maps naively to (0, +4) South, opposite North chord
+    const safeTangent = perpHandleOffsetToTangent(backwardPerp[0], backwardPerp[1], [0, 0, 0], [0, 0, -24]);
+    const dir = new THREE.Vector2(safeTangent[0], safeTangent[1]).normalize();
+    const chordDot = dir.x * 0 + dir.y * -1;
+    expect(chordDot).toBeGreaterThanOrEqual(Math.cos((105 * Math.PI) / 180) - 1e-4);
+
+    // 3. Relaxed terminal span aligns Cup arrival smoothly along (p3 - p1) regardless of Cup handleOffset
+    const mid: SplineWaypoint = { id: "mid", position: [0, 0, 0], handleOffset: [0, -3], corner: false };
+    const cupWithTwist: SplineWaypoint = { id: "cup", position: [12, 0, -18], handleOffset: [-8, 0], corner: false };
+    const relaxedSpan = resolveSpanControlPoints(mid, cupWithTwist, { relaxedEnd: true });
+    const arrivalTan = evaluateCubicBezierTangent2D(
+      relaxedSpan.p0,
+      relaxedSpan.p1,
+      relaxedSpan.p2,
+      relaxedSpan.p3,
+      1.0
+    );
+    const expectedDir = new THREE.Vector2(12 - 0, -18 - -3).normalize();
+    expect(arrivalTan.x).toBeCloseTo(expectedDir.x, 4);
+    expect(arrivalTan.y).toBeCloseTo(expectedDir.y, 4);
+  });
 });
+

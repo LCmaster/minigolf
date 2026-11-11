@@ -7,6 +7,62 @@ import * as THREE from "three";
 import type { SplinePathData, SplineWaypoint } from "../types/CourseSchema";
 
 export const ELEVATION_STEP_METERS = 1.5;
+export const MIN_HANDLE_LENGTH = 0.5;
+export const MAX_HANDLE_LENGTH = 14.0;
+const MAX_CHORD_STEER_DOT = Math.cos((105 * Math.PI) / 180); // ~ -0.2588 (±105° forward safety cone)
+
+/**
+ * Converts an outgoing C1 tangent offset (XZ) into a 90° right-hand perpendicular
+ * handle arm offset (XZ) for display in the viewport.
+ */
+export function tangentToPerpHandleOffset(tx: number, tz: number): [number, number] {
+  return [-tz, tx];
+}
+
+/**
+ * Converts a dragged 90° right-hand perpendicular handle arm offset (XZ) back into a
+ * symmetric outgoing C1 tangent offset, clamping length and preventing >105° reversals
+ * relative to the neighbor chord [prevPos -> nextPos].
+ */
+export function perpHandleOffsetToTangent(
+  nx: number,
+  nz: number,
+  prevPos?: [number, number, number],
+  nextPos?: [number, number, number]
+): [number, number] {
+  const len = Math.hypot(nx, nz);
+  const clampedLen = Math.max(MIN_HANDLE_LENGTH, Math.min(MAX_HANDLE_LENGTH, len || 2.4));
+
+  // Inverse of (-tz, tx) is (nz, -nx)
+  let dir = new THREE.Vector2(nz, -nx);
+  if (dir.lengthSq() < 1e-8) {
+    dir.set(0, -1);
+  } else {
+    dir.normalize();
+  }
+
+  if (prevPos && nextPos) {
+    const chord = new THREE.Vector2(nextPos[0] - prevPos[0], nextPos[2] - prevPos[2]);
+    if (chord.lengthSq() > 1e-6) {
+      chord.normalize();
+      const dot = dir.x * chord.x + dir.y * chord.y;
+      if (dot < MAX_CHORD_STEER_DOT) {
+        // Clamp onto ±105° cone around chord preserving which side of chord the tangent leaned toward
+        const cross = chord.x * dir.y - chord.y * dir.x;
+        const sideSign = cross >= 0 ? 1 : -1;
+        const maxAngle = (105 * Math.PI) / 180;
+        const cosA = Math.cos(maxAngle);
+        const sinA = Math.sin(maxAngle) * sideSign;
+        dir.set(
+          chord.x * cosA - chord.y * sinA,
+          chord.x * sinA + chord.y * cosA
+        ).normalize();
+      }
+    }
+  }
+
+  return [dir.x * clampedLen, dir.y * clampedLen];
+}
 
 export interface SpanControlPoints {
   p0: THREE.Vector2;
@@ -48,8 +104,14 @@ export function getElevationStep(node: SplineWaypoint): number {
  * Resolves 2D XZ cubic Bezier control points for span [a -> b].
  * A single outgoing `handleOffset` on each node mirrors `-handleOffset` for incoming
  * to enforce C1 continuity unless `corner === true` (C0 vertex).
+ * When `relaxedEnd` is true (terminal Cup span), `p2` smoothly aligns from `p1` to `p3`
+ * so the Cup arrives cleanly without a manual end handle.
  */
-export function resolveSpanControlPoints(a: SplineWaypoint, b: SplineWaypoint): SpanControlPoints {
+export function resolveSpanControlPoints(
+  a: SplineWaypoint,
+  b: SplineWaypoint,
+  options?: { relaxedEnd?: boolean }
+): SpanControlPoints {
   const p0 = new THREE.Vector2(a.position[0], a.position[2]);
   const p3 = new THREE.Vector2(b.position[0], b.position[2]);
 
@@ -57,12 +119,17 @@ export function resolveSpanControlPoints(a: SplineWaypoint, b: SplineWaypoint): 
     ? new THREE.Vector2(0, 0)
     : new THREE.Vector2(a.handleOffset[0], a.handleOffset[1]);
 
-  const inTangent = b.corner
-    ? new THREE.Vector2(0, 0)
-    : new THREE.Vector2(-b.handleOffset[0], -b.handleOffset[1]);
-
   const p1 = p0.clone().add(outTangent);
-  const p2 = p3.clone().add(inTangent);
+
+  let p2: THREE.Vector2;
+  if (b.corner) {
+    p2 = p3.clone();
+  } else if (options?.relaxedEnd) {
+    p2 = p1.clone().lerp(p3, 2 / 3);
+  } else {
+    const inTangent = new THREE.Vector2(-b.handleOffset[0], -b.handleOffset[1]);
+    p2 = p3.clone().add(inTangent);
+  }
 
   return { p0, p1, p2, p3 };
 }
@@ -147,7 +214,8 @@ export function sampleSplineChain(
   for (let span = 0; span < nodes.length - 1; span++) {
     const a = nodes[span];
     const b = nodes[span + 1];
-    const ctrl = resolveSpanControlPoints(a, b);
+    const isTerminalSpan = span === nodes.length - 2;
+    const ctrl = resolveSpanControlPoints(a, b, { relaxedEnd: isTerminalSpan });
     const stepA = getElevationStep(a);
     const stepB = getElevationStep(b);
 
@@ -234,3 +302,4 @@ export function projectPointOntoSpline(
 
   return best ?? samples[samples.length - 1];
 }
+
