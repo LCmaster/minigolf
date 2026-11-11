@@ -139,8 +139,9 @@ export class CourseManager {
 
     const pos = tileData.position || [0, 0, 0];
     const rotY = tileData.rotationY || 0;
+    const isGap = Boolean(tileData.isGap);
 
-    const group = template.visualTemplate.clone(true);
+    const group = isGap ? new THREE.Group() : template.visualTemplate.clone(true);
     group.position.set(pos[0], pos[1], pos[2]);
     group.rotation.y = (rotY * Math.PI) / 180;
     group.userData = { tileInstanceId: tileData.instanceId };
@@ -151,12 +152,14 @@ export class CourseManager {
     let wallRMesh: THREE.Object3D | undefined;
     let wallBackMesh: THREE.Object3D | undefined;
 
-    group.traverse((child) => {
-      const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
-      if (cleanName === "Mesh_Wall_L" && !wallLMesh) wallLMesh = child;
-      if (cleanName === "Mesh_Wall_R" && !wallRMesh) wallRMesh = child;
-      if ((cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") && !wallBackMesh) wallBackMesh = child;
-    });
+    if (!isGap) {
+      group.traverse((child) => {
+        const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
+        if (cleanName === "Mesh_Wall_L" && !wallLMesh) wallLMesh = child;
+        if (cleanName === "Mesh_Wall_R" && !wallRMesh) wallRMesh = child;
+        if ((cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") && !wallBackMesh) wallBackMesh = child;
+      });
+    }
 
     const instantiated: InstantiatedTile = {
       tileData,
@@ -177,38 +180,40 @@ export class CourseManager {
     // Create wall colliders in Rapier
     this.updateTileWallPhysics(instantiated);
 
-    // Check for Tee spawn locator
-    if (template.locators.has("LOC_Spawn_Tee")) {
-      const loc = template.locators.get("LOC_Spawn_Tee")!.clone();
-      loc.applyEuler(group.rotation);
-      loc.add(group.position);
-      this.spawnPosition.copy(loc);
-    }
+    if (!isGap) {
+      // Check for Tee spawn locator
+      if (template.locators.has("LOC_Spawn_Tee")) {
+        const loc = template.locators.get("LOC_Spawn_Tee")!.clone();
+        loc.applyEuler(group.rotation);
+        loc.add(group.position);
+        this.spawnPosition.copy(loc);
+      }
 
-    // Check for Goal sensor locator (anchor rim at tile surface, cup cavity & indicator at true bottom)
-    if (template.locators.has("LOC_Sensor_Goal")) {
-      const loc = template.locators.get("LOC_Sensor_Goal")!.clone();
-      loc.applyEuler(group.rotation);
-      loc.add(group.position);
-      const cupRimPos = new THREE.Vector3(loc.x, group.position.y, loc.z);
-      this.createGoalSensor(cupRimPos);
-    }
+      // Check for Goal sensor locator (anchor rim at tile surface, cup cavity & indicator at true bottom)
+      if (template.locators.has("LOC_Sensor_Goal")) {
+        const loc = template.locators.get("LOC_Sensor_Goal")!.clone();
+        loc.applyEuler(group.rotation);
+        loc.add(group.position);
+        const cupRimPos = new THREE.Vector3(loc.x, group.position.y, loc.z);
+        this.createGoalSensor(cupRimPos);
+      }
 
-    // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
-    if (template.metadata?.tags?.includes("booster")) {
-      const boosterDesc = this.rapier.ColliderDesc.cuboid(2.3, 0.25, 1.4)
-        .setTranslation(group.position.x, group.position.y + 0.15, group.position.z)
-        .setRotation(group.quaternion)
-        .setSensor(true)
-        .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
-      const boosterCol = this.rapierWorld.createCollider(boosterDesc);
-      instantiated.boosterSensorCollider = boosterCol;
-      const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
-      this.boosterSensors.set(boosterCol.handle, {
-        direction: forwardDir,
-        impulse: 0.038,
-        center: group.position.clone(),
-      });
+      // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
+      if (template.metadata?.tags?.includes("booster")) {
+        const boosterDesc = this.rapier.ColliderDesc.cuboid(2.3, 0.25, 1.4)
+          .setTranslation(group.position.x, group.position.y + 0.15, group.position.z)
+          .setRotation(group.quaternion)
+          .setSensor(true)
+          .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
+        const boosterCol = this.rapierWorld.createCollider(boosterDesc);
+        instantiated.boosterSensorCollider = boosterCol;
+        const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
+        this.boosterSensors.set(boosterCol.handle, {
+          direction: forwardDir,
+          impulse: 0.038,
+          center: group.position.clone(),
+        });
+      }
     }
 
     this.tiles.set(tileData.instanceId, instantiated);
@@ -250,9 +255,9 @@ export class CourseManager {
     const active = tile.tileData.walls[side];
 
     if (side === "left" && tile.wallLMesh) {
-      tile.wallLMesh.visible = active;
+      tile.wallLMesh.visible = !tile.tileData.isGap && active;
     } else if (side === "right" && tile.wallRMesh) {
-      tile.wallRMesh.visible = active;
+      tile.wallRMesh.visible = !tile.tileData.isGap && active;
     }
 
     this.updateTileWallPhysics(tile);
@@ -268,7 +273,7 @@ export class CourseManager {
       this.rapierWorld.removeCollider(tile.wallLCollider, false);
       tile.wallLCollider = undefined;
     }
-    if (tile.tileData.walls.left && tile.pieceTemplate.ubxWallLGeometry) {
+    if (!tile.tileData.isGap && tile.tileData.walls.left && tile.pieceTemplate.ubxWallLGeometry) {
       const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallLGeometry, worldMatrix);
       if (desc) {
         tile.wallLCollider = this.rapierWorld.createCollider(desc);
@@ -280,7 +285,7 @@ export class CourseManager {
       this.rapierWorld.removeCollider(tile.wallRCollider, false);
       tile.wallRCollider = undefined;
     }
-    if (tile.tileData.walls.right && tile.pieceTemplate.ubxWallRGeometry) {
+    if (!tile.tileData.isGap && tile.tileData.walls.right && tile.pieceTemplate.ubxWallRGeometry) {
       const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallRGeometry, worldMatrix);
       if (desc) {
         tile.wallRCollider = this.rapierWorld.createCollider(desc);
@@ -288,7 +293,12 @@ export class CourseManager {
     }
 
     // Back Wall (if present on Tee or Cup)
-    if (!tile.wallBackCollider && tile.pieceTemplate.ubxWallBackGeometry) {
+    if (tile.wallBackCollider) {
+      if (tile.tileData.isGap) {
+        this.rapierWorld.removeCollider(tile.wallBackCollider, false);
+        tile.wallBackCollider = undefined;
+      }
+    } else if (!tile.tileData.isGap && tile.pieceTemplate.ubxWallBackGeometry) {
       const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallBackGeometry, worldMatrix);
       if (desc) {
         tile.wallBackCollider = this.rapierWorld.createCollider(desc);
@@ -333,7 +343,7 @@ export class CourseManager {
     const floorTiles: TileFloorMeshInfo[] = [];
 
     for (const tile of this.tiles.values()) {
-      if (tile.pieceTemplate.ubxFloorGeometry) {
+      if (!tile.tileData.isGap && tile.pieceTemplate.ubxFloorGeometry) {
         tile.group.updateMatrixWorld(true);
         floorTiles.push({
           geometry: tile.pieceTemplate.ubxFloorGeometry,
@@ -579,6 +589,257 @@ export class CourseManager {
     }
 
     this.rebuildWeldedFloorPhysics();
+    return true;
+  }
+
+  /**
+   * Toggles a track tile between solid surface and an open-air jump gap (`isGap`),
+   * keeping all upstream/downstream socket links and world transforms completely intact.
+   */
+  public setTileGap(instanceId: string, isGap: boolean): boolean {
+    const existing = this.tiles.get(instanceId);
+    if (!existing) return false;
+
+    const idLower = existing.tileData.kitPieceId.toLowerCase();
+    if (idLower.includes("tee") || idLower.includes("cup")) {
+      return false;
+    }
+    if (Boolean(existing.tileData.isGap) === isGap) {
+      return true;
+    }
+
+    const saved = this.exportHoleData();
+    const target = saved.tiles.find((t) => t.instanceId === instanceId);
+    if (!target) return false;
+    target.isGap = isGap;
+
+    this.loadHole(saved);
+    return true;
+  }
+
+  /**
+   * Swaps an instantiated tile to a new kit piece type (and optional reversed socket direction
+   * for symmetrical left/right turns) and automatically re-chains all downstream attached tiles.
+   */
+  public swapTileType(
+    instanceId: string,
+    newKitPieceId: string,
+    options?: { reverseDirection?: boolean }
+  ): boolean {
+    const existing = this.tiles.get(instanceId);
+    if (!existing) return false;
+
+    const newTemplate = this.assetLoader.getPiece(newKitPieceId);
+    if (!newTemplate) return false;
+
+    const oldLower = existing.tileData.kitPieceId.toLowerCase();
+    const newLower = newKitPieceId.toLowerCase();
+    if (oldLower.includes("tee") && !newLower.includes("tee")) return false;
+    if (oldLower.includes("cup") && !newLower.includes("cup")) return false;
+    if (!oldLower.includes("cup") && newLower.includes("cup")) {
+      // Only allow swapping to a cup if there are no downstream tiles
+      const holeCheck = this.exportHoleData();
+      const hasDownstream = holeCheck.tiles.some(
+        (t) =>
+          t.instanceId !== instanceId &&
+          (t.attachedTo?.parentInstanceId === instanceId ||
+            (existing.tileData.connectedSockets &&
+              Object.values(existing.tileData.connectedSockets).includes(t.instanceId) &&
+              t.instanceId !== existing.tileData.attachedTo?.parentInstanceId))
+      );
+      if (hasDownstream) return false;
+    }
+
+    const hole = this.exportHoleData();
+    const byId = new Map<string, PlacedTile>();
+    for (const t of hole.tiles) byId.set(t.instanceId, t);
+
+    const target = byId.get(instanceId);
+    if (!target) return false;
+
+    // Build ordered tile chain from Tee so parent/child directions are unambiguous even without `attachedTo`
+    const orderedIds: string[] = [];
+    const visited = new Set<string>();
+    const root = hole.tiles.find((t) => t.kitPieceId.toLowerCase().includes("tee")) || hole.tiles[0];
+    let cur: PlacedTile | undefined = root;
+    while (cur && !visited.has(cur.instanceId)) {
+      visited.add(cur.instanceId);
+      orderedIds.push(cur.instanceId);
+      let nextTile: PlacedTile | undefined;
+      if (cur.connectedSockets) {
+        const outId = cur.connectedSockets["LOC_Socket_Out"];
+        const inId = cur.connectedSockets["LOC_Socket_In"];
+        if (outId && !visited.has(outId) && byId.has(outId)) {
+          nextTile = byId.get(outId);
+        } else if (inId && !visited.has(inId) && byId.has(inId)) {
+          nextTile = byId.get(inId);
+        } else {
+          for (const candidateId of Object.values(cur.connectedSockets)) {
+            if (candidateId && !visited.has(candidateId) && byId.has(candidateId)) {
+              nextTile = byId.get(candidateId);
+              break;
+            }
+          }
+        }
+      }
+      if (!nextTile) {
+        nextTile = hole.tiles.find(
+          (t) => !visited.has(t.instanceId) && t.attachedTo?.parentInstanceId === cur!.instanceId
+        );
+      }
+      cur = nextTile;
+    }
+
+    const targetOrderIdx = orderedIds.indexOf(instanceId);
+    const parentId =
+      target.attachedTo?.parentInstanceId ||
+      (targetOrderIdx > 0 ? orderedIds[targetOrderIdx - 1] : undefined);
+    const parentTile = parentId ? byId.get(parentId) : undefined;
+
+    // Collect downstream chain [C1, C2, ...] in forward order
+    const downstreamIds =
+      targetOrderIdx >= 0 ? orderedIds.slice(targetOrderIdx + 1) : [];
+
+    // Resolve parent's outgoing socket towards target BEFORE mutating
+    let parentOutSocketId = target.attachedTo?.parentSocketId;
+    if (!parentOutSocketId && parentTile?.connectedSockets) {
+      for (const [sockId, cid] of Object.entries(parentTile.connectedSockets)) {
+        if (cid === instanceId) {
+          parentOutSocketId = sockId;
+          break;
+        }
+      }
+    }
+    if (!parentOutSocketId) parentOutSocketId = "LOC_Socket_Out";
+
+    // Snapshot link specs for every adjacent pair inside downstream
+    const chainLinks: Array<{
+      parentId: string;
+      parentExitSocketId: string;
+      childId: string;
+      childEntrySocketId: string;
+    }> = [];
+
+    if (downstreamIds.length > 0) {
+      // Link between target -> first child
+      const firstChild = byId.get(downstreamIds[0])!;
+      let firstEntrySock = firstChild.attachedTo?.childSocketId;
+      if (!firstEntrySock && firstChild.connectedSockets) {
+        for (const [sockId, pid] of Object.entries(firstChild.connectedSockets)) {
+          if (pid === instanceId) {
+            firstEntrySock = sockId;
+            break;
+          }
+        }
+      }
+      firstEntrySock = firstEntrySock || "LOC_Socket_In";
+
+      const reverse = Boolean(options?.reverseDirection) && newTemplate.sockets.length >= 2;
+      const targetExitSock = reverse ? "LOC_Socket_In" : "LOC_Socket_Out";
+      chainLinks.push({
+        parentId: instanceId,
+        parentExitSocketId: targetExitSock,
+        childId: firstChild.instanceId,
+        childEntrySocketId: firstEntrySock,
+      });
+
+      // Preserve internal socket directions for subsequent children
+      for (let i = 0; i < downstreamIds.length - 1; i++) {
+        const p = byId.get(downstreamIds[i])!;
+        const c = byId.get(downstreamIds[i + 1])!;
+        let pExit = c.attachedTo?.parentSocketId;
+        if (!pExit && p.connectedSockets) {
+          for (const [sockId, cid] of Object.entries(p.connectedSockets)) {
+            if (cid === c.instanceId) {
+              pExit = sockId;
+              break;
+            }
+          }
+        }
+        let cEntry = c.attachedTo?.childSocketId;
+        if (!cEntry && c.connectedSockets) {
+          for (const [sockId, pid] of Object.entries(c.connectedSockets)) {
+            if (pid === p.instanceId) {
+              cEntry = sockId;
+              break;
+            }
+          }
+        }
+        chainLinks.push({
+          parentId: p.instanceId,
+          parentExitSocketId: pExit || "LOC_Socket_Out",
+          childId: c.instanceId,
+          childEntrySocketId: cEntry || "LOC_Socket_In",
+        });
+      }
+    }
+
+    // Mutate target tile cleanly
+    const reverse = Boolean(options?.reverseDirection) && newTemplate.sockets.length >= 2;
+    const defaultInSock =
+      newTemplate.sockets.find((s) => s.id === "LOC_Socket_In")?.id ||
+      newTemplate.sockets[0]?.id ||
+      "LOC_Socket_In";
+    const newEntrySocketId = reverse ? "LOC_Socket_Out" : defaultInSock;
+    const newExitSocketId =
+      newTemplate.sockets.length >= 2
+        ? reverse
+          ? "LOC_Socket_In"
+          : "LOC_Socket_Out"
+        : null;
+
+    if (downstreamIds.length > 0 && !newExitSocketId) {
+      return false;
+    }
+
+    target.kitPieceId = newKitPieceId;
+    target.isGap = false;
+    target.connectedSockets = {};
+
+    if (parentTile) {
+      parentTile.connectedSockets = parentTile.connectedSockets || {};
+      parentTile.connectedSockets[parentOutSocketId] = target.instanceId;
+      target.attachedTo = {
+        parentInstanceId: parentTile.instanceId,
+        parentSocketId: parentOutSocketId,
+        childSocketId: newEntrySocketId,
+      };
+      target.connectedSockets[newEntrySocketId] = parentTile.instanceId;
+      delete target.position;
+      delete target.rotationY;
+    }
+
+    if (downstreamIds.length > 0 && newExitSocketId) {
+      target.connectedSockets[newExitSocketId] = downstreamIds[0];
+    }
+
+    // Rewire and clear cached positions across downstream chain so socket snapping shifts smoothly
+    for (const link of chainLinks) {
+      const child = byId.get(link.childId);
+      if (!child) continue;
+      child.attachedTo = {
+        parentInstanceId: link.parentId,
+        parentSocketId: link.parentExitSocketId,
+        childSocketId: link.childEntrySocketId,
+      };
+      child.connectedSockets = child.connectedSockets || {};
+      child.connectedSockets[link.childEntrySocketId] = link.parentId;
+      delete child.position;
+      delete child.rotationY;
+    }
+
+    // Ensure parent-before-child ordering in hole.tiles before loadHole
+    const orderedTiles: PlacedTile[] = [];
+    for (const id of orderedIds) {
+      const t = byId.get(id);
+      if (t) orderedTiles.push(t);
+    }
+    for (const t of hole.tiles) {
+      if (!visited.has(t.instanceId)) orderedTiles.push(t);
+    }
+    hole.tiles = orderedTiles;
+
+    this.loadHole(hole);
     return true;
   }
 

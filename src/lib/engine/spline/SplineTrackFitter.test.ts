@@ -117,4 +117,26 @@ describe("DiscreteKitFitter Beam Search Solver", () => {
     expect(heroTile!.walls).toEqual({ left: false, right: false });
     assertWatertightChain(result.tiles);
   });
+
+  it("preserves isGap open-air jump tiles when refitting spline path", () => {
+    const spline: SplinePathData = {
+      nodes: [
+        { id: "n0", position: [0, 0, 0], handleOffset: [0, -4], elevationStep: 0 },
+        { id: "n1", position: [0, 0, -30], handleOffset: [0, -3], elevationStep: 0 },
+      ],
+    };
+
+    const existing: PlacedTile[] = [
+      { instanceId: "tee", kitPieceId: "carnival_tee_6x6", position: [0, 0, 0], rotationY: 0, walls: { left: true, right: true }, connectedSockets: { LOC_Socket_Out: "s1" } },
+      { instanceId: "s1", kitPieceId: "carnival_straight_6m", attachedTo: { parentInstanceId: "tee", parentSocketId: "LOC_Socket_Out" }, walls: { left: true, right: true }, connectedSockets: { LOC_Socket_Out: "gap_1" } },
+      { instanceId: "gap_1", kitPieceId: "carnival_straight_6m", isGap: true, attachedTo: { parentInstanceId: "s1", parentSocketId: "LOC_Socket_Out" }, walls: { left: true, right: true }, connectedSockets: { LOC_Socket_Out: "cup" } },
+      { instanceId: "cup", kitPieceId: "carnival_green_cup_6x6", attachedTo: { parentInstanceId: "gap_1", parentSocketId: "LOC_Socket_Out" }, walls: { left: true, right: true } },
+    ];
+
+    const result = fitTilesToSpline(spline, existing, "carnival_park", mockLoader);
+    const gapTile = result.tiles.find((t) => t.instanceId === "gap_1");
+    expect(gapTile).toBeDefined();
+    expect(gapTile!.isGap).toBe(true);
+    assertWatertightChain(result.tiles);
+  });
 });

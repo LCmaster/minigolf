@@ -7,6 +7,7 @@
   import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
   import { saveCustomCourse } from "$lib/engine/course/CourseStorage";
   import RadialSocketMenu from "$lib/components/editor/RadialSocketMenu.svelte";
+  import TileActionMenu from "$lib/components/editor/TileActionMenu.svelte";
   import PropPalette from "$lib/components/editor/PropPalette.svelte";
   import WfcWizardModal from "$lib/components/editor/WfcWizardModal.svelte";
 
@@ -30,8 +31,9 @@
   let selectedPlacedPropId = null;
   let selectedSplineNode = null;
 
-  // Active socket radial menu state
+  // Active socket radial & tile action menus
   let activeSocketMenu = null; // { x, y, socketInfo }
+  let activeTileMenu = null; // { x, y, tileInfo }
   let showWfcModal = false;
   let selectedPropId = null;
 
@@ -78,6 +80,10 @@
       isEraseMode = st.eraseMode;
       isTrackPathMode = st.trackPathMode;
       selectedPlacedPropId = st.selectedPlacedPropId;
+      if (st.eraseMode || st.trackPathMode || st.selectedPropId) {
+        activeSocketMenu = null;
+        activeTileMenu = null;
+      }
       if (st.eraseMode || st.trackPathMode) selectedPropId = null;
     };
 
@@ -88,10 +94,21 @@
     // Editor event hooks
     editorController.onSocketClick = (socketInfo, screenX, screenY) => {
       if (isPlaytestMode) return;
+      activeTileMenu = null;
       activeSocketMenu = {
         x: screenX,
         y: screenY,
         socketInfo,
+      };
+    };
+
+    editorController.onTileClick = (tileInfo, screenX, screenY) => {
+      if (isPlaytestMode) return;
+      activeSocketMenu = null;
+      activeTileMenu = {
+        x: screenX,
+        y: screenY,
+        tileInfo,
       };
     };
 
@@ -115,6 +132,39 @@
     const { socketInfo, pieceId } = ev.detail;
     editorController.snapPieceToSocket(socketInfo, pieceId);
     activeSocketMenu = null;
+  }
+
+  function handleTileToggleWall(ev) {
+    const { tileInstanceId, side } = ev.detail;
+    if (!editorController?.toggleTileWall(tileInstanceId, side)) return;
+    if (activeTileMenu) {
+      activeTileMenu = {
+        ...activeTileMenu,
+        tileInfo: editorController.getTileClickInfo(tileInstanceId),
+      };
+    }
+  }
+
+  function handleTileToggleGap(ev) {
+    const { tileInstanceId } = ev.detail;
+    if (!editorController?.toggleTileGap(tileInstanceId)) return;
+    if (activeTileMenu) {
+      activeTileMenu = {
+        ...activeTileMenu,
+        tileInfo: editorController.getTileClickInfo(tileInstanceId),
+      };
+    }
+  }
+
+  function handleTileSwapType(ev) {
+    const { tileInstanceId, pieceId, reverseDirection } = ev.detail;
+    if (!editorController?.swapTileType(tileInstanceId, pieceId, { reverseDirection })) return;
+    if (activeTileMenu) {
+      activeTileMenu = {
+        ...activeTileMenu,
+        tileInfo: editorController.getTileClickInfo(tileInstanceId),
+      };
+    }
   }
 
   function resetHoleInEditor(holeData) {
@@ -207,6 +257,8 @@
 
   function togglePlaytestMode() {
     isPlaytestMode = !isPlaytestMode;
+    activeSocketMenu = null;
+    activeTileMenu = null;
     if (isPlaytestMode) {
       // Enter playtest: spawn ball at tee, enable slingshot & ball-follow camera
       editorController.setEraseMode(false);
@@ -226,11 +278,15 @@
   function handleUndo() {
     if (!editorController) return;
     editorController.undo();
+    activeTileMenu = null;
+    activeSocketMenu = null;
   }
 
   function handleRedo() {
     if (!editorController) return;
     editorController.redo();
+    activeTileMenu = null;
+    activeSocketMenu = null;
   }
 
   function handleSaveCourse() {
@@ -499,7 +555,7 @@
       {:else if selectedPlacedPropId}
         ✨ Drag prop to move &bull; <span class="text-amber-400 font-bold">R</span> rotate &bull; <span class="text-red-400 font-bold">Del</span> remove
       {:else}
-        🎥 <span class="text-cyan-300 font-bold">WASD</span> Pan &bull; <span class="text-cyan-300 font-bold">Right-drag</span> Orbit &bull; <span class="text-cyan-300 font-bold">Scroll</span> Zoom &bull; <span class="text-cyan-300 font-bold">T</span> Edit Track &bull; <span class="text-amber-300 font-bold">F</span> Frame
+        🖱️ <span class="text-cyan-300 font-bold">Click tile</span> to swap/walls/gap &bull; <span class="text-cyan-300 font-bold">WASD</span> Pan &bull; <span class="text-cyan-300 font-bold">Right-drag</span> Orbit &bull; <span class="text-cyan-300 font-bold">T</span> Edit Track &bull; <span class="text-amber-300 font-bold">F</span> Frame
       {/if}
     </div>
   {/if}
@@ -568,6 +624,20 @@
       theme={activeTheme}
       on:select={handleSnapPiece}
       on:close={() => (activeSocketMenu = null)}
+    />
+  {/if}
+
+  <!-- Floating Tile Action Popover (Appears on clicking any tile or gap outline) -->
+  {#if activeTileMenu && activeTileMenu.tileInfo}
+    <TileActionMenu
+      x={activeTileMenu.x}
+      y={activeTileMenu.y}
+      tileInfo={activeTileMenu.tileInfo}
+      theme={activeTheme}
+      on:toggleWall={handleTileToggleWall}
+      on:toggleGap={handleTileToggleGap}
+      on:swapType={handleTileSwapType}
+      on:close={() => (activeTileMenu = null)}
     />
   {/if}
 

@@ -49,6 +49,39 @@ describe("EditorController Unit Tests", () => {
       getAllProps: vi.fn(() => Array.from(propsMap.values())),
       getProp: vi.fn((id: string) => propsMap.get(id)),
       toggleWall: vi.fn(),
+      setTileGap: vi.fn((id: string, isGap: boolean) => {
+        const t = tilesMap.get(id);
+        if (!t) return false;
+        t.tileData.isGap = isGap;
+        return true;
+      }),
+      swapTileType: vi.fn((id: string, newKitPieceId: string) => {
+        const t = tilesMap.get(id);
+        if (!t) return false;
+        t.tileData.kitPieceId = newKitPieceId;
+        t.tileData.isGap = false;
+        return true;
+      }),
+      exportHoleData: vi.fn(() => ({
+        holeNumber: 1,
+        par: 3,
+        teeTileId: "",
+        cupTileId: "",
+        tiles: Array.from(tilesMap.values()).map((t: any) => ({ ...t.tileData })),
+        props: [],
+      })),
+      loadHole: vi.fn((hole: any) => {
+        tilesMap.clear();
+        for (const t of hole.tiles) {
+          tilesMap.set(t.instanceId, {
+            tileData: { ...t },
+            group: new THREE.Group(),
+            pieceTemplate: { sockets: [] },
+          });
+        }
+      }),
+      getSplinePath: vi.fn(() => null),
+      setSplinePath: vi.fn(),
       rebuildWeldedFloorPhysics: vi.fn(),
     };
 
@@ -349,7 +382,7 @@ describe("EditorController Unit Tests", () => {
     editor.dispose();
   });
 
-  it("ignores wall clicks and editing inputs when gizmos/editor are disabled in Playtest mode", () => {
+  it("ignores tile clicks when disabled in Playtest, opens Tile Action Popover in Build mode, and supports wall/gap/swap undo", () => {
     const editor = new EditorController(
       canvasMock,
       camera,
@@ -358,16 +391,22 @@ describe("EditorController Unit Tests", () => {
       assetLoaderMock
     );
 
+    const tileGroup = new THREE.Group();
+    tileGroup.userData = { tileInstanceId: "t_wall" };
     const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 6), new THREE.MeshBasicMaterial());
     wallMesh.position.set(0, 0.3, 0);
-    wallMesh.updateMatrixWorld(true);
-    scene.add(wallMesh);
+    tileGroup.add(wallMesh);
+    tileGroup.updateMatrixWorld(true);
+    scene.add(tileGroup);
     courseManagerMock.tiles.set("t_wall", {
       tileData: { instanceId: "t_wall", kitPieceId: "straight_6m", walls: { left: true, right: true } },
-      pieceTemplate: { sockets: [] },
-      group: wallMesh,
+      pieceTemplate: { metadata: { name: "Straight 6m", hasDynamicWalls: true }, sockets: [] },
+      group: tileGroup,
       wallLMesh: wallMesh,
     });
+
+    const tileClicks: any[] = [];
+    editor.onTileClick = (info) => tileClicks.push(info);
 
     camera.position.set(0, 3, 5);
     camera.lookAt(0, 0.3, 0);
@@ -377,19 +416,43 @@ describe("EditorController Unit Tests", () => {
     editor.setGizmosVisible(false);
     expect(editor.isEnabled()).toBe(false);
 
-    // Simulate hovering/clicking wall while disabled
+    // Clicking tile/wall while disabled does not open Tile Action Popover or toggle walls
     const moveCb = canvasMock.addEventListener.mock.calls.find((c: any) => c[0] === "pointermove")![1];
     const downCb = canvasMock.addEventListener.mock.calls.find((c: any) => c[0] === "pointerdown")![1];
     moveCb({ clientX: 400, clientY: 300 });
     downCb({ button: 0, clientX: 400, clientY: 300 });
+    expect(tileClicks.length).toBe(0);
     expect(courseManagerMock.toggleWall).not.toHaveBeenCalled();
 
-    // Re-enable editor -> wall toggle works again
+    // Re-enable editor -> left-clicking tile/wall opens Tile Action Popover
     editor.setGizmosVisible(true);
     expect(editor.isEnabled()).toBe(true);
     moveCb({ clientX: 400, clientY: 300 });
     downCb({ button: 0, clientX: 400, clientY: 300 });
+    expect(tileClicks.length).toBe(1);
+    expect(tileClicks[0].tileInstanceId).toBe("t_wall");
+    expect(courseManagerMock.toggleWall).not.toHaveBeenCalled();
+
+    // Popover actions execute via HistoryManager with Undo/Redo
+    expect(editor.toggleTileWall("t_wall", "left")).toBe(true);
     expect(courseManagerMock.toggleWall).toHaveBeenCalledWith("t_wall", "left");
+
+    expect(editor.toggleTileGap("t_wall")).toBe(true);
+    expect(courseManagerMock.setTileGap).toHaveBeenCalledWith("t_wall", true);
+
+    // Simulate gapped tile with empty group -> clicking gap gizmo wireframe still opens Tile Action Popover
+    tileGroup.clear();
+    editor.refreshOpenSockets();
+    downCb({ button: 0, clientX: 400, clientY: 300 });
+    expect(tileClicks.length).toBe(2);
+    expect(tileClicks[1].tileInstanceId).toBe("t_wall");
+    expect(tileClicks[1].isGap).toBe(true);
+
+    editor.undo();
+    expect(courseManagerMock.setTileGap).toHaveBeenCalledWith("t_wall", false);
+
+    expect(editor.swapTileType("t_wall", "carnival_bridge_pond_6x12")).toBe(true);
+    expect(courseManagerMock.swapTileType).toHaveBeenCalledWith("t_wall", "carnival_bridge_pond_6x12", undefined);
 
     editor.dispose();
   });

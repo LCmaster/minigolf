@@ -44,6 +44,7 @@ interface PinnedHeroSpec {
   kitPieceId: string;
   instanceId: string;
   walls: { left: boolean; right: boolean };
+  isGap?: boolean;
   targetFraction: number;
   lengthEstimate: number;
 }
@@ -59,6 +60,7 @@ interface BeamState {
     kitPieceId: string;
     instanceId?: string;
     walls?: { left: boolean; right: boolean };
+    isGap?: boolean;
     entrySocketId: "LOC_Socket_In" | "LOC_Socket_Out";
     exitSocketId: "LOC_Socket_In" | "LOC_Socket_Out";
     worldMatrix: THREE.Matrix4;
@@ -266,12 +268,13 @@ function extractPreservedContext(existingTiles: PlacedTile[], assetLoader: Asset
 
   for (let i = 0; i < ordered.length; i++) {
     const r = ordered[i];
-    if (isHeroOrHazardId(r.tile.kitPieceId)) {
+    if (isHeroOrHazardId(r.tile.kitPieceId) || r.tile.isGap) {
       const dims = r.template.metadata?.dimensions;
       heroes.push({
         kitPieceId: r.tile.kitPieceId,
         instanceId: r.tile.instanceId,
         walls: { ...r.tile.walls },
+        isGap: r.tile.isGap,
         targetFraction: THREE.MathUtils.clamp(i / totalCount, 0.12, 0.88),
         lengthEstimate: dims ? dims[2] : 6.0,
       });
@@ -505,6 +508,7 @@ export function fitTilesToSpline(
               kitPieceId: cand.kitPieceId,
               instanceId: heroIdx !== undefined ? heroes[heroIdx].instanceId : undefined,
               walls: heroIdx !== undefined ? heroes[heroIdx].walls : undefined,
+              isGap: heroIdx !== undefined ? heroes[heroIdx].isGap : undefined,
               entrySocketId: cand.entrySocketId,
               exitSocketId: cand.exitSocketId,
               worldMatrix,
@@ -612,6 +616,7 @@ export function fitTilesToSpline(
       position: [pos.x, pos.y, pos.z],
       rotationY: rotY,
       walls: step.walls ? { ...step.walls } : { left: true, right: true },
+      ...(step.isGap ? { isGap: true } : {}),
       attachedTo: {
         parentInstanceId: prevTile.instanceId,
         parentSocketId: prevExitSocketId,
@@ -701,3 +706,4 @@ export function fitTilesToSpline(
 
   return { tiles: fittedTiles, snappedNodes, ghostSegments };
 }
+

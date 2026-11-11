@@ -24,6 +24,7 @@ import {
 } from "../spline/SplineMath";
 import {
   deriveSplineFromTiles,
+  resolveOrderedTileChain,
   syncSplineAfterSocketChange,
 } from "../spline/SplineTrackSync";
 import { fitTilesToSpline } from "../spline/DiscreteKitFitter";
@@ -49,6 +50,18 @@ export interface SelectedSplineNodeInfo {
 
 export type EditorToolMode = "select" | "place_prop" | "erase" | "track_path";
 
+export interface TileClickInfo {
+  tileInstanceId: string;
+  kitPieceId: string;
+  name: string;
+  walls: { left: boolean; right: boolean };
+  hasDynamicWalls: boolean;
+  isGap: boolean;
+  isTee: boolean;
+  isCup: boolean;
+  hasDownstream: boolean;
+}
+
 export class EditorController {
   private canvas: HTMLCanvasElement;
   private camera: THREE.Camera;
@@ -61,11 +74,11 @@ export class EditorController {
 
   // Visual gizmos & previews
   private socketGizmoGroup: THREE.Group;
+  private gapGizmoGroup: THREE.Group;
   private ghostGroup: THREE.Group;
   private selectionRing: THREE.Mesh;
   private raycaster: THREE.Raycaster;
   private hoveredSocket: OpenSocketInfo | null = null;
-  private hoveredWall: { tileInstanceId: string; side: "left" | "right"; mesh: THREE.Mesh } | null = null;
 
   private selectedPropId: string | null = null;
   private propRotationY: number = 0;
@@ -99,6 +112,7 @@ export class EditorController {
   private groundPlane: THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.0);
 
   public onSocketClick?: (info: OpenSocketInfo, screenX: number, screenY: number) => void;
+  public onTileClick?: (info: TileClickInfo, screenX: number, screenY: number) => void;
   public onCourseModified?: () => void;
   public onPropPlaced?: (prop: PlacedProp) => void;
   public onSplineSelectionChanged?: (info: SelectedSplineNodeInfo | null) => void;
@@ -129,6 +143,10 @@ export class EditorController {
     this.socketGizmoGroup = new THREE.Group();
     this.socketGizmoGroup.name = "Editor_SocketGizmos";
     this.scene.add(this.socketGizmoGroup);
+
+    this.gapGizmoGroup = new THREE.Group();
+    this.gapGizmoGroup.name = "Editor_GapGizmos";
+    this.scene.add(this.gapGizmoGroup);
 
     this.ghostGroup = new THREE.Group();
     this.ghostGroup.name = "Editor_PropGhost";
@@ -290,6 +308,7 @@ export class EditorController {
       this.rebuildGhostPreview();
       this.selectPlacedProp(null);
       this.socketGizmoGroup.visible = false;
+      this.gapGizmoGroup.visible = false;
       this.syncSplineFromCourse();
       if (this.activeSpline && this.activeSpline.nodes.length > 0) {
         this.selectedSplineNodeIndex = this.activeSpline.nodes.length - 1;
@@ -299,7 +318,8 @@ export class EditorController {
     } else {
       this.draggingSpline = null;
       this.splineOverlay.setVisible(false);
-      this.socketGizmoGroup.visible = true;
+      this.socketGizmoGroup.visible = this.enabled;
+      this.gapGizmoGroup.visible = this.enabled;
       this.refreshOpenSockets();
       this.onSplineSelectionChanged?.(null);
     }
@@ -640,6 +660,65 @@ export class EditorController {
         this.createSocketGizmo(info);
       }
     }
+
+    this.refreshGapGizmos();
+  }
+
+  private refreshGapGizmos(): void {
+    while (this.gapGizmoGroup.children.length > 0) {
+      const child = this.gapGizmoGroup.children[0];
+      this.gapGizmoGroup.remove(child);
+    }
+
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    if (!tilesMap) return;
+
+    for (const [instanceId, instantiated] of tilesMap.entries()) {
+      const tileData: PlacedTile = instantiated.tileData;
+      if (!tileData.isGap) continue;
+
+      const template = instantiated.pieceTemplate;
+      const group: THREE.Group = instantiated.group;
+      const dims = template?.metadata?.dimensions || [6, 0.6, 6];
+      const w = Math.max(2, dims[0]);
+      const l = Math.max(2, dims[2]);
+
+      const hitGeo = new THREE.BoxGeometry(w, 0.45, l);
+      const hitMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false,
+      });
+      const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+
+      // Center hit box along the tile span (or midpoint between In/Out sockets if offset)
+      const inSock = template?.sockets?.find((s: any) => s.id === "LOC_Socket_In");
+      const outSock = template?.sockets?.find((s: any) => s.id === "LOC_Socket_Out");
+      const centerLocal = new THREE.Vector3(0, 0.12, 0);
+      if (inSock && outSock) {
+        centerLocal.set(
+          (inSock.position[0] + outSock.position[0]) * 0.5,
+          (inSock.position[1] + outSock.position[1]) * 0.5 + 0.12,
+          (inSock.position[2] + outSock.position[2]) * 0.5
+        );
+      }
+
+      hitMesh.position.copy(centerLocal.applyEuler(group.rotation).add(group.position));
+      hitMesh.rotation.copy(group.rotation);
+      hitMesh.userData = { tileInstanceId: instanceId };
+
+      const edges = new THREE.EdgesGeometry(hitGeo);
+      const wire = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 })
+      );
+      wire.userData = { tileInstanceId: instanceId };
+      hitMesh.add(wire);
+
+      this.gapGizmoGroup.add(hitMesh);
+    }
   }
 
   private createSocketGizmo(info: OpenSocketInfo): void {
@@ -696,15 +775,60 @@ export class EditorController {
   private findHitTileId(): string | null {
     // @ts-ignore
     const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    if (!tilesMap) return null;
-    const tileGroups = Array.from(tilesMap.values()).map((t) => t.group);
-    const hits = this.raycaster.intersectObjects(tileGroups, true);
+    const targets: THREE.Object3D[] = tilesMap ? Array.from(tilesMap.values()).map((t) => t.group) : [];
+    if (this.gapGizmoGroup.visible && this.gapGizmoGroup.children.length > 0) {
+      targets.push(...this.gapGizmoGroup.children);
+    }
+    if (targets.length === 0) return null;
+    const hits = this.raycaster.intersectObjects(targets, true);
     if (hits.length === 0) return null;
     let obj: THREE.Object3D | null = hits[0].object;
     while (obj && !obj.userData?.tileInstanceId) {
       obj = obj.parent;
     }
     return obj?.userData?.tileInstanceId || null;
+  }
+
+  public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    const instantiated = tilesMap?.get(tileInstanceId);
+    if (!instantiated) return null;
+
+    const tileData: PlacedTile = instantiated.tileData;
+    const idLower = tileData.kitPieceId.toLowerCase();
+    const isTee = idLower.includes("tee");
+    const isCup = idLower.includes("cup");
+
+    let hasDownstream = false;
+    const allTiles: PlacedTile[] = Array.from(tilesMap.values()).map((t) => t.tileData);
+    const chain = resolveOrderedTileChain(allTiles, this.assetLoader);
+    const chainIdx = chain.findIndex((c) => c.tile.instanceId === tileInstanceId);
+    if (chainIdx >= 0 && chainIdx < chain.length - 1) {
+      hasDownstream = true;
+    } else {
+      for (const [otherId, otherTile] of tilesMap.entries()) {
+        if (otherId !== tileInstanceId && otherTile.tileData.attachedTo?.parentInstanceId === tileInstanceId) {
+          hasDownstream = true;
+          break;
+        }
+      }
+    }
+
+    return {
+      tileInstanceId,
+      kitPieceId: tileData.kitPieceId,
+      name:
+        instantiated.pieceTemplate?.metadata?.name ||
+        instantiated.pieceTemplate?.name ||
+        tileData.kitPieceId,
+      walls: { ...tileData.walls },
+      hasDynamicWalls: instantiated.pieceTemplate?.metadata?.hasDynamicWalls ?? true,
+      isGap: Boolean(tileData.isGap),
+      isTee,
+      isCup,
+      hasDownstream,
+    };
   }
 
   private handlePointerMove = (ev: PointerEvent): void => {
@@ -805,43 +929,10 @@ export class EditorController {
       }
     }
 
-    // 4. Wall raycast
-    this.hoveredWall = null;
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    if (!tilesMap) return;
-
-    const wallMeshes: THREE.Object3D[] = [];
-    for (const [id, tile] of tilesMap.entries()) {
-      if (tile.wallLMesh && tile.wallLMesh.visible) wallMeshes.push(tile.wallLMesh);
-      if (tile.wallRMesh && tile.wallRMesh.visible) wallMeshes.push(tile.wallRMesh);
-    }
-
-    const wallIntersects = this.raycaster.intersectObjects(wallMeshes, true);
-    if (wallIntersects.length > 0) {
-      const hit = wallIntersects[0].object;
-      for (const [id, tile] of tilesMap.entries()) {
-        const matchesWall = (rootWall?: THREE.Object3D) => {
-          if (!rootWall) return false;
-          let cur: THREE.Object3D | null = hit;
-          while (cur) {
-            if (cur === rootWall) return true;
-            cur = cur.parent;
-          }
-          return false;
-        };
-        if (matchesWall(tile.wallLMesh)) {
-          this.hoveredWall = { tileInstanceId: id, side: "left", mesh: hit as THREE.Mesh };
-          this.canvas.style.cursor = "pointer";
-          break;
-        }
-        if (matchesWall(tile.wallRMesh)) {
-          this.hoveredWall = { tileInstanceId: id, side: "right", mesh: hit as THREE.Mesh };
-          this.canvas.style.cursor = "pointer";
-          break;
-        }
-      }
-    }
+    // 4. Prop or track tile / gap hover cursor feedback
+    const hoverProp = this.findHitPropId();
+    const hoverTile = !hoverProp ? this.findHitTileId() : null;
+    this.canvas.style.cursor = hoverProp || hoverTile ? "pointer" : "default";
   };
 
   private handlePointerDown = (ev: PointerEvent): void => {
@@ -942,21 +1033,14 @@ export class EditorController {
       return;
     }
 
-    // 4. Wall toggle click
-    if (this.hoveredWall) {
+    // 4. Left-clicking any track tile (including its walls or gap wireframe) opens Tile Action Popover
+    const hitTileId = this.findHitTileId();
+    if (hitTileId) {
       this.selectPlacedProp(null);
-      const { tileInstanceId, side } = this.hoveredWall;
-      const cmd: EditorCommand = {
-        name: `Toggle ${side} wall`,
-        execute: () => {
-          this.courseManager.toggleWall(tileInstanceId, side);
-        },
-        undo: () => {
-          this.courseManager.toggleWall(tileInstanceId, side);
-        },
-      };
-      this.history.execute(cmd);
-      this.onCourseModified?.();
+      const info = this.getTileClickInfo(hitTileId);
+      if (info) {
+        this.onTileClick?.(info, ev.clientX, ev.clientY);
+      }
       return;
     }
 
@@ -1180,6 +1264,107 @@ export class EditorController {
     return true;
   }
 
+  public toggleTileWall(tileInstanceId: string, side: "left" | "right"): boolean {
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    const existing = tilesMap?.get(tileInstanceId);
+    if (!existing || existing.tileData.isGap) return false;
+
+    const cmd: EditorCommand = {
+      name: `Toggle ${side} wall`,
+      execute: () => {
+        this.courseManager.toggleWall(tileInstanceId, side);
+      },
+      undo: () => {
+        this.courseManager.toggleWall(tileInstanceId, side);
+      },
+    };
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+    return true;
+  }
+
+  public toggleTileGap(tileInstanceId: string): boolean {
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    const existing = tilesMap?.get(tileInstanceId);
+    if (!existing) return false;
+
+    const idLower = existing.tileData.kitPieceId.toLowerCase();
+    if (idLower.includes("tee") || idLower.includes("cup")) return false;
+
+    const prevGap = Boolean(existing.tileData.isGap);
+    const nextGap = !prevGap;
+    const prevSpline = this.courseManager.getSplinePath?.() || null;
+
+    const cmd: EditorCommand = {
+      name: nextGap ? `Remove tile surface (Gap)` : `Restore tile surface`,
+      execute: () => {
+        this.courseManager.setTileGap(tileInstanceId, nextGap);
+        this.courseManager.setSplinePath?.(prevSpline);
+        this.activeSpline = prevSpline;
+        this.refreshOpenSockets();
+      },
+      undo: () => {
+        this.courseManager.setTileGap(tileInstanceId, prevGap);
+        this.courseManager.setSplinePath?.(prevSpline);
+        this.activeSpline = prevSpline;
+        this.refreshOpenSockets();
+      },
+    };
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+    return true;
+  }
+
+  public swapTileType(
+    tileInstanceId: string,
+    newKitPieceId: string,
+    options?: { reverseDirection?: boolean }
+  ): boolean {
+    const oldHole = this.courseManager.exportHoleData?.();
+    if (!oldHole) return false;
+
+    const ok = this.courseManager.swapTileType(tileInstanceId, newKitPieceId, options);
+    if (!ok) return false;
+
+    const prevSpline = oldHole.splinePath || null;
+    const updatedHole = this.courseManager.exportHoleData();
+    const syncedSpline = syncSplineAfterSocketChange(
+      prevSpline,
+      updatedHole.tiles,
+      this.assetLoader
+    );
+    updatedHole.splinePath = syncedSpline;
+    this.courseManager.setSplinePath?.(syncedSpline);
+    this.activeSpline = syncedSpline;
+    this.refreshOpenSockets();
+
+    let firstRun = true;
+    const newTpl = this.assetLoader.getPiece(newKitPieceId);
+    const label = newTpl?.metadata?.name || (newTpl as any)?.name || newKitPieceId;
+    const cmd: EditorCommand = {
+      name: `Swap tile to ${label}`,
+      execute: () => {
+        if (firstRun) {
+          firstRun = false;
+          return;
+        }
+        this.courseManager.loadHole(updatedHole);
+        this.activeSpline = syncedSpline;
+        this.refreshOpenSockets();
+      },
+      undo: () => {
+        this.courseManager.loadHole(oldHole);
+        this.activeSpline = oldHole.splinePath || null;
+        this.refreshOpenSockets();
+      },
+    };
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+    return true;
+  }
+
   /**
    * Snaps a new kit piece onto an open socket using exact SocketSolver transforms.
    */
@@ -1239,6 +1424,11 @@ export class EditorController {
       position: [newPos.x, newPos.y, newPos.z],
       rotationY: ((rotationY % 360) + 360) % 360,
       walls: { left: true, right: true },
+      attachedTo: {
+        parentInstanceId: targetSocket.tileInstanceId,
+        parentSocketId: targetSocket.socketId,
+        childSocketId: inSocket.id,
+      },
       connectedSockets: {
         [inSocket.id]: targetSocket.tileInstanceId,
       },
@@ -1287,7 +1477,6 @@ export class EditorController {
     this.enabled = enabled;
     if (!enabled) {
       this.hoveredSocket = null;
-      this.hoveredWall = null;
       this.draggingProp = null;
       this.draggingSpline = null;
       this.splineOverlay.clearGhost();
@@ -1304,6 +1493,7 @@ export class EditorController {
   public setGizmosVisible(visible: boolean): void {
     this.setEnabled(visible);
     this.socketGizmoGroup.visible = visible && !this.trackPathMode;
+    this.gapGizmoGroup.visible = visible && !this.trackPathMode;
     this.splineOverlay.setVisible(visible && this.trackPathMode);
     if (!visible) {
       this.ghostGroup.visible = false;
@@ -1321,6 +1511,7 @@ export class EditorController {
     }
     this.splineOverlay.dispose();
     this.scene.remove(this.socketGizmoGroup);
+    this.scene.remove(this.gapGizmoGroup);
     this.scene.remove(this.ghostGroup);
     this.scene.remove(this.selectionRing);
     this.history.clear();

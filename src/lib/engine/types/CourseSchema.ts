@@ -12,6 +12,7 @@ export interface PlacedTile {
     left: boolean; // True = left rail active; False = open cliff/edge
     right: boolean; // True = right rail active; False = open cliff/edge
   };
+  isGap?: boolean; // True = surface/walls omitted (open-air jump gap) while socket chain stays intact
   connectedSockets?: Record<string, string>; // socketId -> targetTileInstanceId
   attachedTo?: {
     parentInstanceId: string;

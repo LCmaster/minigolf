@@ -69,6 +69,8 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
 - **Manual Building & Editing (`/editor`)**:
   - Toggle between **🎪 Carnival** and **🏌️ Classic** kits in the top bar.
   - Click glowing cyan socket rings to snap modular track or hazard tiles via `SocketSolver` (`RadialSocketMenu.svelte`).
+  - **Tile Action Popover (`TileActionMenu.svelte`, `CourseManager.swapTileType`, `CourseManager.setTileGap`)**:
+    - Left-clicking any track tile (including its walls, or an open-air Gap outline) opens the floating **Tile Action Popover** with **Left / Right Wall** toggles (preventing accidental wall clicks while allowing OFF walls to be turned back ON), **Change Tile Type** (e.g. swapping a `6m` Straight into a `12m` Pond Bridge, Ramp, Turn L/R, or Hazard Strip with automatic downstream socket re-chaining & Undo), and **Remove Tile (Create Jump Gap)** (`PlacedTile.isGap = true`), which omits floor/wall visuals & colliders while keeping downstream path continuity and showing an editor-only clickable wireframe outline. `DiscreteKitFitter` preserves `isGap` placements during spline refits.
   - Select props or terrain pieces from `PropPalette.svelte` to preview a role-tinted ghost under the cursor, then left-click to place (`R` rotates 45°, `Esc` cancels).
   - Left-click an existing prop to select it, drag to reposition, press `R` to rotate, or press `Delete`/`Backspace` to remove.
   - Toggle **🧹 Erase (`X`)** to left-click delete any prop or non-root track tile (re-opening parent sockets and rebuilding `SeamWelder` floor physics), or click **🗑️ Clear** to reset to a single tee tile.
