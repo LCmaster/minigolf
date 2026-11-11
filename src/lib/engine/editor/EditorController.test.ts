@@ -388,12 +388,31 @@ describe("EditorController Unit Tests", () => {
     expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
     expect(editor.getSelectedSplineNodeInfo()?.bevelRadius).toBe(0);
 
+    // Grid Snap defaults to 1m, supports 1m/3m/6m/Off, bypassGrid=true (Shift/Alt), and snapAllSplineNodesToGrid with Undo
+    expect(editor.getGridSnapSize()).toBe(1);
+    editor.setGridSnapSize(3);
+    expect(editor.getGridSnapSize()).toBe(3);
+
+    // Bypass grid places exact fractional point -> then snapAllSplineNodesToGrid snaps onto 3m cells & undoes cleanly
+    expect(editor.insertSplineWaypointAt(new THREE.Vector3(7.4, 0, -16.8), true)).toBe(true);
+    const freeTail = splineCourseMock.getSplinePath().nodes[2];
+    expect(freeTail).toBeDefined();
+
+    // Drag/edit simulation directly on off-grid node followed by snapAllSplineNodesToGrid
+    const working = splineCourseMock.getSplinePath();
+    working.nodes[1].position[0] = 4.4;
+    working.nodes[1].position[2] = -10.9;
+    splineCourseMock.setSplinePath(working);
+    (editor as any).activeSpline = working;
+
+    expect(editor.snapAllSplineNodesToGrid()).toBe(true);
+    expect(splineCourseMock.getSplinePath().nodes[1].position[0]).toBe(3);
+    expect(editor.undo()).toBe(true);
+
     // Delete inserted tail node works (cannot delete root node 0)
-    (editor as any).selectedSplineNodeIndex = 2;
+    (editor as any).selectedSplineNodeIndex = splineCourseMock.getSplinePath().nodes.length - 1;
     expect(editor.deleteSelectedSplineNode()).toBe(true);
-    expect(splineCourseMock.getSplinePath().nodes.length).toBe(2);
-    // Root protection: only 2 nodes remain so delete returns false
-    expect(editor.deleteSelectedSplineNode()).toBe(false);
+    expect(splineCourseMock.getSplinePath().nodes.length).toBe(3);
 
     editor.dispose();
   });

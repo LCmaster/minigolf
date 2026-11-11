@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { SplineWaypoint } from "../types/CourseSchema";
 import type { GhostSegmentPreview } from "./DiscreteKitFitter";
-import { getCornerBevelGeometry, sampleSplineChain } from "./SplineMath";
+import { getCornerBevelGeometry, sampleSplineChain, type GridSnapSize } from "./SplineMath";
 
 const OVERLAY_Y_OFFSET = 0.68;
 
@@ -17,15 +17,22 @@ export class SplineOverlay {
   private scene: THREE.Scene;
   public overlayGroup: THREE.Group;
   public ghostGroup: THREE.Group;
+  public gridGroup: THREE.Group;
 
   public nodeMeshes: THREE.Mesh[] = [];
   public handleMeshes: THREE.Mesh[] = [];
 
   private ghostMaterial: THREE.MeshBasicMaterial;
   private isVisibleState: boolean = false;
+  private activeGridSize: GridSnapSize = 1;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
+
+    this.gridGroup = new THREE.Group();
+    this.gridGroup.name = "Editor_WorldGridOverlay";
+    this.gridGroup.visible = false;
+    this.scene.add(this.gridGroup);
 
     this.overlayGroup = new THREE.Group();
     this.overlayGroup.name = "Editor_SplineOverlay";
@@ -48,6 +55,7 @@ export class SplineOverlay {
   public setVisible(visible: boolean): void {
     this.isVisibleState = visible;
     this.overlayGroup.visible = visible;
+    this.gridGroup.visible = visible && this.activeGridSize > 0;
     if (!visible) {
       this.clearGhost();
     }
@@ -57,16 +65,48 @@ export class SplineOverlay {
     return this.isVisibleState;
   }
 
+  public renderWorldGrid(gridSize: GridSnapSize, elevationY: number = 0): void {
+    this.activeGridSize = gridSize;
+    while (this.gridGroup.children.length > 0) {
+      this.gridGroup.remove(this.gridGroup.children[0]);
+    }
+
+    if (gridSize <= 0) {
+      this.gridGroup.visible = false;
+      return;
+    }
+
+    const totalSize = 120; // Divisible cleanly by 1m, 3m, and 6m keeping (0, 0) on exact intersections
+    const divisions = Math.max(2, Math.round(totalSize / gridSize));
+    const grid = new THREE.GridHelper(totalSize, divisions, 0x38bdf8, 0x94a3b8);
+    const mats = Array.isArray(grid.material) ? grid.material : [grid.material];
+    for (const m of mats) {
+      m.transparent = true;
+      m.opacity = 0.28;
+      m.depthWrite = false;
+    }
+    grid.position.set(0, elevationY + 0.04, 0);
+    grid.name = `WorldGrid_${gridSize}m`;
+    this.gridGroup.add(grid);
+    this.gridGroup.visible = this.isVisibleState;
+  }
+
   public renderOverlay(
     nodes: SplineWaypoint[],
     selectedIndex: number,
-    isDragging: boolean = false
+    isDragging: boolean = false,
+    gridSize: GridSnapSize = 1
   ): void {
     while (this.overlayGroup.children.length > 0) {
       this.overlayGroup.remove(this.overlayGroup.children[0]);
     }
     this.nodeMeshes = [];
     this.handleMeshes = [];
+
+    const clampedIdx =
+      nodes.length > 0 ? Math.max(0, Math.min(selectedIndex, nodes.length - 1)) : 0;
+    const gridY = nodes[clampedIdx]?.position[1] ?? 0;
+    this.renderWorldGrid(gridSize, gridY);
 
     if (nodes.length === 0) return;
 
@@ -231,6 +271,7 @@ export class SplineOverlay {
 
   public dispose(): void {
     this.clearGhost();
+    this.scene.remove(this.gridGroup);
     this.scene.remove(this.overlayGroup);
     this.scene.remove(this.ghostGroup);
   }

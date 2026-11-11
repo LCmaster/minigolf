@@ -9,6 +9,31 @@ import type { SplinePathData, SplineWaypoint } from "../types/CourseSchema";
 export const ELEVATION_STEP_METERS = 1.5;
 export const MIN_HANDLE_LENGTH = 0.5;
 export const MAX_HANDLE_LENGTH = 14.0;
+export type GridSnapSize = 0 | 1 | 3 | 6;
+
+/**
+ * Origin-aligned coordinate snap (`Math.round(v / step) * step`), keeping (0, 0)
+ * on exact grid intersections so modular 3m/6m/12m tiles align seamlessly.
+ */
+export function snapCoordinateToGrid(value: number, step: number): number {
+  if (!Number.isFinite(step) || step <= 0) return value;
+  const snapped = Math.round(value / step) * step;
+  return snapped === 0 ? 0 : snapped; // Avoid -0
+}
+
+export function snapPointXZToGrid(point: THREE.Vector3, step: number): THREE.Vector3 {
+  if (!Number.isFinite(step) || step <= 0) return point.clone();
+  return new THREE.Vector3(
+    snapCoordinateToGrid(point.x, step),
+    point.y,
+    snapCoordinateToGrid(point.z, step)
+  );
+}
+
+export function snapBevelRadiusToGrid(radius: number, step: number): number {
+  if (!Number.isFinite(step) || step <= 0 || radius <= 0.15) return Math.max(0, radius);
+  return Math.max(0, Math.round(radius));
+}
 const MAX_CHORD_STEER_DOT = Math.cos((105 * Math.PI) / 180); // ~ -0.2588 (±105° forward safety cone)
 
 /**

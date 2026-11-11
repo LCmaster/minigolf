@@ -48,6 +48,21 @@ describe("SplineOverlay Inside-Bisector Bevel Handles & Endpoint Rules", () => {
     overlay.renderOverlay([nodes[0], nodes[2]], 0);
     expect(overlay.handleMeshes.length).toBe(0);
 
+    // World GridHelper renders at active node elevation when gridSize > 0 and hides when 0 or overlay hidden
+    overlay.renderOverlay([{ ...nodes[0], position: [0, 1.5, 0] }, nodes[2]], 0, false, 1);
+    expect(overlay.gridGroup.visible).toBe(true);
+    expect(overlay.gridGroup.children.length).toBe(1);
+    expect(overlay.gridGroup.children[0].position.y).toBeCloseTo(1.54, 3);
+
+    overlay.renderOverlay(nodes, 0, false, 0);
+    expect(overlay.gridGroup.visible).toBe(false);
+    expect(overlay.gridGroup.children.length).toBe(0);
+
+    overlay.renderOverlay(nodes, 0, false, 3);
+    expect(overlay.gridGroup.visible).toBe(true);
+    overlay.setVisible(false);
+    expect(overlay.gridGroup.visible).toBe(false);
+
     overlay.dispose();
   });
 });

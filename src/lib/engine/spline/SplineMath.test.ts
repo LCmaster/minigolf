@@ -11,6 +11,9 @@ import {
   perpHandleOffsetToTangent,
   getCornerBevelGeometry,
   bisectorBevelDragToRadius,
+  snapCoordinateToGrid,
+  snapPointXZToGrid,
+  snapBevelRadiusToGrid,
 } from "./SplineMath";
 import type { SplineWaypoint } from "../types/CourseSchema";
 
@@ -134,6 +137,24 @@ describe("SplineMath Unit Tests", () => {
       const distFromCenter = Math.hypot(s.position.x - 6, s.position.z - -12);
       expect(distFromCenter).toBeCloseTo(6.0, 3);
     }
+  });
+
+  it("snaps coordinates cleanly to 1m, 3m, and 6m origin-aligned grid cells and integer bevels", () => {
+    expect(snapCoordinateToGrid(0.4, 1)).toBe(0);
+    expect(Object.is(snapCoordinateToGrid(-0.2, 1), -0)).toBe(false);
+    expect(snapCoordinateToGrid(11.6, 1)).toBe(12);
+    expect(snapCoordinateToGrid(-17.4, 1)).toBe(-17);
+    expect(snapCoordinateToGrid(-17.4, 3)).toBe(-18);
+    expect(snapCoordinateToGrid(14.1, 6)).toBe(12);
+    expect(snapCoordinateToGrid(5.37, 0)).toBeCloseTo(5.37, 5);
+
+    const pt = snapPointXZToGrid(new THREE.Vector3(7.4, 1.5, -16.8), 3);
+    expect(pt.x).toBe(6);
+    expect(pt.y).toBe(1.5);
+    expect(pt.z).toBe(-18);
+
+    expect(snapBevelRadiusToGrid(5.7, 1)).toBe(6);
+    expect(snapBevelRadiusToGrid(0.1, 1)).toBe(0.1);
   });
 });
 

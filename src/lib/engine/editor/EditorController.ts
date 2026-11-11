@@ -23,6 +23,9 @@ import {
   cloneSplinePath,
   getCornerBevelGeometry,
   getElevationStep,
+  snapBevelRadiusToGrid,
+  snapCoordinateToGrid,
+  type GridSnapSize,
 } from "../spline/SplineMath";
 import {
   deriveSplineFromTiles,
@@ -97,6 +100,7 @@ export class EditorController {
   private splineOverlay: SplineOverlay;
   private activeSpline: SplinePathData | null = null;
   private selectedSplineNodeIndex: number = 0;
+  private gridSnapSize: GridSnapSize = 1;
   private draggingSpline: {
     kind: "node" | "handle";
     nodeIndex: number;
@@ -234,6 +238,17 @@ export class EditorController {
 
   public setTheme(theme: string): void {
     this.activeTheme = theme;
+  }
+
+  public getGridSnapSize(): GridSnapSize {
+    return this.gridSnapSize;
+  }
+
+  public setGridSnapSize(size: GridSnapSize): void {
+    this.gridSnapSize = size;
+    if (this.trackPathMode) {
+      this.refreshSplineOverlay();
+    }
   }
 
   private emitToolState(): void {
@@ -457,7 +472,8 @@ export class EditorController {
     this.splineOverlay.renderOverlay(
       this.activeSpline.nodes,
       this.selectedSplineNodeIndex,
-      isDragging
+      isDragging,
+      this.gridSnapSize
     );
     this.emitSplineSelection();
   }
@@ -599,10 +615,39 @@ export class EditorController {
     return this.toggleSelectedNodeBevel();
   }
 
-  public insertSplineWaypointAt(worldPoint: THREE.Vector3): boolean {
+  public snapAllSplineNodesToGrid(): boolean {
+    if (!this.trackPathMode || this.gridSnapSize <= 0) return false;
+    const spline = this.activeSpline || this.syncSplineFromCourse();
+    if (!spline || spline.nodes.length === 0) return false;
+
+    const oldHole = this.courseManager.exportHoleData(3, 1);
+    oldHole.splinePath = cloneSplinePath(spline);
+
+    const draft = cloneSplinePath(spline);
+    for (const node of draft.nodes) {
+      node.position[0] = snapCoordinateToGrid(node.position[0], this.gridSnapSize);
+      node.position[2] = snapCoordinateToGrid(node.position[2], this.gridSnapSize);
+      if (typeof node.bevelRadius === "number" && node.bevelRadius > 0) {
+        node.bevelRadius = snapBevelRadiusToGrid(node.bevelRadius, this.gridSnapSize);
+      }
+    }
+    this.commitSplineEdit(`Snap path points (${this.gridSnapSize}m grid)`, oldHole, draft);
+    return true;
+  }
+
+  public insertSplineWaypointAt(worldPoint: THREE.Vector3, bypassGrid: boolean = false): boolean {
     if (!this.trackPathMode) return false;
     const spline = this.activeSpline || this.syncSplineFromCourse();
     if (!spline || spline.nodes.length === 0) return false;
+
+    const targetX =
+      !bypassGrid && this.gridSnapSize > 0
+        ? snapCoordinateToGrid(worldPoint.x, this.gridSnapSize)
+        : worldPoint.x;
+    const targetZ =
+      !bypassGrid && this.gridSnapSize > 0
+        ? snapCoordinateToGrid(worldPoint.z, this.gridSnapSize)
+        : worldPoint.z;
 
     const oldHole = this.courseManager.exportHoleData(3, 1);
     oldHole.splinePath = cloneSplinePath(spline);
@@ -631,8 +676,8 @@ export class EditorController {
       }
     } else {
       const dir = new THREE.Vector2(
-        worldPoint.x - anchor.position[0],
-        worldPoint.z - anchor.position[2]
+        targetX - anchor.position[0],
+        targetZ - anchor.position[2]
       );
       if (dir.lengthSq() > 1e-4) {
         dir.normalize().multiplyScalar(2.4);
@@ -644,8 +689,9 @@ export class EditorController {
 
     const newNode: SplineWaypoint = {
       id: `wp_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      position: [worldPoint.x, anchorY, worldPoint.z],
+      position: [targetX, anchorY, targetZ],
       handleOffset: [handleX, handleZ],
+      bevelRadius: 0,
       corner: false,
       elevationStep: step,
     };
@@ -902,19 +948,27 @@ export class EditorController {
         const pt = this.getPointOnPlane(ev.clientX, ev.clientY, this.draggingSpline.planeY);
         if (pt) {
           const node = this.draggingSpline.workingSpline.nodes[this.draggingSpline.nodeIndex];
+          const snapActive = this.gridSnapSize > 0 && !ev.shiftKey && !ev.altKey;
           if (this.draggingSpline.kind === "node") {
-            node.position[0] = pt.x;
-            node.position[2] = pt.z;
+            node.position[0] = snapActive
+              ? snapCoordinateToGrid(pt.x, this.gridSnapSize)
+              : pt.x;
+            node.position[2] = snapActive
+              ? snapCoordinateToGrid(pt.z, this.gridSnapSize)
+              : pt.z;
           } else {
             const nodes = this.draggingSpline.workingSpline.nodes;
             const idx = this.draggingSpline.nodeIndex;
             if (idx > 0 && idx < nodes.length - 1) {
-              node.bevelRadius = bisectorBevelDragToRadius(
+              const rawRadius = bisectorBevelDragToRadius(
                 nodes[idx - 1].position,
                 node.position,
                 nodes[idx + 1].position,
                 [pt.x, pt.z]
               );
+              node.bevelRadius = snapActive
+                ? snapBevelRadiusToGrid(rawRadius, this.gridSnapSize)
+                : rawRadius;
               node.corner = false;
             }
           }
@@ -1121,7 +1175,7 @@ export class EditorController {
     const planeY = spline.nodes[idx].position[1];
     const pt = this.getPointOnPlane(ev.clientX, ev.clientY, planeY);
     if (pt) {
-      this.insertSplineWaypointAt(pt);
+      this.insertSplineWaypointAt(pt, ev.shiftKey || ev.altKey);
     }
   };
 
