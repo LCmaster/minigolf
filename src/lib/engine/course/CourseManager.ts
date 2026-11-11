@@ -14,9 +14,9 @@ export interface InstantiatedTile {
   tileData: PlacedTile;
   pieceTemplate: ParsedKitPiece;
   group: THREE.Group;
-  wallLMesh?: THREE.Mesh;
-  wallRMesh?: THREE.Mesh;
-  wallBackMesh?: THREE.Mesh;
+  wallLMesh?: THREE.Object3D;
+  wallRMesh?: THREE.Object3D;
+  wallBackMesh?: THREE.Object3D;
   wallLCollider?: RAPIER.Collider;
   wallRCollider?: RAPIER.Collider;
   wallBackCollider?: RAPIER.Collider;
@@ -122,18 +122,16 @@ export class CourseManager {
     group.rotation.y = (rotY * Math.PI) / 180;
     this.scene.add(group);
 
-    // Find wall submeshes
-    let wallLMesh: THREE.Mesh | undefined;
-    let wallRMesh: THREE.Mesh | undefined;
-    let wallBackMesh: THREE.Mesh | undefined;
+    // Find wall submeshes (supports both single Mesh and multi-material Group wrappers)
+    let wallLMesh: THREE.Object3D | undefined;
+    let wallRMesh: THREE.Object3D | undefined;
+    let wallBackMesh: THREE.Object3D | undefined;
 
     group.traverse((child) => {
       const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
-      if (child instanceof THREE.Mesh) {
-        if (cleanName === "Mesh_Wall_L") wallLMesh = child;
-        if (cleanName === "Mesh_Wall_R") wallRMesh = child;
-        if (cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") wallBackMesh = child;
-      }
+      if (cleanName === "Mesh_Wall_L" && !wallLMesh) wallLMesh = child;
+      if (cleanName === "Mesh_Wall_R" && !wallRMesh) wallRMesh = child;
+      if ((cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") && !wallBackMesh) wallBackMesh = child;
     });
 
     const instantiated: InstantiatedTile = {

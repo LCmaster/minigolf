@@ -199,20 +199,35 @@ export class EditorController {
     const tilesMap = this.courseManager["tiles"] as Map<string, any>;
     if (!tilesMap) return;
 
-    const wallMeshes: THREE.Mesh[] = [];
+    const wallMeshes: THREE.Object3D[] = [];
     for (const [id, tile] of tilesMap.entries()) {
       if (tile.wallLMesh && tile.wallLMesh.visible) wallMeshes.push(tile.wallLMesh);
       if (tile.wallRMesh && tile.wallRMesh.visible) wallMeshes.push(tile.wallRMesh);
     }
 
-    const wallIntersects = this.raycaster.intersectObjects(wallMeshes);
+    const wallIntersects = this.raycaster.intersectObjects(wallMeshes, true);
     if (wallIntersects.length > 0) {
-      const hit = wallIntersects[0].object as THREE.Mesh;
-      const isLeft = hit.name === "Mesh_Wall_L";
-      // Find parent tile instance
+      const hit = wallIntersects[0].object;
+      let isLeft = false;
       for (const [id, tile] of tilesMap.entries()) {
-        if (tile.wallLMesh === hit || tile.wallRMesh === hit) {
-          this.hoveredWall = { tileInstanceId: id, side: isLeft ? "left" : "right", mesh: hit };
+        const matchesWall = (rootWall?: THREE.Object3D) => {
+          if (!rootWall) return false;
+          let cur: THREE.Object3D | null = hit;
+          while (cur) {
+            if (cur === rootWall) return true;
+            cur = cur.parent;
+          }
+          return false;
+        };
+        if (matchesWall(tile.wallLMesh)) {
+          isLeft = true;
+          this.hoveredWall = { tileInstanceId: id, side: "left", mesh: hit as THREE.Mesh };
+          this.canvas.style.cursor = "pointer";
+          break;
+        }
+        if (matchesWall(tile.wallRMesh)) {
+          isLeft = false;
+          this.hoveredWall = { tileInstanceId: id, side: "right", mesh: hit as THREE.Mesh };
           this.canvas.style.cursor = "pointer";
           break;
         }

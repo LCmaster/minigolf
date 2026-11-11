@@ -1404,6 +1404,669 @@
         "prop",
         "light"
       ]
+    },
+    "carnival_tee_6x6": {
+      "id": "carnival_tee_6x6",
+      "name": "Carnival Tee Box (6x6)",
+      "category": "foundations",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_tee_6x6.glb",
+      "dimensions": [
+        6.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "start",
+        "tee",
+        "carnival",
+        "foundation"
+      ]
+    },
+    "carnival_straight_6m": {
+      "id": "carnival_straight_6m",
+      "name": "Carnival Straight (6m)",
+      "category": "straights",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_straight_6m.glb",
+      "dimensions": [
+        6.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "fairway",
+        "straight",
+        "carnival"
+      ]
+    },
+    "carnival_ramp_up_15deg_6x6": {
+      "id": "carnival_ramp_up_15deg_6x6",
+      "name": "Carnival Ramp Up 15deg (6x6)",
+      "category": "elevation",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_ramp_up_15deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        2.1,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0.0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            1.5,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 1.5
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "carnival"
+      ]
+    },
+    "carnival_ramp_down_15deg_6x6": {
+      "id": "carnival_ramp_down_15deg_6x6",
+      "name": "Carnival Ramp Down 15deg (6x6)",
+      "category": "elevation",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_ramp_down_15deg_6x6.glb",
+      "dimensions": [
+        6.0,
+        2.1,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            1.5,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 1.5
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0.0,
+            -3.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "elevation",
+        "ramp",
+        "carnival"
+      ]
+    },
+    "carnival_turn_45deg_rounded": {
+      "id": "carnival_turn_45deg_rounded",
+      "name": "Carnival Turn 45deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_45deg_rounded.glb",
+      "dimensions": [
+        6.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            1.7573593128807143,
+            0,
+            -1.2426406871192848
+          ],
+          "normal": [
+            0.7071067811865475,
+            0,
+            -0.7071067811865476
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "45deg",
+        "carnival"
+      ]
+    },
+    "carnival_turn_90deg_rounded": {
+      "id": "carnival_turn_90deg_rounded",
+      "name": "Carnival Turn 90deg",
+      "category": "turns",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_turn_90deg_rounded.glb",
+      "dimensions": [
+        9.0,
+        0.6,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            6.0,
+            0,
+            -3.0
+          ],
+          "normal": [
+            1.0,
+            0,
+            0.0
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "turn",
+        "90deg",
+        "carnival"
+      ]
+    },
+    "carnival_bridge_pond_6x12": {
+      "id": "carnival_bridge_pond_6x12",
+      "name": "Carnival Pond Bridge (6x12)",
+      "category": "elevation",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_bridge_pond_6x12.glb",
+      "dimensions": [
+        11.2,
+        1.6,
+        12.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            6.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [
+            0,
+            0,
+            -6.0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "bridge",
+        "pond",
+        "water",
+        "carnival"
+      ]
+    },
+    "carnival_green_cup_6x6": {
+      "id": "carnival_green_cup_6x6",
+      "name": "Carnival Green Cup (6x6)",
+      "category": "foundations",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_green_cup_6x6.glb",
+      "dimensions": [
+        6.0,
+        0.7,
+        6.0
+      ],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [
+            0,
+            0,
+            3.0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "type": "track_arcade_6m",
+          "elevation": 0.0
+        }
+      ],
+      "tags": [
+        "cup",
+        "green",
+        "terminal",
+        "goal",
+        "carnival"
+      ]
+    },
+    "terrain_hill_knoll_6x6": {
+      "id": "terrain_hill_knoll_6x6",
+      "name": "Grassy Hill Knoll (6x6)",
+      "category": "terrain",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/terrain_hill_knoll_6x6.glb",
+      "dimensions": [
+        11.6,
+        1.2,
+        11.6
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "terrain",
+        "hill",
+        "carnival"
+      ]
+    },
+    "terrain_pond_patch_6x6": {
+      "id": "terrain_pond_patch_6x6",
+      "name": "Stone Pond Patch (6x6)",
+      "category": "terrain",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/terrain_pond_patch_6x6.glb",
+      "dimensions": [
+        6.0,
+        0.4,
+        6.0
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "terrain",
+        "pond",
+        "water",
+        "carnival"
+      ]
+    },
+    "prop_carnival_arch_6m": {
+      "id": "prop_carnival_arch_6m",
+      "name": "Carnival Archway",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_carnival_arch_6m.glb",
+      "dimensions": [
+        6.4,
+        5.2,
+        0.8
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "carnival",
+        "arch"
+      ]
+    },
+    "prop_bumper_peg_yellow": {
+      "id": "prop_bumper_peg_yellow",
+      "name": "Yellow Carnival Bumper",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_bumper_peg_yellow.glb",
+      "dimensions": [
+        0.75,
+        0.8,
+        0.75
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "bumper",
+        "carnival"
+      ]
+    },
+    "prop_bumper_peg_blue": {
+      "id": "prop_bumper_peg_blue",
+      "name": "Blue Carnival Bumper",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_bumper_peg_blue.glb",
+      "dimensions": [
+        0.75,
+        0.8,
+        0.75
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "bumper",
+        "carnival"
+      ]
+    },
+    "prop_boulder_faceted": {
+      "id": "prop_boulder_faceted",
+      "name": "Faceted Boulder",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_boulder_faceted.glb",
+      "dimensions": [
+        2.2,
+        1.5,
+        2.0
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature",
+        "rock"
+      ]
+    },
+    "prop_tree_puffy": {
+      "id": "prop_tree_puffy",
+      "name": "Puffy Cartoon Tree",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_tree_puffy.glb",
+      "dimensions": [
+        3.2,
+        4.7,
+        3.2
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature",
+        "tree"
+      ]
+    },
+    "prop_toadstool_pair": {
+      "id": "prop_toadstool_pair",
+      "name": "Red Toadstools",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_toadstool_pair.glb",
+      "dimensions": [
+        1.5,
+        0.9,
+        1.2
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature",
+        "mushroom"
+      ]
+    },
+    "prop_lantern_bunting": {
+      "id": "prop_lantern_bunting",
+      "name": "Lanterns & Bunting",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_lantern_bunting.glb",
+      "dimensions": [
+        5.2,
+        3.6,
+        1.1
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "carnival",
+        "decoration"
+      ]
+    },
+    "prop_grass_tuft": {
+      "id": "prop_grass_tuft",
+      "name": "Grass Tuft",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_grass_tuft.glb",
+      "dimensions": [
+        0.6,
+        0.55,
+        0.6
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature",
+        "foliage"
+      ]
+    },
+    "prop_wildflower_patch": {
+      "id": "prop_wildflower_patch",
+      "name": "Wildflower Patch",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_wildflower_patch.glb",
+      "dimensions": [
+        1.0,
+        0.2,
+        1.0
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "nature",
+        "foliage"
+      ]
+    },
+    "prop_fence_6m": {
+      "id": "prop_fence_6m",
+      "name": "Park Fence (6m)",
+      "category": "props",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_fence_6m.glb",
+      "dimensions": [
+        6.0,
+        1.15,
+        0.35
+      ],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": [
+        "prop",
+        "park",
+        "fence"
+      ]
     }
   }
 }

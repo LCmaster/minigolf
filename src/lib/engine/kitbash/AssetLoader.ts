@@ -92,30 +92,47 @@ export class AssetLoader {
 
     root.updateMatrixWorld(true);
 
+    const applyMeshStyling = (mesh: THREE.Mesh) => {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      if (!keepPieceMaterials && this.sharedMaterial) {
+        mesh.material = this.sharedMaterial;
+      } else if (keepPieceMaterials) {
+        const matName = (mesh.material as THREE.Material | undefined)?.name || "";
+        if (matName.includes("FairwayTurf") && this.carnivalTurfMaterial) {
+          mesh.material = this.carnivalTurfMaterial;
+        } else if (matName.includes("PondWater") && this.pondWaterMaterial) {
+          mesh.material = this.pondWaterMaterial;
+          mesh.castShadow = false;
+        }
+      }
+    };
+
+    const handledGroups = new Set<THREE.Object3D>();
+
     // Traverse scene hierarchy
     root.traverse((child) => {
+      if (child.parent && handledGroups.has(child.parent)) {
+        handledGroups.add(child);
+        return;
+      }
+
       // Strip Blender duplicate suffixes whether dot is preserved ("UBX_Wall_L.001") or sanitized by GLTFLoader ("UBX_Wall_L001")
       const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
 
       if (cleanName.startsWith("Mesh_") && child instanceof THREE.Mesh) {
         const mesh = child.clone();
         mesh.name = cleanName;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        if (!keepPieceMaterials && this.sharedMaterial) {
-          mesh.material = this.sharedMaterial;
-        } else if (keepPieceMaterials) {
-          const matName = (mesh.material as THREE.Material | undefined)?.name || "";
-          if (matName.includes("FairwayTurf") && this.carnivalTurfMaterial) {
-            mesh.material = this.carnivalTurfMaterial;
-          } else if (matName.includes("PondWater") && this.pondWaterMaterial) {
-            mesh.material = this.pondWaterMaterial;
-            mesh.castShadow = false;
-          }
-        }
-
+        applyMeshStyling(mesh);
         visualGroup.add(mesh);
+      } else if (cleanName.startsWith("Mesh_") && child instanceof THREE.Group && child.children.some((c) => c instanceof THREE.Mesh)) {
+        const clonedGroup = child.clone(true);
+        clonedGroup.name = cleanName;
+        clonedGroup.traverse((sub) => {
+          if (sub instanceof THREE.Mesh) applyMeshStyling(sub);
+        });
+        visualGroup.add(clonedGroup);
+        handledGroups.add(child);
       } else if (cleanName === "UBX_Floor" && child instanceof THREE.Mesh) {
         ubxFloorGeo = child.geometry.clone();
         ubxFloorGeo.applyMatrix4(child.matrixWorld);
