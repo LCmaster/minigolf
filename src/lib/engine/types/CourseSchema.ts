@@ -28,6 +28,20 @@ export interface PlacedProp {
   scale: [number, number, number];
 }
 
+export interface SplineWaypoint {
+  id: string;
+  position: [number, number, number]; // World XYZ (Y snapped to 1.5m kit elevation tiers)
+  handleOffset: [number, number]; // Outgoing XZ handle offset from position; C1 mirrors -handleOffset for incoming unless corner=true
+  corner?: boolean; // True = C0 sharp vertex; false/undefined = C1 smooth tangent
+  elevationStep?: number; // Discrete elevation tier (Y = elevationStep * 1.5)
+  realizedTileId?: string; // Closest anchor tile instanceId
+}
+
+export interface SplinePathData {
+  nodes: SplineWaypoint[];
+  closed?: false;
+}
+
 export interface HoleData {
   holeNumber: number; // 1 to 18
   par: number; // Standard par target (2, 3, 4, 5)
@@ -36,6 +50,7 @@ export interface HoleData {
   tiles: PlacedTile[];
   props: PlacedProp[];
   showBoundary?: boolean; // Render delimited park perimeter around hole
+  splinePath?: SplinePathData; // Optional persisted authoring spline path
 }
 
 export interface CourseData {

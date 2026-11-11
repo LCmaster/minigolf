@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
-import type { PlacedTile, PlacedProp, HoleData } from "../types/CourseSchema";
+import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
 
@@ -50,6 +50,7 @@ export class CourseManager {
   private bumperColliderHandles: Set<number> = new Set();
   private flagSprite: THREE.Sprite | null = null;
   private visualCupGroup: THREE.Group | null = null;
+  private splinePath: SplinePathData | null = null;
 
   public goalPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
@@ -71,6 +72,16 @@ export class CourseManager {
   public loadHole(hole: HoleData): void {
     this.clear();
     this.showBoundary = hole.showBoundary ?? true;
+    this.splinePath = hole.splinePath
+      ? {
+          closed: false,
+          nodes: hole.splinePath.nodes.map((n) => ({
+            ...n,
+            position: [...n.position] as [number, number, number],
+            handleOffset: [...n.handleOffset] as [number, number],
+          })),
+        }
+      : null;
 
     for (const tileData of hole.tiles) {
       this.addTile(tileData, false);
@@ -625,12 +636,39 @@ export class CourseManager {
     this.onHoleChanged?.();
   }
 
+  public setSplinePath(path: SplinePathData | null): void {
+    this.splinePath = path
+      ? {
+          closed: false,
+          nodes: path.nodes.map((n) => ({
+            ...n,
+            position: [...n.position] as [number, number, number],
+            handleOffset: [...n.handleOffset] as [number, number],
+          })),
+        }
+      : null;
+  }
+
+  public getSplinePath(): SplinePathData | null {
+    return this.splinePath
+      ? {
+          closed: false,
+          nodes: this.splinePath.nodes.map((n) => ({
+            ...n,
+            position: [...n.position] as [number, number, number],
+            handleOffset: [...n.handleOffset] as [number, number],
+          })),
+        }
+      : null;
+  }
+
   public exportHoleData(par: number = 3, holeNumber: number = 1): HoleData {
     const tiles: PlacedTile[] = Array.from(this.tiles.values()).map((t) => ({
       ...t.tileData,
       position: t.tileData.position ? ([...t.tileData.position] as [number, number, number]) : undefined,
       walls: { ...t.tileData.walls },
       connectedSockets: t.tileData.connectedSockets ? { ...t.tileData.connectedSockets } : undefined,
+      attachedTo: t.tileData.attachedTo ? { ...t.tileData.attachedTo } : undefined,
     }));
     const props: PlacedProp[] = Array.from(this.props.values()).map((p) => ({
       ...p.propData,
@@ -650,6 +688,7 @@ export class CourseManager {
       tiles,
       props,
       showBoundary: this.showBoundary,
+      splinePath: this.getSplinePath() ?? undefined,
     };
   }
 
@@ -672,6 +711,7 @@ export class CourseManager {
     this.props.clear();
     this.boosterSensors.clear();
     this.bumperColliderHandles.clear();
+    this.splinePath = null;
 
     if (this.unifiedFloorCollider) {
       this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
