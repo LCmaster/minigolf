@@ -34,8 +34,8 @@ export class GameEngine {
 
   private eventListeners: { [K in keyof EngineEventMap]?: Function[] } = {};
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.renderPipeline = new RenderPipeline(canvas);
+  constructor(canvas?: HTMLCanvasElement, options?: { headless?: boolean }) {
+    this.renderPipeline = new RenderPipeline(canvas, options);
     this.physicsWorld = new PhysicsWorld();
     this.assetLoader = new AssetLoader();
     this.audio = new AudioManager();
@@ -51,6 +51,10 @@ export class GameEngine {
       this.physicsWorld.rapier,
       this.assetLoader
     );
+
+    this.courseManager.onHoleChanged = () => {
+      this.renderPipeline.parkBackdrop.updateFromCourse(this.courseManager);
+    };
 
     this.ballController = new BallController(
       this.renderPipeline.scene,
@@ -109,7 +113,7 @@ export class GameEngine {
 
   public stop(): void {
     this.isRunning = false;
-    if (this.animationFrameId !== null) {
+    if (this.animationFrameId !== null && typeof cancelAnimationFrame !== "undefined") {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
@@ -122,6 +126,18 @@ export class GameEngine {
     const deltaTime = (currentTime - this.lastTime) / 1000.0;
     this.lastTime = currentTime;
 
+    this.stepFrame(deltaTime);
+
+    if (typeof requestAnimationFrame !== "undefined") {
+      this.animationFrameId = requestAnimationFrame(this.loop);
+    }
+  };
+
+  /**
+   * Executes a single engine simulation and render frame.
+   * Exposed for deterministic headless step testing.
+   */
+  public stepFrame(deltaTime: number): void {
     // FPS calculation
     this.fpsCounter++;
     this.fpsTimer += deltaTime;
@@ -155,12 +171,12 @@ export class GameEngine {
       this.physicsWorld.drainCollisionEvents();
     }
 
-    // Proximity fallback check (within 28cm of cup center horizontally and within 25cm vertically)
+    // Proximity fallback check (within 42.5cm of cup center horizontally and within 50cm vertically)
     if (!ballEnteredHole && goalPos && this.ballController.mesh) {
       const bPos = this.ballController.mesh.position;
       const horizDist = Math.hypot(bPos.x - goalPos.x, bPos.z - goalPos.z);
       const vertDist = Math.abs(bPos.y - goalPos.y);
-      if (horizDist < 0.28 && vertDist < 0.25) {
+      if (horizDist < 0.425 && vertDist < 0.50) {
         ballEnteredHole = true;
       }
     }
@@ -210,9 +226,7 @@ export class GameEngine {
 
     // Render frame
     this.renderPipeline.render();
-
-    this.animationFrameId = requestAnimationFrame(this.loop);
-  };
+  }
 
   /**
    * Loads a test course hole (Tee -> Straight -> Cup) to validate seamless physics and controls.
@@ -270,9 +284,11 @@ export class GameEngine {
   }
 
   private setupResizeListener(): void {
-    window.addEventListener("resize", () => {
-      this.renderPipeline.resize();
-    });
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", () => {
+        this.renderPipeline.resize();
+      });
+    }
   }
 
   public dispose(): void {

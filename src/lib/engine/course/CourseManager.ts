@@ -44,6 +44,8 @@ export class CourseManager {
 
   public goalPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
+  public showBoundary: boolean = true;
+  public onHoleChanged?: () => void;
 
   constructor(
     scene: THREE.Scene,
@@ -59,6 +61,7 @@ export class CourseManager {
 
   public loadHole(hole: HoleData): void {
     this.clear();
+    this.showBoundary = hole.showBoundary ?? true;
 
     for (const tileData of hole.tiles) {
       this.addTile(tileData, false);
@@ -72,6 +75,7 @@ export class CourseManager {
 
     // Rebuild welded floor collider once all tiles are added
     this.rebuildWeldedFloorPhysics();
+    this.onHoleChanged?.();
   }
 
   public addTile(tileData: PlacedTile, rebuildFloor: boolean = true): InstantiatedTile | null {
@@ -303,6 +307,7 @@ export class CourseManager {
     if (floorColliderDesc) {
       this.unifiedFloorCollider = this.rapierWorld.createCollider(floorColliderDesc);
     }
+    this.onHoleChanged?.();
   }
 
   private createGoalSensor(pos: THREE.Vector3): void {
@@ -484,6 +489,7 @@ export class CourseManager {
       colliders,
     };
     this.props.set(propData.instanceId, instantiated);
+    this.onHoleChanged?.();
     return instantiated;
   }
 
@@ -496,6 +502,7 @@ export class CourseManager {
       this.rapierWorld.removeCollider(col, false);
     }
     this.props.delete(instanceId);
+    this.onHoleChanged?.();
     return true;
   }
 
