@@ -8,14 +8,14 @@
   const dispatch = createEventDispatcher();
 
   const options = [
-    { id: "straight_4m", label: "Straight (4m)", icon: "➡️" },
+    { id: "straight_6m", label: "Straight (6m)", icon: "➡️" },
     { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️" },
     { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️" },
-    { id: "turn_banked_90deg_4x4", label: "Banked 90°", icon: "🎢" },
-    { id: "ramp_up_15deg_4x4", label: "Ramp Up (1m)", icon: "📈" },
-    { id: "ramp_down_15deg_4x4", label: "Ramp Down (1m)", icon: "📉" },
-    { id: "obstacle_windmill_4x8", label: "Windmill Gate", icon: "🎡" },
-    { id: "green_cup_standard_4x4", label: "Cup Green", icon: "⛳" },
+    { id: "turn_banked_90deg_6x6", label: "Banked 90°", icon: "🎢" },
+    { id: "ramp_up_15deg_6x6", label: "Ramp Up (1.5m)", icon: "📈" },
+    { id: "ramp_down_15deg_6x6", label: "Ramp Down (1.5m)", icon: "📉" },
+    { id: "obstacle_windmill_6x12", label: "Windmill Gate", icon: "🎡" },
+    { id: "green_cup_standard_6x6", label: "Cup Green", icon: "⛳" },
   ];
 
   function selectOption(pieceId) {

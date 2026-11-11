@@ -11,6 +11,7 @@ export interface GenerationOptions {
   par: number; // 2, 3, 4, 5
   style: "straightforward" | "winding" | "elevation";
   includeObstacles: boolean;
+  theme?: "country_club" | "carnival_park";
 }
 
 export class HoleGenerator {
@@ -20,12 +21,20 @@ export class HoleGenerator {
     this.assetLoader = assetLoader;
   }
 
+  private resolvePieceId(preferredId: string, fallbackId: string): string {
+    if (typeof this.assetLoader?.getPiece === "function" && this.assetLoader.getPiece(preferredId)) {
+      return preferredId;
+    }
+    return fallbackId;
+  }
+
   public generateHole(options: GenerationOptions): HoleData {
     const tiles: PlacedTile[] = [];
     let currentPos: [number, number, number] = [0, 0, 0];
     let currentYaw = 0; // Degrees
+    const isCarnival = options.theme === "carnival_park";
+    const idSeed = Date.now();
 
-    // Helper to calculate next tile position based on step length and yaw
     const forwardStep = (length: number): [number, number, number] => {
       const rad = (currentYaw * Math.PI) / 180;
       return [
@@ -35,19 +44,21 @@ export class HoleGenerator {
       ];
     };
 
-    // 1. Tee-Off Box at origin
-    const teeTileId = `tile_tee_${Date.now()}`;
+    // 1. Tee-Off Box at origin (6x6m socket standard)
+    const teeTileId = `tile_tee_${idSeed}`;
+    const teePiece = isCarnival
+      ? this.resolvePieceId("carnival_tee_6x6", "tee_box_6x6")
+      : "tee_box_6x6";
     tiles.push({
       instanceId: teeTileId,
-      kitPieceId: "tee_box_4x4",
+      kitPieceId: teePiece,
       position: [0, 0, 0],
       rotationY: 0,
       walls: { left: true, right: true },
       connectedSockets: {},
     });
 
-    // Advance forward 4 meters
-    currentPos = forwardStep(4.0);
+    currentPos = forwardStep(6.0);
 
     // 2. Determine fairway length based on requested Par
     let targetSegments = 3;
@@ -58,83 +69,108 @@ export class HoleGenerator {
     const obstacleIndex = Math.floor(targetSegments / 2);
 
     for (let i = 0; i < targetSegments; i++) {
-      const instanceId = `tile_seq_${i}_${Date.now()}`;
+      const instanceId = `tile_seq_${i}_${idSeed}`;
+      const prevId = tiles[tiles.length - 1].instanceId;
 
-      // Check if we should insert the Windmill or Obstacle at the midpoint
+      // Insert Windmill or Carnival Bridge at the midpoint
       if (options.includeObstacles && i === obstacleIndex && options.par >= 3) {
+        const obsPiece = isCarnival
+          ? this.resolvePieceId("carnival_bridge_pond_6x12", "obstacle_windmill_6x12")
+          : "obstacle_windmill_6x12";
         tiles.push({
           instanceId,
-          kitPieceId: "obstacle_windmill_4x8",
+          kitPieceId: obsPiece,
+          attachedTo: { parentInstanceId: prevId, parentSocketId: "LOC_Socket_Out" },
           position: [...currentPos],
           rotationY: currentYaw,
           walls: { left: true, right: true },
           connectedSockets: {},
         });
-        currentPos = forwardStep(8.0);
+        currentPos = forwardStep(12.0);
         continue;
       }
 
-      // Check if we should insert elevation ramp
+      // Elevation ramps
       if (options.style === "elevation" && i === 1) {
+        const rampUp = isCarnival
+          ? this.resolvePieceId("carnival_ramp_up_15deg_6x6", "ramp_up_15deg_6x6")
+          : "ramp_up_15deg_6x6";
         tiles.push({
           instanceId,
-          kitPieceId: "ramp_up_15deg_4x4",
+          kitPieceId: rampUp,
+          attachedTo: { parentInstanceId: prevId, parentSocketId: "LOC_Socket_Out" },
           position: [...currentPos],
           rotationY: currentYaw,
           walls: { left: true, right: true },
           connectedSockets: {},
         });
-        currentPos = forwardStep(4.0);
-        currentPos[1] += 1.0; // Elevation delta
+        currentPos = forwardStep(6.0);
+        currentPos[1] += 1.5;
         continue;
       } else if (options.style === "elevation" && i === targetSegments - 2) {
+        const rampDown = isCarnival
+          ? this.resolvePieceId("carnival_ramp_down_15deg_6x6", "ramp_down_15deg_6x6")
+          : "ramp_down_15deg_6x6";
         tiles.push({
           instanceId,
-          kitPieceId: "ramp_down_15deg_4x4",
+          kitPieceId: rampDown,
+          attachedTo: { parentInstanceId: prevId, parentSocketId: "LOC_Socket_Out" },
           position: [...currentPos],
           rotationY: currentYaw,
           walls: { left: true, right: true },
           connectedSockets: {},
         });
-        currentPos = forwardStep(4.0);
-        currentPos[1] -= 1.0;
+        currentPos = forwardStep(6.0);
+        currentPos[1] -= 1.5;
         continue;
       }
 
       // Bends and Turns for "winding" style
       if (options.style === "winding" && (i === 1 || i === targetSegments - 2)) {
-        const turnAngle = i % 2 === 1 ? 45 : -45;
+        const turnPiece = isCarnival
+          ? this.resolvePieceId("carnival_turn_45deg_rounded", "turn_45deg_rounded")
+          : "turn_45deg_rounded";
         tiles.push({
           instanceId,
-          kitPieceId: "turn_45deg_rounded",
+          kitPieceId: turnPiece,
+          attachedTo: { parentInstanceId: prevId, parentSocketId: "LOC_Socket_Out" },
           position: [...currentPos],
           rotationY: currentYaw,
           walls: { left: true, right: true },
           connectedSockets: {},
         });
-        currentYaw = (currentYaw + turnAngle + 360) % 360;
-        currentPos = forwardStep(4.0);
+        currentYaw = (currentYaw - 45 + 360) % 360;
+        currentPos = forwardStep(6.0);
         continue;
       }
 
       // Standard Straight Fairway
+      const straightPiece = isCarnival
+        ? this.resolvePieceId("carnival_straight_6m", "straight_6m")
+        : "straight_6m";
       tiles.push({
         instanceId,
-        kitPieceId: "straight_4m",
+        kitPieceId: straightPiece,
+        attachedTo: { parentInstanceId: prevId, parentSocketId: "LOC_Socket_Out" },
         position: [...currentPos],
         rotationY: currentYaw,
         walls: { left: true, right: true },
         connectedSockets: {},
       });
-      currentPos = forwardStep(4.0);
+      currentPos = forwardStep(6.0);
     }
 
     // 3. Terminal Cup Green
-    const cupTileId = `tile_cup_${Date.now()}`;
-    const greenKitId = options.style === "elevation" ? "green_cup_funnel_4x4" : "green_cup_standard_4x4";
+    const cupTileId = `tile_cup_${idSeed}`;
+    const lastId = tiles[tiles.length - 1].instanceId;
+    const defaultCup = options.style === "elevation" ? "green_cup_funnel_6x6" : "green_cup_standard_6x6";
+    const greenKitId = isCarnival
+      ? this.resolvePieceId("carnival_green_cup_6x6", defaultCup)
+      : defaultCup;
     tiles.push({
       instanceId: cupTileId,
       kitPieceId: greenKitId,
+      attachedTo: { parentInstanceId: lastId, parentSocketId: "LOC_Socket_Out" },
       position: [...currentPos],
       rotationY: currentYaw,
       walls: { left: true, right: true },
@@ -145,8 +181,8 @@ export class HoleGenerator {
     for (let i = 0; i < tiles.length - 1; i++) {
       const current = tiles[i];
       const next = tiles[i + 1];
-      current.connectedSockets["LOC_Socket_Out"] = next.instanceId;
-      next.connectedSockets["LOC_Socket_In"] = current.instanceId;
+      current.connectedSockets!["LOC_Socket_Out"] = next.instanceId;
+      next.connectedSockets!["LOC_Socket_In"] = current.instanceId;
     }
 
     return {
@@ -156,6 +192,7 @@ export class HoleGenerator {
       cupTileId,
       tiles,
       props: [],
+      showBoundary: isCarnival,
     };
   }
 }

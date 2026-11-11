@@ -31,16 +31,17 @@ export interface PlacedProp {
 export interface HoleData {
   holeNumber: number; // 1 to 18
   par: number; // Standard par target (2, 3, 4, 5)
-  teeTileId: string; // instanceId of the starting tee_box_4x4
-  cupTileId: string; // instanceId of the finishing green_cup_standard_4x4
+  teeTileId: string; // instanceId of the starting tee_box
+  cupTileId: string; // instanceId of the finishing green_cup
   tiles: PlacedTile[];
   props: PlacedProp[];
+  showBoundary?: boolean; // Render delimited park perimeter around hole
 }
 
 export interface CourseData {
   id: string; // UUID or Firebase doc ID
   name: string;
-  theme: "country_club" | "cyber_neon" | "pirate_cove";
+  theme: "country_club" | "carnival_park" | "cyber_neon" | "pirate_cove";
   authorId: string;
   authorName?: string;
   createdAt: number; // Timestamp ms

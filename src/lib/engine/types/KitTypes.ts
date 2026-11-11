@@ -5,6 +5,7 @@
 
 export type SocketType =
   | "track_standard_4m"
+  | "track_arcade_6m"
   | "track_narrow_2m"
   | "ramp_top_1m"
   | "ramp_top_2m"
@@ -27,24 +28,32 @@ export type KitCategory =
   | "elevation"
   | "obstacles"
   | "hazards"
+  | "terrain"
   | "props";
 
 export interface KitPieceMetadata {
-  id: string; // Unique identifier, e.g. "straight_4m", "turn_45deg_rounded"
-  name: string; // Display name, e.g. "Straight Fairway (4m)"
+  id: string; // Unique identifier, e.g. "straight_6m", "turn_45deg_rounded"
+  name: string; // Display name, e.g. "Straight Fairway (6m)"
   category: KitCategory;
-  glbPath: string; // Relative path, e.g. "models/kit/straight_4m.glb"
+  glbPath: string; // Relative path, e.g. "models/kit/straight_6m.glb"
   dimensions: [number, number, number]; // [width, height, length] in meters
-  turfWidth: number; // Playable width, default 3.6m
-  railHeight: number; // Default 0.4m
+  turfWidth: number; // Playable width, default 5.2m
+  railHeight: number; // Default 0.6m
   hasDynamicWalls: boolean; // True if Left/Right rails can be toggled
   sockets: SocketDefinition[];
   tags: string[];
+  theme?: string; // e.g. "country_club" | "carnival_park"
+  preserveMaterials?: boolean; // Keep glTF/vertex materials instead of trim sheet override
 }
 
 export interface KitManifest {
   version: string;
   theme: string;
+  trimSheet?: {
+    diffuse: string;
+    normal: string;
+    roughness: string;
+  };
   pieces: Record<string, KitPieceMetadata>;
 }
 

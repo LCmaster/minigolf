@@ -23,6 +23,10 @@
   let showWfcModal = false;
   let selectedPropId = null;
 
+  $: if (editorController) {
+    editorController.setSelectedProp(isPlaytestMode ? null : selectedPropId);
+  }
+
   onMount(async () => {
     if (!canvas) return;
 
@@ -211,7 +215,11 @@
 
     <!-- Editor Hint Banner -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none">
-      💡 Click glowing <span class="text-cyan-400 font-bold">cyan rings</span> to snap pieces &bull; Click <span class="text-amber-400 font-bold">rails</span> to toggle cliff edges
+      {#if selectedPropId}
+        🎯 Click to place prop &bull; <span class="text-amber-400 font-bold">R</span> to rotate &bull; <span class="text-red-400 font-bold">Right-click</span> prop to remove &bull; <span class="text-gray-300 font-bold">Esc</span> cancel
+      {:else}
+        💡 Click glowing <span class="text-cyan-400 font-bold">cyan rings</span> to snap pieces &bull; Click <span class="text-amber-400 font-bold">rails</span> to toggle edges
+      {/if}
     </div>
   {/if}
 

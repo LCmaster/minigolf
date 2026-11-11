@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
-import type { PlacedTile, HoleData } from "../types/CourseSchema";
+import type { PlacedTile, PlacedProp, HoleData } from "../types/CourseSchema";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
 
@@ -22,6 +22,13 @@ export interface InstantiatedTile {
   wallBackCollider?: RAPIER.Collider;
 }
 
+export interface InstantiatedProp {
+  propData: PlacedProp;
+  pieceTemplate: ParsedKitPiece;
+  group: THREE.Group;
+  colliders: RAPIER.Collider[];
+}
+
 export class CourseManager {
   private scene: THREE.Scene;
   private rapierWorld: RAPIER.World;
@@ -29,12 +36,14 @@ export class CourseManager {
   private assetLoader: AssetLoader;
 
   private tiles: Map<string, InstantiatedTile> = new Map();
+  private props: Map<string, InstantiatedProp> = new Map();
   private unifiedFloorCollider: RAPIER.Collider | null = null;
   private goalSensorCollider: RAPIER.Collider | null = null;
   private flagSprite: THREE.Sprite | null = null;
+  private visualCupGroup: THREE.Group | null = null;
 
   public goalPosition: THREE.Vector3 | null = null;
-  public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 0.2, 0);
+  public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
 
   constructor(
     scene: THREE.Scene,
@@ -53,6 +62,12 @@ export class CourseManager {
 
     for (const tileData of hole.tiles) {
       this.addTile(tileData, false);
+    }
+
+    if (hole.props) {
+      for (const propData of hole.props) {
+        this.addProp(propData);
+      }
     }
 
     // Rebuild welded floor collider once all tiles are added
@@ -109,11 +124,11 @@ export class CourseManager {
     let wallBackMesh: THREE.Mesh | undefined;
 
     group.traverse((child) => {
-      const cleanName = child.name.replace(/\.\d+$/, "");
+      const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
       if (child instanceof THREE.Mesh) {
         if (cleanName === "Mesh_Wall_L") wallLMesh = child;
         if (cleanName === "Mesh_Wall_R") wallRMesh = child;
-        if (cleanName === "Mesh_Wall_Back") wallBackMesh = child;
+        if (cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") wallBackMesh = child;
       }
     });
 
@@ -299,10 +314,51 @@ export class CourseManager {
       this.scene.remove(this.flagSprite);
       this.flagSprite = null;
     }
+    if (this.visualCupGroup) {
+      this.scene.remove(this.visualCupGroup);
+      this.visualCupGroup = null;
+    }
+    if (this.visualCupGroup) {
+      this.scene.remove(this.visualCupGroup);
+      this.visualCupGroup = null;
+    }
 
-    // Arcade enlarged cup sensor: 0.28m radius (0.56m diameter), settled -0.10m deep in floor slab
-    const desc = this.rapier.ColliderDesc.ball(0.28)
-      .setTranslation(pos.x, pos.y - 0.1, pos.z)
+    // High-visibility real 3D circular cup liner and rim
+    const cupGroup = new THREE.Group();
+    cupGroup.position.set(pos.x, pos.y, pos.z);
+
+    // 1. Dark matte cup interior cavity
+    const interiorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.30, 32, 1, false);
+    const interiorMat = new THREE.MeshStandardMaterial({
+      color: 0x121214,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+    const interiorMesh = new THREE.Mesh(interiorGeo, interiorMat);
+    interiorMesh.position.y = -0.15;
+    interiorMesh.receiveShadow = true;
+    cupGroup.add(interiorMesh);
+
+    // 2. Crisp ceramic white cup rim collar at turf edge
+    const rimGeo = new THREE.RingGeometry(0.36, 0.425, 32);
+    rimGeo.rotateX(-Math.PI / 2);
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: 0xf3f4f6,
+      roughness: 0.2,
+      metalness: 0.1,
+      side: THREE.DoubleSide,
+    });
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.position.y = 0.005;
+    rimMesh.receiveShadow = true;
+    cupGroup.add(rimMesh);
+
+    this.visualCupGroup = cupGroup;
+    this.scene.add(this.visualCupGroup);
+
+    // Master Arcade cup sensor: 0.425m radius (0.85m diameter), settled at cup floor
+    const desc = this.rapier.ColliderDesc.cylinder(0.025, 0.425)
+      .setTranslation(pos.x, pos.y - 0.15, pos.z)
       .setSensor(true)
       .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
 
@@ -376,6 +432,81 @@ export class CourseManager {
     return this.goalPosition;
   }
 
+  public getAllTiles(): InstantiatedTile[] {
+    return Array.from(this.tiles.values());
+  }
+
+  public getTile(instanceId: string): InstantiatedTile | undefined {
+    return this.tiles.get(instanceId);
+  }
+
+  public addProp(propData: PlacedProp): InstantiatedProp | null {
+    const template = this.assetLoader.getPiece(propData.propId);
+    if (!template) {
+      console.warn(`Prop template not found: ${propData.propId}`);
+      return null;
+    }
+
+    const group = template.visualTemplate.clone(true);
+    group.position.set(...propData.position);
+    group.rotation.set(
+      (propData.rotation[0] * Math.PI) / 180,
+      (propData.rotation[1] * Math.PI) / 180,
+      (propData.rotation[2] * Math.PI) / 180
+    );
+    group.scale.set(...propData.scale);
+    group.userData = { propInstanceId: propData.instanceId };
+    this.scene.add(group);
+    group.updateMatrixWorld(true);
+
+    const colliders: RAPIER.Collider[] = [];
+    const isBumper = template.metadata?.tags?.includes("bumper");
+    const colliderGeos: THREE.BufferGeometry[] = [
+      ...(template.ubxColliderGeometries || []),
+      ...(template.ubxFloorGeometry ? [template.ubxFloorGeometry] : []),
+    ];
+
+    for (const geo of colliderGeos) {
+      const desc = this.createStaticColliderFromGeo(geo, group.matrixWorld);
+      if (desc) {
+        if (isBumper) {
+          desc.setRestitution(1.15);
+          desc.setFriction(0.15);
+        }
+        colliders.push(this.rapierWorld.createCollider(desc));
+      }
+    }
+
+    const instantiated: InstantiatedProp = {
+      propData,
+      pieceTemplate: template,
+      group,
+      colliders,
+    };
+    this.props.set(propData.instanceId, instantiated);
+    return instantiated;
+  }
+
+  public removeProp(instanceId: string): boolean {
+    const prop = this.props.get(instanceId);
+    if (!prop) return false;
+
+    this.scene.remove(prop.group);
+    for (const col of prop.colliders) {
+      this.rapierWorld.removeCollider(col, false);
+    }
+    this.props.delete(instanceId);
+    return true;
+  }
+
+  public getAllProps(): InstantiatedProp[] {
+    return Array.from(this.props.values());
+  }
+
+  public getProp(instanceId: string): InstantiatedProp | undefined {
+    return this.props.get(instanceId);
+  }
+
   public clear(): void {
     for (const tile of this.tiles.values()) {
       this.scene.remove(tile.group);
@@ -384,6 +515,14 @@ export class CourseManager {
       if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
     }
     this.tiles.clear();
+
+    for (const prop of this.props.values()) {
+      this.scene.remove(prop.group);
+      for (const col of prop.colliders) {
+        this.rapierWorld.removeCollider(col, false);
+      }
+    }
+    this.props.clear();
 
     if (this.unifiedFloorCollider) {
       this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
@@ -396,6 +535,10 @@ export class CourseManager {
     if (this.flagSprite) {
       this.scene.remove(this.flagSprite);
       this.flagSprite = null;
+    }
+    if (this.visualCupGroup) {
+      this.scene.remove(this.visualCupGroup);
+      this.visualCupGroup = null;
     }
   }
 }
