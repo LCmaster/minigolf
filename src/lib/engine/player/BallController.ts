@@ -24,6 +24,8 @@ export class BallController {
   private stationaryFrames: number = 0;
   private pulseTime: number = 0;
   private lastSafePosition: THREE.Vector3 = new THREE.Vector3();
+  private prevPosition: THREE.Vector3 = new THREE.Vector3();
+  private prevQuaternion: THREE.Quaternion = new THREE.Quaternion();
 
   constructor(scene: THREE.Scene, rapierWorld: RAPIER.World, rapier: typeof RAPIER) {
     this.scene = scene;
@@ -79,6 +81,8 @@ export class BallController {
     this.collider = this.rapierWorld.createCollider(colliderDesc, this.rigidBody);
 
     this.mesh.position.copy(spawnPos);
+    this.prevPosition.copy(spawnPos);
+    this.prevQuaternion.identity();
     this.ghostSphereMesh.position.copy(spawnPos);
     this.ghostSphereMesh.scale.set(1, 1, 1);
     this.ghostSphereMesh.visible = this.mesh.visible;
@@ -86,9 +90,18 @@ export class BallController {
     this.state = "aiming";
   }
 
+  public capturePreviousTransform(): void {
+    if (!this.rigidBody) return;
+    const t = this.rigidBody.translation();
+    const r = this.rigidBody.rotation();
+    this.prevPosition.set(t.x, t.y, t.z);
+    this.prevQuaternion.set(r.x, r.y, r.z, r.w);
+  }
+
   public shoot(impulse: THREE.Vector3): void {
     if (this.state !== "aiming") return;
 
+    this.capturePreviousTransform();
     this.strokes++;
     this.state = "moving";
     this.stationaryFrames = 0;
@@ -102,14 +115,25 @@ export class BallController {
     );
   }
 
-  public update(): void {
+  public update(interpolationAlpha: number = 1.0): void {
     if (!this.rigidBody) return;
     if (this.state === "in_hole") return;
 
     const t = this.rigidBody.translation();
     const r = this.rigidBody.rotation();
-    this.mesh.position.set(t.x, t.y, t.z);
-    this.mesh.quaternion.set(r.x, r.y, r.z, r.w);
+    if (this.state === "moving" && interpolationAlpha < 1.0) {
+      const a = Math.max(0, Math.min(1, interpolationAlpha));
+      this.mesh.position.set(
+        THREE.MathUtils.lerp(this.prevPosition.x, t.x, a),
+        THREE.MathUtils.lerp(this.prevPosition.y, t.y, a),
+        THREE.MathUtils.lerp(this.prevPosition.z, t.z, a)
+      );
+      const currQuat = new THREE.Quaternion(r.x, r.y, r.z, r.w);
+      this.mesh.quaternion.slerpQuaternions(this.prevQuaternion, currQuat, a);
+    } else {
+      this.mesh.position.set(t.x, t.y, t.z);
+      this.mesh.quaternion.set(r.x, r.y, r.z, r.w);
+    }
 
     // Out of bounds check (fell off course)
     if (t.y < -5.0 && this.state !== "out_of_bounds") {

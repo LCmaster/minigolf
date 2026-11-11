@@ -159,5 +159,24 @@ describe("BallController Unit Tests", () => {
 
     ball.dispose();
   });
+
+  it("interpolates visual mesh transform between physics steps when moving", () => {
+    const ball = new BallController(scene, world, RAPIER);
+    ball.state = "moving";
+
+    ball.rigidBody.setTranslation(new RAPIER.Vector3(0, 0.2, 0), true);
+    ball.capturePreviousTransform();
+
+    ball.rigidBody.setTranslation(new RAPIER.Vector3(0, 0.2, -2.0), true);
+    ball.update(0.5);
+
+    expect(ball.mesh.position.z).toBeCloseTo(-1.0, 4);
+
+    // At alpha = 1.0 (or aiming), snaps directly to latest physics translation
+    ball.update(1.0);
+    expect(ball.mesh.position.z).toBeCloseTo(-2.0, 4);
+
+    ball.dispose();
+  });
 });
 

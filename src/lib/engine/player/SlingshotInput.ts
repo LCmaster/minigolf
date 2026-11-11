@@ -28,7 +28,7 @@ export class SlingshotInput {
   private shotDirection: THREE.Vector3 = new THREE.Vector3();
 
   private maxDragDistance: number = 4.0; // 4 meters max drag for 100% power
-  private maxImpulseForce: number = 0.75; // Calibrated for arcade 6x6m tracks
+  private maxImpulseForce: number = 0.10; // Calibrated for ~5g golf ball (up to ~20 m/s)
 
   public onStrokeTaken?: (power: number, impulse: THREE.Vector3) => void;
 
@@ -188,13 +188,14 @@ export class SlingshotInput {
 
     if (power > 0.05) {
       let dir = this.shotDirection.clone();
-      if (power > 0.75) {
-        const jitterFactor = (power - 0.75) / 0.25;
-        const jitter = (Math.random() - 0.5) * 0.1 * jitterFactor;
+      if (power > 0.85) {
+        const jitterFactor = (power - 0.85) / 0.15;
+        const jitter = (Math.random() - 0.5) * 0.03 * jitterFactor;
         dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), jitter);
       }
 
-      const impulseMagnitude = power * this.maxImpulseForce;
+      const curvedPower = Math.pow(power, 1.35);
+      const impulseMagnitude = curvedPower * this.maxImpulseForce;
       const impulse = dir.multiplyScalar(impulseMagnitude);
 
       this.ball.shoot(impulse);

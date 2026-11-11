@@ -69,6 +69,10 @@ export class GameEngine {
       this.physicsWorld.rapier
     );
 
+    this.physicsWorld.onBeforeStep = () => {
+      this.ballController.capturePreviousTransform();
+    };
+
     this.cameraController = new CameraController(
       this.renderPipeline.camera,
       this.renderPipeline.renderer.domElement
@@ -224,8 +228,8 @@ export class GameEngine {
       this.boosterCooldownTimer = Math.max(0, this.boosterCooldownTimer - deltaTime);
     }
 
-    // Update ball physics, ready indicator pulse & visual transform
-    this.ballController.update();
+    // Update ball physics, ready indicator pulse & interpolated visual transform
+    this.ballController.update(this.physicsWorld.getInterpolationAlpha());
     this.ballController.updateReadyIndicator(
       deltaTime,
       this.slingshotInput?.isDraggingActive?.() ?? false

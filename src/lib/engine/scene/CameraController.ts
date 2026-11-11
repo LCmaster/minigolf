@@ -227,8 +227,8 @@ export class CameraController {
 
     const desiredPos = this.calculateDesiredPosition(desiredLook);
 
-    // Exponential follow damping (smoothing factor = 6.0)
-    const decay = 1.0 - Math.exp(-6.0 * Math.min(deltaTime, 0.1));
+    // Exponential follow damping (smoothing factor = 10.5 for crisp shot tracking)
+    const decay = 1.0 - Math.exp(-10.5 * Math.min(deltaTime, 0.1));
     this.currentLookTarget.lerp(desiredLook, decay);
     this.currentCameraPos.lerp(desiredPos, decay);
 

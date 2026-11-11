@@ -11,20 +11,31 @@ export class PhysicsWorld {
   public eventQueue!: RAPIER.EventQueue;
 
   private isReady: boolean = false;
-  private fixedDelta: number = 1 / 60;
+  private fixedDelta: number = 1 / 120;
   private accumulator: number = 0;
+
+  public onBeforeStep?: () => void;
 
   public async init(): Promise<void> {
     await RAPIER.init();
 
     const gravity = new RAPIER.Vector3(0.0, -9.81, 0.0);
     this.world = new RAPIER.World(gravity);
-    this.eventQueue = new RAPIER.EventQueue(true);
+    this.world.timestep = this.fixedDelta;
+    this.eventQueue = new RAPIER.EventQueue(false);
     this.isReady = true;
   }
 
   public get ready(): boolean {
     return this.isReady;
+  }
+
+  public getFixedDelta(): number {
+    return this.fixedDelta;
+  }
+
+  public getInterpolationAlpha(): number {
+    return Math.max(0, Math.min(1, this.accumulator / this.fixedDelta));
   }
 
   /**
@@ -38,6 +49,7 @@ export class PhysicsWorld {
     this.accumulator += clampedDelta;
 
     while (this.accumulator >= this.fixedDelta) {
+      this.onBeforeStep?.();
       this.world.step(this.eventQueue);
       this.accumulator -= this.fixedDelta;
     }

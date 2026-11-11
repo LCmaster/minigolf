@@ -92,5 +92,39 @@ describe("SlingshotInput Unit Tests", () => {
 
     input.dispose();
   });
+
+  it("applies calibrated power^1.35 curve capped at 0.10 impulse", () => {
+    camera.position.set(0, 5, 5);
+    camera.lookAt(0, 0.2, 0);
+    camera.updateMatrixWorld();
+
+    const input = new SlingshotInput(canvasMock, camera, scene, ballMock);
+    const pointerdown = canvasMock.addEventListener.mock.calls.find(
+      (c: any[]) => c[0] === "pointerdown"
+    )[1];
+
+    // Initiate drag on the ball centered at (400, 300), then pull strongly downward in screen space
+    pointerdown({ button: 0, clientX: 400, clientY: 300 });
+    (input as any).handlePointerMove({ clientX: 400, clientY: 590 });
+    (input as any).handlePointerUp();
+
+    expect(ballMock.shoot).toHaveBeenCalledTimes(1);
+    const maxImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
+    expect(maxImpulse.length()).toBeGreaterThan(0.01);
+    expect(maxImpulse.length()).toBeLessThanOrEqual(0.10 + 1e-6);
+    expect(maxImpulse.z).toBeLessThan(0);
+
+    // Subtle pullback (~0.5 power) produces non-linear curved impulse strictly below linear 0.5 * 0.10
+    ballMock.shoot.mockClear();
+    pointerdown({ button: 0, clientX: 400, clientY: 300 });
+    (input as any).handlePointerMove({ clientX: 400, clientY: 375 });
+    (input as any).handlePointerUp();
+
+    expect(ballMock.shoot).toHaveBeenCalledTimes(1);
+    const gentleImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
+    expect(gentleImpulse.length()).toBeLessThan(maxImpulse.length());
+
+    input.dispose();
+  });
 });
 

@@ -43,6 +43,9 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
   - The goal flag pole (`center.y = 0`), bottom target ring, solid `cupBottomCollider`, and `goalSensorCollider` all anchor at the true bottom of the cup (`cupRimY - 0.30m`).
   - Sinking triggers `BallController.sinkAt()`, immediately zeroing linear/angular velocity and locking the ball at `[goalX, cupFloorY + radius, goalZ]` so it never falls through the green or terrain beneath; **Putt Again** (`GameEngine.resetBallToTee()`) restores dynamic physics at the tee.
   - When the ball comes to a full stop (`state === "aiming"` after `stationaryFrames > 25`), `BallController.ghostSphereMesh` renders a `0.25m` translucent pulsing ghost sphere around the ball (`±10%` scale) that hides while dragging, moving, sunk, or in Editor mode, and responds to `SlingshotInput` hover/grab.
+- **120Hz Interpolated Simulation & Shot Calibration (`PhysicsWorld.ts`, `BallController.ts`, `SlingshotInput.ts`, `CameraController.ts`)**:
+  - `PhysicsWorld` steps Rapier at `120Hz` (`fixedDelta = 1 / 120`, `EventQueue(false)` so multi-substep collision events are never dropped), captures `prevPosition` / `prevQuaternion` via `onBeforeStep`, and interpolates `BallController.update(alpha)` (`lerp`/`slerp` when `state === "moving"`) using the accumulator remainder to eliminate post-shot substep-count jitter.
+  - `SlingshotInput` calibrates launch impulses against the `~5g` ball (`maxImpulseForce = 0.10` with a `Math.pow(power, 1.35)` response curve and `0.03` jitter only above `0.85` power), paired with tightened third-person `CameraController` follow damping (`10.5`).
 
 ---
 
