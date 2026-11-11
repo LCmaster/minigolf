@@ -25,7 +25,7 @@ All modular pieces live in `static/models/kit/` and are indexed in `static/model
 
 ## 2. Dual-Mode Materials & Stylized Shaders
 
-- `AssetLoader.ts` keeps the shared PBR trim-sheet material for `country_club` pieces (`countryClub9Hole.ts`).
+- `AssetLoader.ts` keeps the shared PBR trim-sheet material for base `country_club` modular kit pieces.
 - Pieces with `"preserveMaterials": true` keep their glTF PBR material colors.
 - `StylizedMaterials.ts` swaps two Blender procedural-node material names dynamically at load time:
   - `*FairwayTurf*` → `createCarnivalTurfMaterial()` (crisp two-tone emerald/lime striped canvas texture aligned to track UVs)
@@ -54,4 +54,5 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
   - `autoDecorateHole()` (also triggered manually via **🌲 Decorate** in `/editor`) adds `terrain_hill_knoll_6x6` under elevated tiles, `prop_carnival_arch_6m` over the tee, and scatters trees, boulders, toadstools, grass tufts, and wildflowers outside a `6.2m` track clearance radius without removing existing user props.
 - **Save & Play (`CourseStorage.ts` → `/play`)**:
   - Clicking **💾 Save** stores the hole locally (`localStorage`) and surfaces a **🎮 Play Saved** link (`/play?course=<id>`).
-  - `/play` (`src/routes/play/+page.svelte`) includes a course selector dropdown with **Classic Country Club Championship**, **Carnival Park Showcase**, and all user-saved custom courses.
+  - `/play` (`src/routes/play/+page.svelte`) includes a course selector dropdown with **Carnival Park Showcase** and all user-saved custom courses.
+

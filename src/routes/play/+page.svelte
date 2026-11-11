@@ -1,16 +1,15 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { GameEngine } from "$lib/engine/GameEngine";
-  import { countryClub9Hole } from "$lib/courses/countryClub9Hole";
   import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
   import { loadCustomCourses } from "$lib/engine/course/CourseStorage";
 
   let canvas;
   let engine;
 
-  let availableCourses = [countryClub9Hole, carnivalParkCourse];
-  let activeCourse = countryClub9Hole;
-  let selectedCourseId = countryClub9Hole.id;
+  let availableCourses = [carnivalParkCourse];
+  let activeCourse = carnivalParkCourse;
+  let selectedCourseId = carnivalParkCourse.id;
 
   let currentHoleIndex = 0;
   let currentHole = activeCourse.holes[0];
@@ -29,7 +28,7 @@
 
     const custom = loadCustomCourses();
     if (custom.length > 0) {
-      availableCourses = [countryClub9Hole, carnivalParkCourse, ...custom];
+      availableCourses = [carnivalParkCourse, ...custom];
     }
 
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
