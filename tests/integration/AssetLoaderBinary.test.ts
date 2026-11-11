@@ -206,4 +206,24 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
       expect(names.has("LOC_Socket_Out")).toBe(true);
     }
   });
+
+  it("ensures non-booster Carnival ramps and turns contain no decorative chevron meshes", async () => {
+    for (const file of [
+      "carnival_ramp_up_15deg_6x6.glb",
+      "carnival_ramp_down_15deg_6x6.glb",
+      "carnival_turn_15deg_rounded.glb",
+      "carnival_turn_30deg_rounded.glb",
+      "carnival_turn_45deg_rounded.glb",
+      "carnival_turn_60deg_rounded.glb",
+      "carnival_turn_75deg_rounded.glb",
+      "carnival_turn_90deg_rounded.glb",
+    ]) {
+      const scene = await parseGlbFromDisk(`models/kit/${file}`);
+      const names: string[] = [];
+      scene.traverse((c) => {
+        if (c.name) names.push(c.name);
+      });
+      expect(names.some((n) => /chevron/i.test(n))).toBe(false);
+    }
+  });
 });
