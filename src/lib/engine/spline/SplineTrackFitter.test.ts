@@ -171,4 +171,43 @@ describe("DiscreteKitFitter Beam Search Solver", () => {
     expect(bevelRes.tiles.some((t) => t.kitPieceId.endsWith("_rounded"))).toBe(true);
     assertWatertightChain(bevelRes.tiles);
   });
+
+  it("keeps authored path points untouched and builds greatest valid prefix while flagging invalid nodes", () => {
+    const existing: PlacedTile[] = [
+      { instanceId: "tee", kitPieceId: "carnival_tee_6x6", position: [0, 0, 0], rotationY: 0, walls: { left: true, right: true } },
+      { instanceId: "cup", kitPieceId: "carnival_green_cup_6x6", walls: { left: true, right: true } },
+    ];
+
+    // 1. Track follows authored endpoint [0, 0, -16] without overwriting user waypoint coordinate
+    const customLen: SplinePathData = {
+      nodes: [
+        { id: "n0", position: [0, 0, 0], handleOffset: [0, -3], elevationStep: 0 },
+        { id: "n1", position: [0, 0, -16], handleOffset: [0, -3], elevationStep: 0 },
+      ],
+    };
+    const fitCustom = fitTilesToSpline(customLen, existing, "carnival_park", mockLoader);
+    expect(fitCustom.invalidNodeIndices).toEqual([]);
+    expect(fitCustom.lastValidNodeIndex).toBe(1);
+    expect(fitCustom.snappedNodes[1].position).toEqual([0, 0, -16]);
+    assertWatertightChain(fitCustom.tiles);
+
+    // 2. Impossible +3.0m climb over 3m after Mid marks trailing node(s) invalid and builds track up to valid prefix
+    const partialPath: SplinePathData = {
+      nodes: [
+        { id: "n0", position: [0, 0, 0], handleOffset: [0, -3], elevationStep: 0 },
+        { id: "n1", position: [0, 0, -18], handleOffset: [0, -3], elevationStep: 0 },
+        { id: "n2", position: [0, 3.0, -21], handleOffset: [0, -3], elevationStep: 2 },
+        { id: "n3", position: [0, 3.0, -33], handleOffset: [0, -3], elevationStep: 2 },
+      ],
+    };
+    const partialFit = fitTilesToSpline(partialPath, existing, "carnival_park", mockLoader);
+    expect(partialFit.lastValidNodeIndex).toBe(1);
+    expect(partialFit.invalidNodeIndices).toEqual([2, 3]);
+    // Authored path points remain exact where placed
+    expect(partialFit.snappedNodes[2].position).toEqual([0, 3.0, -21]);
+    expect(partialFit.snappedNodes[3].position).toEqual([0, 3.0, -33]);
+    // Valid playable track (Tee -> Straights -> Cup) built up to last valid prefix
+    expect(partialFit.tiles[partialFit.tiles.length - 1].kitPieceId).toBe("carnival_green_cup_6x6");
+    assertWatertightChain(partialFit.tiles);
+  });
 });

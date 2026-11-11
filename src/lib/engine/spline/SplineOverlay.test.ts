@@ -63,6 +63,15 @@ describe("SplineOverlay Inside-Bisector Bevel Handles & Endpoint Rules", () => {
     overlay.setVisible(false);
     expect(overlay.gridGroup.visible).toBe(false);
 
+    // Invalid path points render red node sphere and SplineOverlay_InvalidCurve segment
+    overlay.setVisible(true);
+    overlay.renderOverlay(nodes, 0, false, 1, [2]);
+    const invalidNodeMat = overlay.nodeMeshes[2].material as THREE.MeshBasicMaterial;
+    expect(invalidNodeMat.color.getHex()).toBe(0xef4444);
+    const invalidCurve = overlay.overlayGroup.getObjectByName("SplineOverlay_InvalidCurve") as THREE.Line;
+    expect(invalidCurve).toBeDefined();
+    expect((invalidCurve.material as THREE.LineBasicMaterial).color.getHex()).toBe(0xef4444);
+
     overlay.dispose();
   });
 });

@@ -512,6 +512,12 @@
           </span>
         </div>
 
+        {#if selectedSplineNode.invalidCount > 0}
+          <div class="px-2.5 py-1.5 rounded-xl bg-red-500/20 border border-red-400/50 text-[10px] font-bold text-red-200 leading-snug">
+            ⚠️ {selectedSplineNode.isInvalid ? 'This point is highlighted Red: ' : 'Red path points: '}unreachable with kit tiles. Track built up to last valid point.
+          </div>
+        {/if}
+
         <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
           <button
             on:click={() => editorController?.stepSelectedNodeElevation(-1)}

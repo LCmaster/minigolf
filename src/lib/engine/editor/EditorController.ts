@@ -54,6 +54,8 @@ export interface SelectedSplineNodeInfo {
   corner: boolean;
   isRoot: boolean;
   canDelete: boolean;
+  isInvalid: boolean;
+  invalidCount: number;
 }
 
 export type EditorToolMode = "select" | "place_prop" | "erase" | "track_path";
@@ -101,6 +103,7 @@ export class EditorController {
   private activeSpline: SplinePathData | null = null;
   private selectedSplineNodeIndex: number = 0;
   private gridSnapSize: GridSnapSize = 1;
+  private invalidSplineNodes: number[] = [];
   private draggingSpline: {
     kind: "node" | "handle";
     nodeIndex: number;
@@ -233,6 +236,8 @@ export class EditorController {
       corner: bevelRadius <= 0.15,
       isRoot: idx === 0,
       canDelete: idx > 0 && nodes.length > 2,
+      isInvalid: this.invalidSplineNodes.includes(idx),
+      invalidCount: this.invalidSplineNodes.length,
     };
   }
 
@@ -455,6 +460,10 @@ export class EditorController {
         : deriveSplineFromTiles(tiles, this.assetLoader);
     this.courseManager.setSplinePath?.(synced);
     this.activeSpline = synced;
+    this.invalidSplineNodes =
+      synced.nodes.length >= 2 && typeof this.assetLoader?.getPiece === "function"
+        ? fitTilesToSpline(synced, tiles, this.activeTheme, this.assetLoader).invalidNodeIndices
+        : [];
     if (synced.nodes.length > 0) {
       this.selectedSplineNodeIndex = Math.max(
         0,
@@ -473,7 +482,8 @@ export class EditorController {
       this.activeSpline.nodes,
       this.selectedSplineNodeIndex,
       isDragging,
-      this.gridSnapSize
+      this.gridSnapSize,
+      this.invalidSplineNodes
     );
     this.emitSplineSelection();
   }
@@ -521,12 +531,15 @@ export class EditorController {
         ? Math.max(0, Math.min(nextSelectedIdx, nextSpline.nodes.length - 1))
         : Math.max(0, Math.min(this.selectedSplineNodeIndex, nextSpline.nodes.length - 1));
     const prevSelect = this.selectedSplineNodeIndex;
+    const prevInvalid = this.invalidSplineNodes;
+    const nextInvalid = fit.invalidNodeIndices;
 
     const cmd: EditorCommand = {
       name: commandName,
       execute: () => {
         this.courseManager.loadHole(newHole);
         this.activeSpline = cloneSplinePath(nextSpline);
+        this.invalidSplineNodes = [...nextInvalid];
         this.selectedSplineNodeIndex = targetSelect;
         this.refreshOpenSockets();
         this.refreshSplineOverlay();
@@ -536,6 +549,7 @@ export class EditorController {
         this.activeSpline = oldHole.splinePath
           ? cloneSplinePath(oldHole.splinePath)
           : deriveSplineFromTiles(oldHole.tiles, this.assetLoader);
+        this.invalidSplineNodes = [...prevInvalid];
         this.selectedSplineNodeIndex = Math.max(
           0,
           Math.min(prevSelect, this.activeSpline.nodes.length - 1)
@@ -974,13 +988,14 @@ export class EditorController {
           }
           this.draggingSpline.moved = true;
           this.activeSpline = this.draggingSpline.workingSpline;
-          this.refreshSplineOverlay(true);
           const preview = fitTilesToSpline(
             this.draggingSpline.workingSpline,
             this.draggingSpline.initialHole.tiles,
             this.activeTheme,
             this.assetLoader
           );
+          this.invalidSplineNodes = preview.invalidNodeIndices;
+          this.refreshSplineOverlay(true);
           this.splineOverlay.renderGhostSegments(preview.ghostSegments, this.assetLoader);
           this.canvas.style.cursor = "grabbing";
         }

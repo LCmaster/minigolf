@@ -95,7 +95,8 @@ export class SplineOverlay {
     nodes: SplineWaypoint[],
     selectedIndex: number,
     isDragging: boolean = false,
-    gridSize: GridSnapSize = 1
+    gridSize: GridSnapSize = 1,
+    invalidNodeIndices: number[] = []
   ): void {
     while (this.overlayGroup.children.length > 0) {
       this.overlayGroup.remove(this.overlayGroup.children[0]);
@@ -110,30 +111,61 @@ export class SplineOverlay {
 
     if (nodes.length === 0) return;
 
-    // 1. Curve Path Line
+    const invalidSet = new Set(invalidNodeIndices);
+    const minInvalid =
+      invalidNodeIndices.length > 0 ? Math.min(...invalidNodeIndices) : Infinity;
+
+    // 1. Curve / Polyline Path Line (splits valid cyan/amber prefix from invalid red segments)
     const samples = sampleSplineChain(nodes, 20);
     if (samples.length >= 2) {
-      const pts = samples.map(
-        (s) => new THREE.Vector3(s.position.x, s.position.y + OVERLAY_Y_OFFSET, s.position.z)
-      );
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: isDragging ? 0xfbbf24 : 0x38bdf8,
-        transparent: true,
-        opacity: 0.95,
-      });
-      const curveLine = new THREE.Line(lineGeo, lineMat);
-      curveLine.name = "SplineOverlay_Curve";
-      this.overlayGroup.add(curveLine);
+      const validPts: THREE.Vector3[] = [];
+      const invalidPts: THREE.Vector3[] = [];
+
+      for (const s of samples) {
+        const pt = new THREE.Vector3(s.position.x, s.position.y + OVERLAY_Y_OFFSET, s.position.z);
+        if (s.spanIndex >= minInvalid - 1) {
+          if (invalidPts.length === 0 && validPts.length > 0) {
+            invalidPts.push(validPts[validPts.length - 1].clone());
+          }
+          invalidPts.push(pt);
+        } else {
+          validPts.push(pt);
+        }
+      }
+
+      if (validPts.length >= 2) {
+        const validGeo = new THREE.BufferGeometry().setFromPoints(validPts);
+        const validMat = new THREE.LineBasicMaterial({
+          color: isDragging ? 0xfbbf24 : 0x38bdf8,
+          transparent: true,
+          opacity: 0.95,
+        });
+        const curveLine = new THREE.Line(validGeo, validMat);
+        curveLine.name = "SplineOverlay_Curve";
+        this.overlayGroup.add(curveLine);
+      }
+
+      if (invalidPts.length >= 2) {
+        const invalidGeo = new THREE.BufferGeometry().setFromPoints(invalidPts);
+        const invalidMat = new THREE.LineBasicMaterial({
+          color: 0xef4444,
+          transparent: true,
+          opacity: 0.95,
+        });
+        const badLine = new THREE.Line(invalidGeo, invalidMat);
+        badLine.name = "SplineOverlay_InvalidCurve";
+        this.overlayGroup.add(badLine);
+      }
     }
 
-    // 2. Waypoint Spheres & Perpendicular Symmetric Curve Handles (intermediate nodes only; Tee & Cup have no handles)
+    // 2. Waypoint Spheres & Inside-Bisector Bevel Handles (intermediate nodes only; Tee & Cup have no handles)
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       const isRoot = i === 0;
       const isEnd = i === nodes.length - 1;
       const isIntermediate = !isRoot && !isEnd;
       const isSelected = i === selectedIndex;
+      const isInvalid = invalidSet.has(i);
 
       const nodePos = new THREE.Vector3(
         node.position[0],
@@ -142,7 +174,7 @@ export class SplineOverlay {
       );
 
       const sphereGeo = new THREE.SphereGeometry(isSelected ? 0.44 : 0.36, 16, 12);
-      const color = isSelected ? 0xfbbf24 : isRoot ? 0x10b981 : 0x38bdf8;
+      const color = isInvalid ? 0xef4444 : isSelected ? 0xfbbf24 : isRoot ? 0x10b981 : 0x38bdf8;
       const sphereMat = new THREE.MeshBasicMaterial({ color });
       const sphere = new THREE.Mesh(sphereGeo, sphereMat);
       sphere.position.copy(nodePos);

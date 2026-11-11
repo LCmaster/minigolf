@@ -38,7 +38,13 @@ export interface FitSplineResult {
   tiles: PlacedTile[];
   snappedNodes: SplineWaypoint[];
   ghostSegments: GhostSegmentPreview[];
+  invalidNodeIndices: number[];
+  lastValidNodeIndex: number;
 }
+
+const MAX_VALID_POS_ERROR_M = 2.05;
+const MAX_VALID_HEADING_ERROR_DEG = 12.5;
+const MAX_VALID_END_LONGITUDINAL_ERROR_M = 3.15;
 
 interface PinnedHeroSpec {
   kitPieceId: string;
@@ -56,8 +62,14 @@ interface BeamState {
   lastWasRamp: boolean;
   lastTurnSign: number;
   usedHeroIndices: number; // Bitmask for pinned heroes (up to 16)
+  maxStepPosErr: number;
+  maxStepHeadingDeg: number;
   steps: Array<{
     kitPieceId: string;
+    kind: KitCandidatePiece["kind"];
+    posErr: number;
+    headingDeg: number;
+    projS: number;
     instanceId?: string;
     walls?: { left: boolean; right: boolean };
     isGap?: boolean;
@@ -288,52 +300,43 @@ function extractPreservedContext(existingTiles: PlacedTile[], assetLoader: Asset
   };
 }
 
-/**
- * Fits an ordered single-path spline into discrete socket-snapped PlacedTile[]
- * using bounded beam search, preserving existing Tee, Cup, and hero/hazard modules.
- */
-export function fitTilesToSpline(
-  spline: SplinePathData,
-  existingTiles: PlacedTile[],
+function solvePrefixChain(
+  prefixNodes: SplineWaypoint[],
+  fullNodeCount: number,
+  vocab: ReturnType<typeof buildThemeVocabulary>,
+  teeTile: PlacedTile | undefined,
+  cupTile: PlacedTile | undefined,
+  heroes: PinnedHeroSpec[],
+  teePieceId: string,
+  teeTemplate: ParsedKitPiece,
   theme: string,
   assetLoader: AssetLoader
-): FitSplineResult {
-  const nodes = cloneSplineWaypoints(spline.nodes);
-  if (nodes.length === 0) {
-    return { tiles: existingTiles, snappedNodes: nodes, ghostSegments: [] };
-  }
-
-  const vocab = buildThemeVocabulary(theme, assetLoader);
-  const { teeTile, cupTile, heroes } = extractPreservedContext(existingTiles, assetLoader);
-
-  const teePieceId = teeTile?.kitPieceId && assetLoader.getPiece(teeTile.kitPieceId)
-    ? teeTile.kitPieceId
-    : vocab.teeId;
-  const teeTemplate = assetLoader.getPiece(teePieceId);
-  if (!teeTemplate) {
-    return { tiles: existingTiles, snappedNodes: nodes, ghostSegments: [] };
-  }
-
-  const samples = sampleSplineChain(nodes, 28);
+): {
+  tiles: PlacedTile[];
+  ghostSegments: GhostSegmentPreview[];
+  isValid: boolean;
+  realizedEndPos: THREE.Vector3;
+} {
+  const samples = sampleSplineChain(prefixNodes, 28);
   const totalLength = samples[samples.length - 1]?.s ?? 0;
 
   // Aim Tee straight along the first leg [P0 -> P1] so starting fairway stays straight
   const startTan =
-    nodes.length > 1
+    prefixNodes.length > 1
       ? new THREE.Vector2(
-          nodes[1].position[0] - nodes[0].position[0],
-          nodes[1].position[2] - nodes[0].position[2]
+          prefixNodes[1].position[0] - prefixNodes[0].position[0],
+          prefixNodes[1].position[2] - prefixNodes[0].position[2]
         )
-      : new THREE.Vector2(nodes[0].handleOffset[0], nodes[0].handleOffset[1]);
+      : new THREE.Vector2(prefixNodes[0].handleOffset[0], prefixNodes[0].handleOffset[1]);
 
   if (startTan.lengthSq() < 1e-6) startTan.set(0, -1);
   else startTan.normalize();
 
-  const teeElevStep = getElevationStep(nodes[0]);
+  const teeElevStep = getElevationStep(prefixNodes[0]);
   const teePos = new THREE.Vector3(
-    nodes[0].position[0],
+    prefixNodes[0].position[0],
     teeElevStep * ELEVATION_STEP_METERS,
-    nodes[0].position[2]
+    prefixNodes[0].position[2]
   );
   const teeYawRad = Math.atan2(-startTan.x, -startTan.y);
   const teeYawDeg = (teeYawRad * 180) / Math.PI;
@@ -349,12 +352,15 @@ export function fitTilesToSpline(
   const teeProj = projectPointOntoSpline(samples, new THREE.Vector2(teeExitPos.x, teeExitPos.z), 0);
 
   const hasCup = Boolean(cupTile);
-  const endNode = nodes[nodes.length - 1];
+  const endNode = prefixNodes[prefixNodes.length - 1];
   const finalElevStep = getElevationStep(endNode);
   const targetBodyEndS = Math.max(
     teeProj?.s ?? 3.0,
     hasCup ? Math.max(3.0, totalLength - 3.0) : totalLength
   );
+
+  // Only prioritize pinned heroes whose target fraction falls within this prefix
+  const prefixFracLimit = fullNodeCount > 1 ? (prefixNodes.length - 1) / (fullNodeCount - 1) : 1.0;
 
   let beam: BeamState[] = [
     {
@@ -364,6 +370,8 @@ export function fitTilesToSpline(
       lastWasRamp: false,
       lastTurnSign: 0,
       usedHeroIndices: 0,
+      maxStepPosErr: 0,
+      maxStepHeadingDeg: 0,
       steps: [],
     },
   ];
@@ -382,11 +390,13 @@ export function fitTilesToSpline(
         ? assetLoader.getPiece(lastStep.kitPieceId)!
         : teeTemplate;
       const curOutSockId = lastStep ? lastStep.exitSocketId : "LOC_Socket_Out";
-      const curExitPos = lastStep ? lastStep.exitSocketWorld.position : teeExitPos;
       const curTanXZ = lastStep ? lastStep.exitSocketWorld.tangentXZ : startTan;
 
-      // Check completion before expanding further if we are already close to target end
-      if (state.s >= targetBodyEndS - 2.6 && state.elevStep === finalElevStep && (state.steps.length > 0 || !hasCup && totalLength < 4.5)) {
+      if (
+        state.s >= targetBodyEndS - 2.6 &&
+        state.elevStep === finalElevStep &&
+        (state.steps.length > 0 || (!hasCup && totalLength < 4.5))
+      ) {
         finishedStates.push(state);
         if (state.s >= targetBodyEndS - 0.5) continue;
       }
@@ -398,16 +408,16 @@ export function fitTilesToSpline(
       const targetStepHere = lookSample ? lookSample.targetElevationStep : finalElevStep;
       const neededElevDiff = targetStepHere - state.elevStep;
 
-      // Build candidate pool for this step
       const stepCandidates: Array<{ cand: KitCandidatePiece; heroIdx?: number }> = [];
 
-      // Prioritize matching pinned hero if within arc fraction window
       for (let hi = 0; hi < heroes.length; hi++) {
         if (state.usedHeroIndices & (1 << hi)) continue;
         const hero = heroes[hi];
+        if (hero.targetFraction > prefixFracLimit + 0.12) continue;
+        const scaledFrac = prefixFracLimit > 1e-4 ? hero.targetFraction / prefixFracLimit : 0.5;
         const heroFrac = totalLength > 1e-4 ? state.s / totalLength : 0.5;
         if (
-          Math.abs(heroFrac - hero.targetFraction) <= 0.18 &&
+          Math.abs(heroFrac - scaledFrac) <= 0.18 &&
           !state.lastWasRamp &&
           state.s + hero.lengthEstimate <= targetBodyEndS + 3.0
         ) {
@@ -431,10 +441,8 @@ export function fitTilesToSpline(
       }
 
       for (const c of vocab.candidates) {
-        // Don't chain ramps steeply if not needed
         if (c.kind === "ramp_up" && neededElevDiff <= 0) continue;
         if (c.kind === "ramp_down" && neededElevDiff >= 0) continue;
-        // Require straight/ramp exit before turns to keep bridge/ramp physics crisp
         if (state.lastWasRamp && c.kind === "turn") continue;
         stepCandidates.push({ cand: c });
       }
@@ -459,19 +467,19 @@ export function fitTilesToSpline(
         const nextS = Math.max(state.s + 0.5, proj.s);
         const posErrSq =
           (exitPos.x - proj.position.x) ** 2 + (exitPos.z - proj.position.z) ** 2;
+        const posErr = Math.sqrt(posErrSq);
 
-        // Forward alignment vs curve tangent at projected point
         const dotHeading = THREE.MathUtils.clamp(
           tangentXZ.x * proj.tangentXZ.x + tangentXZ.y * proj.tangentXZ.y,
           -1,
           1
         );
+        const headingDeg = (Math.acos(dotHeading) * 180) / Math.PI;
         const headingCost = (1 - dotHeading) * 6.0;
 
         const nextElevStep = state.elevStep + cand.elevDeltaStep;
         const elevCost = Math.abs(nextElevStep - proj.targetElevationStep) * 14.0;
 
-        // Slight penalty for flipping turn sign immediately or overly sharp turns on straight curve
         const flipPenalty =
           state.lastTurnSign !== 0 &&
           cand.turnSign !== 0 &&
@@ -479,7 +487,11 @@ export function fitTilesToSpline(
             ? 0.45
             : 0;
         const straightDot = curTanXZ.x * proj.tangentXZ.x + curTanXZ.y * proj.tangentXZ.y;
-        const turnOverhead = cand.kind === "turn" && straightDot > 0.985 ? 0.35 : 0;
+        const aheadTanDot = lookSample
+          ? curTanXZ.x * lookSample.tangentXZ.x + curTanXZ.y * lookSample.tangentXZ.y
+          : straightDot;
+        const turnOverhead =
+          cand.kind === "turn" && straightDot > 0.98 && aheadTanDot > 0.98 ? 6.0 : 0;
         const heroBonus = heroIdx !== undefined ? -4.5 : 0;
 
         const stepScore =
@@ -513,10 +525,16 @@ export function fitTilesToSpline(
           lastTurnSign: cand.turnSign !== 0 ? cand.turnSign : state.lastTurnSign,
           usedHeroIndices:
             heroIdx !== undefined ? state.usedHeroIndices | (1 << heroIdx) : state.usedHeroIndices,
+          maxStepPosErr: Math.max(state.maxStepPosErr, posErr),
+          maxStepHeadingDeg: Math.max(state.maxStepHeadingDeg, headingDeg),
           steps: [
             ...state.steps,
             {
               kitPieceId,
+              kind: cand.kind,
+              posErr,
+              headingDeg,
+              projS: nextS,
               instanceId: heroIdx !== undefined ? heroes[heroIdx].instanceId : undefined,
               walls: heroIdx !== undefined ? heroes[heroIdx].walls : undefined,
               isGap: heroIdx !== undefined ? heroes[heroIdx].isGap : undefined,
@@ -545,7 +563,6 @@ export function fitTilesToSpline(
     beam = nextBeam.slice(0, BEAM_WIDTH);
   }
 
-  // Pick best finished state (or best remaining active state), rewarding endpoint accuracy
   const pool = finishedStates.length > 0 ? finishedStates : beam;
   const endRefSample =
     getSampleAtArcLength(samples, targetBodyEndS) || samples[samples.length - 1];
@@ -557,6 +574,8 @@ export function fitTilesToSpline(
     lastWasRamp: false,
     lastTurnSign: 0,
     usedHeroIndices: 0,
+    maxStepPosErr: 0,
+    maxStepHeadingDeg: 0,
     steps: [],
   };
 
@@ -573,20 +592,20 @@ export function fitTilesToSpline(
       ? (1 - (exTan.x * endRefSample.tangentXZ.x + exTan.y * endRefSample.tangentXZ.y)) * 5.0
       : 0;
     const elevPenalty = Math.abs(st.elevStep - finalElevStep) * 25.0;
-    // Penalize missed heroes
     let missedHeroes = 0;
     for (let hi = 0; hi < heroes.length; hi++) {
-      if ((st.usedHeroIndices & (1 << hi)) === 0) missedHeroes += 8.0;
+      if (heroes[hi].targetFraction <= prefixFracLimit + 0.12 && (st.usedHeroIndices & (1 << hi)) === 0) {
+        missedHeroes += 8.0;
+      }
     }
 
-    const totalCost = st.score + endDistSq * 1.8 + endHeading + elevPenalty + missedHeroes;
+    const totalCost = st.score + endDistSq * 0.65 + endHeading + elevPenalty + missedHeroes;
     if (totalCost < bestFinalCost) {
       bestFinalCost = totalCost;
       bestState = st;
     }
   }
 
-  // Materialize PlacedTile[] chain
   const idSeed = Date.now() % 1000000;
   const teeId = teeTile?.instanceId || `tile_tee_${idSeed}`;
   const fittedTiles: PlacedTile[] = [
@@ -647,7 +666,6 @@ export function fitTilesToSpline(
     lastTemplate = assetLoader.getPiece(step.kitPieceId)!;
   }
 
-  // Re-attach preserved Cup at the terminal socket
   let realizedEndPos = teeExitPos.clone();
   let realizedEndTan = startTan.clone();
   if (bestState.steps.length > 0) {
@@ -699,22 +717,211 @@ export function fitTilesToSpline(
     }
   }
 
-  // Snap final realized endpoint back onto `snappedNodes[last]` (Pure Discrete Fitting guarantee)
-  const snappedNodes = cloneSplineWaypoints(nodes);
-  snappedNodes[0].position = [teePos.x, teePos.y, teePos.z];
-  snappedNodes[0].elevationStep = teeElevStep;
-  snappedNodes[0].realizedTileId = fittedTiles[0].instanceId;
+  // Identify arc-lengths of intermediate sharp/bevel corners so corner-pivot steps allow natural turning sweep
+  const cornerArcLocations: number[] = [];
+  for (let si = 0; si < samples.length; si++) {
+    if (samples[si].isSharpCorner || samples[si].isBevelArc) {
+      cornerArcLocations.push(samples[si].s);
+    }
+  }
+  const isNearCorner = (sVal: number): boolean =>
+    cornerArcLocations.some((cs) => Math.abs(cs - sVal) <= 3.6);
 
-  if (snappedNodes.length > 1) {
-    const tail = snappedNodes[snappedNodes.length - 1];
-    const endStep = Math.round(realizedEndPos.y / ELEVATION_STEP_METERS);
-    tail.position = [realizedEndPos.x, endStep * ELEVATION_STEP_METERS, realizedEndPos.z];
-    tail.elevationStep = endStep;
-    const hLen = Math.hypot(tail.handleOffset[0], tail.handleOffset[1]) || DEFAULT_HANDLE_LEN;
-    tail.handleOffset = [realizedEndTan.x * hLen, realizedEndTan.y * hLen];
-    tail.realizedTileId = fittedTiles[fittedTiles.length - 1].instanceId;
+  // Evaluate feasibility: exact elevation, physical ramp-run room, tracking within tolerance, and endpoint reach
+  let isValid = bestState.elevStep === finalElevStep;
+  if (isValid) {
+    for (let span = 0; span < prefixNodes.length - 1; span++) {
+      const stepDiff = Math.abs(
+        getElevationStep(prefixNodes[span + 1]) - getElevationStep(prefixNodes[span])
+      );
+      const segHorizLen = Math.hypot(
+        prefixNodes[span + 1].position[0] - prefixNodes[span].position[0],
+        prefixNodes[span + 1].position[2] - prefixNodes[span].position[2]
+      );
+      if (stepDiff > 0 && segHorizLen + 1.5 < stepDiff * 6.0) {
+        isValid = false;
+        break;
+      }
+    }
+  }
+  if (isValid) {
+    for (let si = 0; si < bestState.steps.length; si++) {
+      const st = bestState.steps[si];
+      const nearCorner = st.kind === "turn" || isNearCorner(st.projS);
+      if (st.posErr > (nearCorner ? 2.45 : MAX_VALID_POS_ERROR_M)) {
+        isValid = false;
+        break;
+      }
+      if (!nearCorner && st.headingDeg > MAX_VALID_HEADING_ERROR_DEG) {
+        isValid = false;
+        break;
+      }
+    }
   }
 
-  return { tiles: fittedTiles, snappedNodes, ghostSegments };
+  if (isValid && prefixNodes.length >= 2) {
+    const prevNode = prefixNodes[prefixNodes.length - 2];
+    const legDir = new THREE.Vector2(
+      endNode.position[0] - prevNode.position[0],
+      endNode.position[2] - prevNode.position[2]
+    );
+    if (legDir.lengthSq() > 1e-6) {
+      legDir.normalize();
+      const dx = realizedEndPos.x - endNode.position[0];
+      const dz = realizedEndPos.z - endNode.position[2];
+      const perpErr = Math.abs(dx * -legDir.y + dz * legDir.x);
+      const longErr = Math.abs(dx * legDir.x + dz * legDir.y);
+      const endDot = THREE.MathUtils.clamp(realizedEndTan.dot(legDir), -1, 1);
+      const endHeadingDeg = (Math.acos(endDot) * 180) / Math.PI;
+      if (
+        perpErr > MAX_VALID_POS_ERROR_M ||
+        longErr > MAX_VALID_END_LONGITUDINAL_ERROR_M ||
+        endHeadingDeg > MAX_VALID_HEADING_ERROR_DEG
+      ) {
+        isValid = false;
+      }
+    }
+  }
+
+  return { tiles: fittedTiles, ghostSegments, isValid, realizedEndPos };
+}
+
+/**
+ * Fits an ordered single-path polyline+bevel path into discrete socket-snapped PlacedTile[].
+ * Keeps the user's waypoint coordinates untouched (Path is authoritative) and returns any
+ * trailing invalid node indices when the full path cannot be validly realized by kit tiles.
+ */
+export function fitTilesToSpline(
+  spline: SplinePathData,
+  existingTiles: PlacedTile[],
+  theme: string,
+  assetLoader: AssetLoader
+): FitSplineResult {
+  const nodes = cloneSplineWaypoints(spline.nodes);
+  if (nodes.length === 0) {
+    return {
+      tiles: existingTiles,
+      snappedNodes: nodes,
+      ghostSegments: [],
+      invalidNodeIndices: [],
+      lastValidNodeIndex: 0,
+    };
+  }
+
+  const vocab = buildThemeVocabulary(theme, assetLoader);
+  const { teeTile, cupTile, heroes } = extractPreservedContext(existingTiles, assetLoader);
+
+  const teePieceId =
+    teeTile?.kitPieceId && assetLoader.getPiece(teeTile.kitPieceId)
+      ? teeTile.kitPieceId
+      : vocab.teeId;
+  const teeTemplate = assetLoader.getPiece(teePieceId);
+  if (!teeTemplate) {
+    return {
+      tiles: existingTiles,
+      snappedNodes: nodes,
+      ghostSegments: [],
+      invalidNodeIndices: [],
+      lastValidNodeIndex: nodes.length - 1,
+    };
+  }
+
+  if (nodes.length === 1) {
+    const single = solvePrefixChain(
+      nodes,
+      1,
+      vocab,
+      teeTile,
+      cupTile,
+      heroes,
+      teePieceId,
+      teeTemplate,
+      theme,
+      assetLoader
+    );
+    const preserved = cloneSplineWaypoints(nodes);
+    preserved[0].realizedTileId = single.tiles[0]?.instanceId;
+    return {
+      tiles: single.tiles,
+      snappedNodes: preserved,
+      ghostSegments: single.ghostSegments,
+      invalidNodeIndices: [],
+      lastValidNodeIndex: 0,
+    };
+  }
+
+  let bestFit = solvePrefixChain(
+    nodes,
+    nodes.length,
+    vocab,
+    teeTile,
+    cupTile,
+    heroes,
+    teePieceId,
+    teeTemplate,
+    theme,
+    assetLoader
+  );
+  let lastValidNodeIndex = bestFit.isValid ? nodes.length - 1 : -1;
+
+  if (!bestFit.isValid) {
+    for (let prefixLen = nodes.length - 1; prefixLen >= 2; prefixLen--) {
+      const candidate = solvePrefixChain(
+        nodes.slice(0, prefixLen),
+        nodes.length,
+        vocab,
+        teeTile,
+        cupTile,
+        heroes,
+        teePieceId,
+        teeTemplate,
+        theme,
+        assetLoader
+      );
+      if (candidate.isValid) {
+        bestFit = candidate;
+        lastValidNodeIndex = prefixLen - 1;
+        break;
+      }
+    }
+  }
+
+  if (lastValidNodeIndex < 0) {
+    // Only Tee (+ immediately attached Cup) is valid
+    bestFit = solvePrefixChain(
+      nodes.slice(0, 1),
+      nodes.length,
+      vocab,
+      teeTile,
+      cupTile,
+      heroes,
+      teePieceId,
+      teeTemplate,
+      theme,
+      assetLoader
+    );
+    lastValidNodeIndex = 0;
+  }
+
+  const invalidNodeIndices: number[] = [];
+  for (let i = lastValidNodeIndex + 1; i < nodes.length; i++) {
+    invalidNodeIndices.push(i);
+  }
+
+  // Strictly preserve user-authored waypoint coordinates (Track follows Path)
+  const preservedNodes = cloneSplineWaypoints(nodes);
+  preservedNodes[0].realizedTileId = bestFit.tiles[0]?.instanceId;
+  if (lastValidNodeIndex > 0) {
+    preservedNodes[lastValidNodeIndex].realizedTileId =
+      bestFit.tiles[bestFit.tiles.length - 1]?.instanceId;
+  }
+
+  return {
+    tiles: bestFit.tiles,
+    snappedNodes: preservedNodes,
+    ghostSegments: bestFit.ghostSegments,
+    invalidNodeIndices,
+    lastValidNodeIndex,
+  };
 }
 
