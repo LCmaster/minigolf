@@ -25,6 +25,8 @@
   let showBoundary = true;
   let savedCourseId = null;
   let saveFeedback = "";
+  let isEraseMode = false;
+  let selectedPlacedPropId = null;
 
   // Active socket radial menu state
   let activeSocketMenu = null; // { x, y, socketInfo }
@@ -61,6 +63,16 @@
     engine.courseManager.loadHole(initialHole);
     showBoundary = initialHole.showBoundary ?? true;
     editorController.refreshOpenSockets();
+
+    // Start in true free-roam Editor Mode (no ball, free camera)
+    engine.setEditorMode(true);
+    engine.frameCameraOnCourse();
+
+    editorController.onToolStateChanged = (st) => {
+      isEraseMode = st.eraseMode;
+      selectedPlacedPropId = st.selectedPlacedPropId;
+      if (st.eraseMode) selectedPropId = null;
+    };
 
     // Editor event hooks
     editorController.onSocketClick = (socketInfo, screenX, screenY) => {
@@ -101,6 +113,7 @@
     showBoundary = holeData.showBoundary ?? true;
     editorController.refreshOpenSockets();
     editorController.history.clear();
+    engine.frameCameraOnCourse();
   }
 
   function handleLoadSunnyCreek() {
@@ -111,6 +124,7 @@
     showBoundary = hole.showBoundary ?? true;
     editorController.refreshOpenSockets();
     editorController.history.clear();
+    engine.frameCameraOnCourse();
   }
 
   function handleLoadBigTop() {
@@ -121,6 +135,40 @@
     showBoundary = hole.showBoundary ?? true;
     editorController.refreshOpenSockets();
     editorController.history.clear();
+    engine.frameCameraOnCourse();
+  }
+
+  function handleClearToTee() {
+    if (!engine || !editorController) return;
+    const teePiece = activeTheme === "carnival_park" ? "carnival_tee_6x6" : "tee_box_6x6";
+    const teeId = `tile_tee_${Date.now()}`;
+    engine.courseManager.loadHole({
+      holeNumber: 1,
+      par: 2,
+      teeTileId: teeId,
+      cupTileId: "",
+      showBoundary,
+      tiles: [
+        {
+          instanceId: teeId,
+          kitPieceId: teePiece,
+          position: [0, 0, 0],
+          rotationY: 0,
+          walls: { left: true, right: true },
+          connectedSockets: {},
+        },
+      ],
+      props: [],
+    });
+    editorController.refreshOpenSockets();
+    editorController.history.clear();
+    engine.frameCameraOnCourse();
+  }
+
+  function toggleEraseMode() {
+    if (!editorController) return;
+    if (!isEraseMode) selectedPropId = null;
+    editorController.setEraseMode(!isEraseMode);
   }
 
   function handleAutoDecorate() {
@@ -149,14 +197,15 @@
   function togglePlaytestMode() {
     isPlaytestMode = !isPlaytestMode;
     if (isPlaytestMode) {
-      // Enter playtest: hide socket gizmos, spawn ball at tee
+      // Enter playtest: spawn ball at tee, enable slingshot & ball-follow camera
+      editorController.setEraseMode(false);
       editorController.setGizmosVisible(false);
-      engine.ballController.createPhysicsBody(engine.courseManager.spawnPosition);
-      engine.cameraController.setTarget(engine.courseManager.spawnPosition);
+      engine.setEditorMode(false);
       strokes = 0;
       isCupSunk = false;
     } else {
-      // Return to editor: show gizmos, refresh open sockets
+      // Return to editor: remove ball, restore free-roam camera & socket gizmos
+      engine.setEditorMode(true);
       editorController.setGizmosVisible(true);
       editorController.refreshOpenSockets();
     }
@@ -279,6 +328,30 @@
           🪵 Fence
         </button>
 
+        <button
+          on:click={() => engine?.frameCameraOnCourse()}
+          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-300 text-xs font-bold font-mono transition-colors"
+          title="Center camera on course (F)"
+        >
+          🎯 Frame
+        </button>
+
+        <button
+          on:click={toggleEraseMode}
+          class="px-2.5 py-2 rounded-xl border text-xs font-bold font-mono transition-all {isEraseMode ? 'bg-red-500/30 border-red-400 text-red-200 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10 text-gray-300'}"
+          title="Erase props or non-root track tiles (X)"
+        >
+          🧹 Erase
+        </button>
+
+        <button
+          on:click={handleClearToTee}
+          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-200 text-xs font-bold font-mono transition-colors"
+          title="Reset workspace to single tee tile"
+        >
+          🗑️ Clear
+        </button>
+
         <div class="w-px h-5 bg-white/10 mx-1"></div>
 
         <button
@@ -339,11 +412,15 @@
     </div>
 
     <!-- Editor Hint Banner -->
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none">
-      {#if selectedPropId}
-        🎯 Click to place prop &bull; <span class="text-amber-400 font-bold">R</span> to rotate &bull; <span class="text-red-400 font-bold">Right-click</span> prop to remove &bull; <span class="text-gray-300 font-bold">Esc</span> cancel
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-xs font-mono text-gray-400 shadow-xl pointer-events-none whitespace-nowrap">
+      {#if isEraseMode}
+        🧹 <span class="text-red-300 font-bold">Erase Mode:</span> Click prop or track tile to remove &bull; <span class="text-gray-200 font-bold">X / Esc</span> exit
+      {:else if selectedPropId}
+        🎯 Click to place &bull; <span class="text-amber-400 font-bold">R</span> rotate &bull; <span class="text-gray-200 font-bold">Esc</span> cancel
+      {:else if selectedPlacedPropId}
+        ✨ Drag prop to move &bull; <span class="text-amber-400 font-bold">R</span> rotate &bull; <span class="text-red-400 font-bold">Del</span> remove
       {:else}
-        💡 Click glowing <span class="text-cyan-400 font-bold">cyan rings</span> to snap pieces &bull; Click <span class="text-amber-400 font-bold">rails</span> to toggle edges
+        🎥 <span class="text-cyan-300 font-bold">WASD</span> Pan &bull; <span class="text-cyan-300 font-bold">Right-drag</span> Orbit &bull; <span class="text-cyan-300 font-bold">Scroll</span> Zoom &bull; <span class="text-amber-300 font-bold">F</span> Frame &bull; <span class="text-red-300 font-bold">X</span> Erase
       {/if}
     </div>
   {/if}

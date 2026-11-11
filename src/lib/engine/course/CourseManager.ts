@@ -120,6 +120,7 @@ export class CourseManager {
     const group = template.visualTemplate.clone(true);
     group.position.set(pos[0], pos[1], pos[2]);
     group.rotation.y = (rotY * Math.PI) / 180;
+    group.userData = { tileInstanceId: tileData.instanceId };
     this.scene.add(group);
 
     // Find wall submeshes (supports both single Mesh and multi-material Group wrappers)
@@ -441,6 +442,51 @@ export class CourseManager {
 
   public getTile(instanceId: string): InstantiatedTile | undefined {
     return this.tiles.get(instanceId);
+  }
+
+  public removeTile(instanceId: string): boolean {
+    const tile = this.tiles.get(instanceId);
+    if (!tile) return false;
+
+    this.scene.remove(tile.group);
+    if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
+    if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
+    if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
+    this.tiles.delete(instanceId);
+
+    // Clear references to removed tile in remaining connectedSockets
+    for (const remaining of this.tiles.values()) {
+      const conns = remaining.tileData.connectedSockets;
+      if (!conns) continue;
+      for (const [sockId, targetId] of Object.entries(conns)) {
+        if (targetId === instanceId) {
+          delete conns[sockId];
+        }
+      }
+    }
+
+    this.rebuildWeldedFloorPhysics();
+    return true;
+  }
+
+  public updatePropTransform(
+    instanceId: string,
+    position: [number, number, number],
+    rotation: [number, number, number]
+  ): boolean {
+    const existing = this.props.get(instanceId);
+    if (!existing) return false;
+
+    const updated: PlacedProp = {
+      ...existing.propData,
+      position: [...position] as [number, number, number],
+      rotation: [...rotation] as [number, number, number],
+      scale: [...existing.propData.scale] as [number, number, number],
+    };
+
+    this.removeProp(instanceId);
+    this.addProp(updated);
+    return true;
   }
 
   public addProp(propData: PlacedProp): InstantiatedProp | null {

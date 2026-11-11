@@ -44,11 +44,16 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
 
 ## 4. Editor, Procedural Generation & Persistence
 
-- **Manual Building (`/editor`)**:
+- **Free-Roam Editor Mode (`GameEngine.setEditorMode(true)` & `CameraController` `"editor_free"`)**:
+  - While editing, the golf ball, slingshot aiming input, and ball-follow camera lock are disabled (`Playtest / Test Putt` spawns the ball and switches to play mode, then removes the ball again on exit).
+  - **Camera Controls**: `WASD` / Arrow keys pan across the course (`Shift` for faster pan), Right-click or Middle-click drag orbits (`12°`–`80°` pitch, `360°` yaw), Scroll wheel zooms freely (`4m`–`65m`), and `F` (or **🎯 Frame**) centers on the course.
+- **Manual Building & Editing (`/editor`)**:
   - Toggle between **🎪 Carnival** and **🏌️ Classic** kits in the top bar.
   - Click glowing cyan socket rings to snap modular tiles via `SocketSolver` (`RadialSocketMenu.svelte`).
-  - Select props or terrain pieces from `PropPalette.svelte` and left-click to place on floors or lawn (`R` rotates 45°, `Right-click` removes, `Ctrl+Z` / `Ctrl+Y` undo/redo via `HistoryManager`).
-  - Click **🌉 Sunny Creek** to load the reference reconstruction (`src/lib/courses/carnivalParkCourse.ts`) for inspection or remixing.
+  - Select props or terrain pieces from `PropPalette.svelte` to preview a translucent cyan ghost under the cursor, then left-click to place (`R` rotates 45°, `Esc` cancels).
+  - Left-click an existing prop to select it, drag to reposition, press `R` to rotate, or press `Delete`/`Backspace` to remove.
+  - Toggle **🧹 Erase (`X`)** to left-click delete any prop or non-root track tile (re-opening parent sockets and rebuilding `SeamWelder` floor physics), or click **🗑️ Clear** to reset to a single tee tile.
+  - Click **🌉 Sunny Creek** or **🎡 Big Top** to load the Carnival Park showcase holes for inspection or remixing.
 - **Procedural Generation (`HoleGenerator.ts` & `AutoDecorate.ts`)**:
   - `HoleGenerator.generateHole({ par, style, includeObstacles, theme })` builds guaranteed-solvable socket-connected layouts in either `country_club` or `carnival_park` theme (inserting `carnival_bridge_pond_6x12` and ramps when enabled).
   - `autoDecorateHole()` (also triggered manually via **🌲 Decorate** in `/editor`) adds `terrain_hill_knoll_6x6` under elevated tiles, `prop_carnival_arch_6m` over the tee, and scatters trees, boulders, toadstools, grass tufts, and wildflowers outside a `6.2m` track clearance radius without removing existing user props.

@@ -27,6 +27,8 @@ export class GameEngine {
   public audio: AudioManager;
 
   private isRunning: boolean = false;
+  public isEditorMode: boolean = false;
+  private savedEditorTarget: THREE.Vector3 | null = null;
   private animationFrameId: number | null = null;
   private lastTime: number = 0;
   private fpsCounter: number = 0;
@@ -85,7 +87,65 @@ export class GameEngine {
       });
     };
 
+    this.cameraController.onFrameRequested = () => {
+      this.frameCameraOnCourse();
+    };
+
     this.setupResizeListener();
+  }
+
+  /**
+   * Switches between live gameplay and free-roam editor mode.
+   * In editor mode, the golf ball, slingshot input, and ball-follow camera lock are disabled.
+   */
+  public setEditorMode(enabled: boolean): void {
+    this.isEditorMode = enabled;
+    if (enabled) {
+      this.slingshotInput.setEnabled(false);
+      this.ballController.setVisible(false);
+      this.ballController.disablePhysics();
+      this.cameraController.mode = "editor_free";
+      if (this.savedEditorTarget) {
+        this.cameraController.setTarget(this.savedEditorTarget);
+        this.cameraController.snapToTarget();
+      } else {
+        this.frameCameraOnCourse();
+      }
+    } else {
+      this.savedEditorTarget = this.cameraController.target.clone();
+      this.ballController.setVisible(true);
+      this.ballController.createPhysicsBody(this.courseManager.spawnPosition);
+      this.slingshotInput.setEnabled(true);
+      this.cameraController.mode = "aiming";
+      this.cameraController.setTarget(this.courseManager.spawnPosition);
+      this.cameraController.snapToTarget();
+    }
+  }
+
+  public frameCameraOnCourse(): void {
+    const tiles = this.courseManager.getAllTiles();
+    if (tiles.length === 0) {
+      this.cameraController.frameBounds(new THREE.Vector3(0, 0, 0), 14);
+      return;
+    }
+
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+
+    for (const t of tiles) {
+      const p = t.group.position;
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+      if (p.z < minZ) minZ = p.z;
+      if (p.z > maxZ) maxZ = p.z;
+    }
+
+    const center = new THREE.Vector3((minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5);
+    const span = Math.max(12, Math.hypot(maxX - minX + 8, maxZ - minZ + 8));
+    this.cameraController.frameBounds(center, span * 0.65);
   }
 
   public on<K extends keyof EngineEventMap>(event: K, handler: EngineEventMap[K]): void {
@@ -147,7 +207,13 @@ export class GameEngine {
       this.fpsTimer = 0;
     }
 
-    // Step physics simulation
+    // Step physics simulation (only active during play / playtest mode)
+    if (this.isEditorMode) {
+      this.cameraController.update(deltaTime, 0);
+      this.renderPipeline.render();
+      return;
+    }
+
     this.physicsWorld.step(deltaTime);
 
     // Update ball physics & visual transform
@@ -293,6 +359,7 @@ export class GameEngine {
 
   public dispose(): void {
     this.stop();
+    this.cameraController?.dispose();
     this.slingshotInput?.dispose();
     this.ballController?.dispose();
     this.courseManager?.clear();

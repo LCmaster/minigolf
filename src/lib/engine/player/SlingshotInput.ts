@@ -17,6 +17,7 @@ export class SlingshotInput {
 
   private isDragging: boolean = false;
   private isOrbiting: boolean = false;
+  private enabled: boolean = true;
   private lastPointerX: number = 0;
   private lastPointerY: number = 0;
 
@@ -59,7 +60,18 @@ export class SlingshotInput {
     }
   }
 
+  public setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.isDragging = false;
+      this.isOrbiting = false;
+      this.arrow.hide();
+    }
+  }
+
   private handlePointerDown = (ev: PointerEvent): void => {
+    if (!this.enabled) return;
+
     // Right or middle click triggers camera orbit
     if (ev.button === 2 || ev.button === 1) {
       this.isOrbiting = true;
@@ -93,6 +105,8 @@ export class SlingshotInput {
   };
 
   private handlePointerMove = (ev: PointerEvent): void => {
+    if (!this.enabled) return;
+
     if (this.isDragging && this.ball.state === "aiming") {
       const point = this.getGroundIntersection(ev.clientX, ev.clientY);
       if (!point) return;
@@ -123,6 +137,13 @@ export class SlingshotInput {
   };
 
   private handlePointerUp = (): void => {
+    if (!this.enabled) {
+      this.isDragging = false;
+      this.isOrbiting = false;
+      this.arrow.hide();
+      return;
+    }
+
     if (this.isOrbiting) {
       this.isOrbiting = false;
     }

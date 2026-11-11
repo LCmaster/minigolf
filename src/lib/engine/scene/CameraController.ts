@@ -6,7 +6,7 @@
 
 import * as THREE from "three";
 
-export type CameraMode = "aiming" | "following" | "cup_zoom" | "overview" | "flyover";
+export type CameraMode = "aiming" | "following" | "cup_zoom" | "overview" | "flyover" | "editor_free";
 
 export class CameraController {
   public camera: THREE.PerspectiveCamera;
@@ -25,6 +25,12 @@ export class CameraController {
   private pitchProgress: number = 0.35; // Default ~29° pleasant natural view
   private previousPitchProgress: number = 0.35;
   private zoomScale: number = 1.0;
+
+  // Free-roam editor camera state
+  private editorDistance: number = 24.0;
+  private editorPitchDeg: number = 42.0;
+  private pressedKeys: Set<string> = new Set();
+  public onFrameRequested?: () => void;
 
   // Orbit angles
   private yawAngle: number = 0; // In radians
@@ -57,6 +63,9 @@ export class CameraController {
   }
 
   public get pitchAngleDeg(): number {
+    if (this.mode === "editor_free") {
+      return this.editorPitchDeg;
+    }
     return this.MIN_PITCH_DEG + this.pitchProgress * (this.MAX_PITCH_DEG - this.MIN_PITCH_DEG);
   }
 
@@ -65,8 +74,36 @@ export class CameraController {
   }
 
   public get orbitDistance(): number {
+    if (this.mode === "editor_free") {
+      return this.editorDistance;
+    }
     const baseDist = this.MIN_DISTANCE + this.pitchProgress * (this.MAX_DISTANCE - this.MIN_DISTANCE);
     return baseDist * this.zoomScale;
+  }
+
+  public setEditorView(distance: number, pitchDeg: number = 42.0): void {
+    this.editorDistance = Math.max(4.0, Math.min(65.0, distance));
+    this.editorPitchDeg = Math.max(12.0, Math.min(80.0, pitchDeg));
+  }
+
+  public frameBounds(center: THREE.Vector3, radius: number): void {
+    this.target.copy(center);
+    if (this.mode === "editor_free") {
+      this.editorDistance = Math.max(12.0, Math.min(60.0, radius * 1.45));
+      this.editorPitchDeg = 42.0;
+    }
+    this.snapToTarget();
+  }
+
+  public panBy(forwardAmount: number, rightAmount: number): void {
+    // Forward direction on XZ plane away from camera toward target
+    const forwardX = -Math.sin(this.yawAngle);
+    const forwardZ = -Math.cos(this.yawAngle);
+    const rightX = Math.cos(this.yawAngle);
+    const rightZ = -Math.sin(this.yawAngle);
+
+    this.target.x += forwardX * forwardAmount + rightX * rightAmount;
+    this.target.z += forwardZ * forwardAmount + rightZ * rightAmount;
   }
 
   public setPitchProgress(p: number): void {
@@ -149,6 +186,17 @@ export class CameraController {
   }
 
   public update(deltaTime: number, ballSpeed: number = 0): void {
+    if (this.mode === "editor_free") {
+      this.applyEditorKeyboardPan(deltaTime);
+      const desiredPos = this.calculateDesiredPosition(this.target);
+      const decay = 1.0 - Math.exp(-10.0 * Math.min(deltaTime, 0.1));
+      this.currentLookTarget.lerp(this.target, decay);
+      this.currentCameraPos.lerp(desiredPos, decay);
+      this.camera.position.copy(this.currentCameraPos);
+      this.camera.lookAt(this.currentLookTarget);
+      return;
+    }
+
     if (this.isFlyover) {
       this.flyoverProgress += deltaTime / this.flyoverDuration;
       if (this.flyoverProgress >= 1.0) {
@@ -188,6 +236,26 @@ export class CameraController {
     this.camera.lookAt(this.currentLookTarget);
   }
 
+  private applyEditorKeyboardPan(deltaTime: number): void {
+    if (this.pressedKeys.size === 0) return;
+    const dt = Math.min(deltaTime, 0.1);
+    const speed =
+      (this.pressedKeys.has("ShiftLeft") || this.pressedKeys.has("ShiftRight") ? 26.0 : 14.0) *
+      Math.max(0.6, this.editorDistance / 24.0);
+
+    let forward = 0;
+    let right = 0;
+    if (this.pressedKeys.has("KeyW") || this.pressedKeys.has("ArrowUp")) forward += 1;
+    if (this.pressedKeys.has("KeyS") || this.pressedKeys.has("ArrowDown")) forward -= 1;
+    if (this.pressedKeys.has("KeyD") || this.pressedKeys.has("ArrowRight")) right += 1;
+    if (this.pressedKeys.has("KeyA") || this.pressedKeys.has("ArrowLeft")) right -= 1;
+
+    if (forward !== 0 || right !== 0) {
+      const len = Math.hypot(forward, right);
+      this.panBy((forward / len) * speed * dt, (right / len) * speed * dt);
+    }
+  }
+
   public handleOrbitDrag(deltaX: number, deltaY: number): void {
     if (this.isFlyover) {
       this.skipFlyover();
@@ -196,16 +264,40 @@ export class CameraController {
     // Horizontal drag = yaw 360°
     this.yawAngle -= deltaX * 0.006;
 
+    if (this.mode === "editor_free") {
+      this.editorPitchDeg = Math.max(12.0, Math.min(80.0, this.editorPitchDeg + deltaY * 0.22));
+      return;
+    }
+
     // Vertical drag = pitch adjustment
     const pitchDelta = deltaY * 0.003;
     this.setPitchProgress(this.pitchProgress + pitchDelta);
   }
 
   public handleZoomScroll(deltaY: number): void {
+    if (this.mode === "editor_free") {
+      this.editorDistance = Math.max(4.0, Math.min(65.0, this.editorDistance + deltaY * 0.025));
+      return;
+    }
     // Scroll adjusts pitch progress continuously
     const step = deltaY * 0.001;
     this.setPitchProgress(this.pitchProgress + step);
   }
+
+  private handleKeyDown = (ev: KeyboardEvent): void => {
+    const tag = (ev.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (this.mode !== "editor_free") return;
+
+    this.pressedKeys.add(ev.code);
+    if (ev.code === "KeyF") {
+      this.onFrameRequested?.();
+    }
+  };
+
+  private handleKeyUp = (ev: KeyboardEvent): void => {
+    this.pressedKeys.delete(ev.code);
+  };
 
   private setupOrbitListeners(): void {
     if (!this.canvas) return;
@@ -219,21 +311,26 @@ export class CameraController {
       }
     });
 
-    window.addEventListener("pointermove", (ev) => {
-      if (this.isOrbiting) {
-        const dx = ev.clientX - this.lastPointerX;
-        const dy = ev.clientY - this.lastPointerY;
-        this.lastPointerX = ev.clientX;
-        this.lastPointerY = ev.clientY;
-        this.handleOrbitDrag(dx, dy);
-      }
-    });
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", (ev) => {
+        if (this.isOrbiting) {
+          const dx = ev.clientX - this.lastPointerX;
+          const dy = ev.clientY - this.lastPointerY;
+          this.lastPointerX = ev.clientX;
+          this.lastPointerY = ev.clientY;
+          this.handleOrbitDrag(dx, dy);
+        }
+      });
 
-    window.addEventListener("pointerup", (ev) => {
-      if (ev.button === 2 || ev.button === 1) {
-        this.isOrbiting = false;
-      }
-    });
+      window.addEventListener("pointerup", (ev) => {
+        if (ev.button === 2 || ev.button === 1) {
+          this.isOrbiting = false;
+        }
+      });
+
+      window.addEventListener("keydown", this.handleKeyDown);
+      window.addEventListener("keyup", this.handleKeyUp);
+    }
 
     this.canvas.addEventListener("wheel", (ev) => {
       ev.preventDefault();
@@ -241,5 +338,13 @@ export class CameraController {
     }, { passive: false });
 
     this.canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
+  }
+
+  public dispose(): void {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleKeyDown);
+      window.removeEventListener("keyup", this.handleKeyUp);
+    }
+    this.pressedKeys.clear();
   }
 }

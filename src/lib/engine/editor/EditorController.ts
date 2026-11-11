@@ -1,6 +1,7 @@
 /**
  * EditorController.ts
- * Manages 3D raycasting, open socket visual gizmos, piece snapping math, and wall toggles.
+ * Manages 3D raycasting, open socket visual gizmos, socket snapping,
+ * ghost prop preview, prop selection/move/rotate, and dedicated erase tools.
  */
 
 import * as THREE from "three";
@@ -18,6 +19,8 @@ export interface OpenSocketInfo {
   elevation: number;
 }
 
+export type EditorToolMode = "select" | "place_prop" | "erase";
+
 export class EditorController {
   private canvas: HTMLCanvasElement;
   private camera: THREE.Camera;
@@ -28,18 +31,38 @@ export class EditorController {
   public history: HistoryManager;
   public openSockets: OpenSocketInfo[] = [];
 
-  // Visual gizmos
+  // Visual gizmos & previews
   private socketGizmoGroup: THREE.Group;
+  private ghostGroup: THREE.Group;
+  private selectionRing: THREE.Mesh;
   private raycaster: THREE.Raycaster;
   private hoveredSocket: OpenSocketInfo | null = null;
   private hoveredWall: { tileInstanceId: string; side: "left" | "right"; mesh: THREE.Mesh } | null = null;
+
   private selectedPropId: string | null = null;
   private propRotationY: number = 0;
-  private groundPlane: THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private eraseMode: boolean = false;
+  private selectedPlacedPropId: string | null = null;
+
+  // Prop drag state
+  private draggingProp: {
+    instanceId: string;
+    startPos: [number, number, number];
+    startRot: [number, number, number];
+    moved: boolean;
+  } | null = null;
+
+  private groundPlane: THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.0);
 
   public onSocketClick?: (info: OpenSocketInfo, screenX: number, screenY: number) => void;
   public onCourseModified?: () => void;
   public onPropPlaced?: (prop: PlacedProp) => void;
+  public onToolStateChanged?: (state: {
+    tool: EditorToolMode;
+    selectedPropId: string | null;
+    selectedPlacedPropId: string | null;
+    eraseMode: boolean;
+  }) => void;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -61,10 +84,53 @@ export class EditorController {
     this.socketGizmoGroup.name = "Editor_SocketGizmos";
     this.scene.add(this.socketGizmoGroup);
 
+    this.ghostGroup = new THREE.Group();
+    this.ghostGroup.name = "Editor_PropGhost";
+    this.ghostGroup.visible = false;
+    this.scene.add(this.ghostGroup);
+
+    const selGeo = new THREE.TorusGeometry(1.1, 0.08, 12, 32);
+    selGeo.rotateX(Math.PI / 2);
+    const selMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      transparent: true,
+      opacity: 0.9,
+    });
+    this.selectionRing = new THREE.Mesh(selGeo, selMat);
+    this.selectionRing.name = "Editor_SelectionRing";
+    this.selectionRing.visible = false;
+    this.scene.add(this.selectionRing);
+
     this.attachEventListeners();
   }
 
+  public get toolMode(): EditorToolMode {
+    if (this.eraseMode) return "erase";
+    if (this.selectedPropId) return "place_prop";
+    return "select";
+  }
+
+  public get isEraseMode(): boolean {
+    return this.eraseMode;
+  }
+
+  public getSelectedPlacedPropId(): string | null {
+    return this.selectedPlacedPropId;
+  }
+
+  private emitToolState(): void {
+    this.onToolStateChanged?.({
+      tool: this.toolMode,
+      selectedPropId: this.selectedPropId,
+      selectedPlacedPropId: this.selectedPlacedPropId,
+      eraseMode: this.eraseMode,
+    });
+  }
+
   private handleKeyDown = (ev: KeyboardEvent): void => {
+    const tag = (ev.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
     if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") {
       ev.preventDefault();
       if (ev.shiftKey) {
@@ -72,32 +138,120 @@ export class EditorController {
       } else {
         this.history.undo();
       }
+      this.clearSelectionIfMissing();
       this.refreshOpenSockets();
       this.onCourseModified?.();
     } else if ((ev.ctrlKey || ev.metaKey) && ev.key === "y") {
       ev.preventDefault();
       this.history.redo();
+      this.clearSelectionIfMissing();
       this.refreshOpenSockets();
       this.onCourseModified?.();
     } else if (ev.key === "r" || ev.key === "R") {
-      this.propRotationY = (this.propRotationY + 45) % 360;
+      if (this.selectedPlacedPropId && !this.selectedPropId && !this.eraseMode) {
+        this.rotatePlacedProp(this.selectedPlacedPropId, 45);
+      } else {
+        this.propRotationY = (this.propRotationY + 45) % 360;
+        this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
+      }
+    } else if (ev.key === "x" || ev.key === "X") {
+      this.setEraseMode(!this.eraseMode);
+    } else if (ev.key === "Delete" || ev.key === "Backspace") {
+      if (this.selectedPlacedPropId) {
+        ev.preventDefault();
+        const id = this.selectedPlacedPropId;
+        this.selectPlacedProp(null);
+        this.deleteProp(id);
+      }
     } else if (ev.key === "Escape") {
-      this.selectedPropId = null;
+      this.setEraseMode(false);
+      this.setSelectedProp(null);
+      this.selectPlacedProp(null);
     }
   };
 
   private attachEventListeners(): void {
     this.canvas.addEventListener("pointermove", this.handlePointerMove);
     this.canvas.addEventListener("pointerdown", this.handlePointerDown);
-    this.canvas.addEventListener("contextmenu", this.handleContextMenu);
 
     if (typeof window !== "undefined") {
+      window.addEventListener("pointerup", this.handlePointerUp);
       window.addEventListener("keydown", this.handleKeyDown);
     }
   }
 
   public setSelectedProp(propId: string | null): void {
     this.selectedPropId = propId;
+    if (propId) {
+      this.eraseMode = false;
+      this.selectPlacedProp(null);
+    }
+    this.rebuildGhostPreview();
+    this.emitToolState();
+  }
+
+  public setEraseMode(enabled: boolean): void {
+    this.eraseMode = enabled;
+    if (enabled) {
+      this.selectedPropId = null;
+      this.rebuildGhostPreview();
+      this.selectPlacedProp(null);
+    }
+    this.emitToolState();
+  }
+
+  public selectPlacedProp(instanceId: string | null): void {
+    this.selectedPlacedPropId = instanceId;
+    if (!instanceId) {
+      this.selectionRing.visible = false;
+    } else {
+      const prop = this.courseManager.getProp?.(instanceId);
+      if (prop) {
+        this.selectionRing.position.copy(prop.group.position);
+        this.selectionRing.position.y += 0.1;
+        this.selectionRing.visible = true;
+      } else {
+        this.selectionRing.visible = false;
+        this.selectedPlacedPropId = null;
+      }
+    }
+    this.emitToolState();
+  }
+
+  private clearSelectionIfMissing(): void {
+    if (this.selectedPlacedPropId && !this.courseManager.getProp?.(this.selectedPlacedPropId)) {
+      this.selectPlacedProp(null);
+    } else if (this.selectedPlacedPropId) {
+      this.selectPlacedProp(this.selectedPlacedPropId);
+    }
+  }
+
+  private rebuildGhostPreview(): void {
+    while (this.ghostGroup.children.length > 0) {
+      this.ghostGroup.remove(this.ghostGroup.children[0]);
+    }
+    this.ghostGroup.visible = false;
+
+    if (!this.selectedPropId || typeof this.assetLoader?.getPiece !== "function") return;
+    const template = this.assetLoader.getPiece(this.selectedPropId);
+    if (!template || !template.visualTemplate) return;
+
+    const ghostClone = template.visualTemplate.clone(true);
+    ghostClone.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = false;
+        child.receiveShadow = false;
+        child.material = new THREE.MeshBasicMaterial({
+          color: 0x22d3ee,
+          transparent: true,
+          opacity: 0.5,
+          depthWrite: false,
+        });
+      }
+    });
+    this.ghostGroup.add(ghostClone);
+    this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
+    this.ghostGroup.visible = true;
   }
 
   public getPropRotationY(): number {
@@ -110,8 +264,7 @@ export class EditorController {
       this.socketGizmoGroup.remove(this.socketGizmoGroup.children[0]);
     }
 
-    // Inspect all placed tiles
-    // @ts-ignore (accessing tiles map)
+    // @ts-ignore
     const tilesMap = this.courseManager["tiles"] as Map<string, any>;
     if (!tilesMap) return;
 
@@ -121,12 +274,10 @@ export class EditorController {
       const group = instantiated.group;
 
       for (const socket of template.sockets) {
-        // Check if this socket is already connected to another tile
         if (tileData.connectedSockets && tileData.connectedSockets[socket.id]) {
           continue;
         }
 
-        // Calculate world position & normal
         const localPos = new THREE.Vector3(...socket.position);
         localPos.applyEuler(group.rotation);
         const worldPos = new THREE.Vector3().addVectors(group.position, localPos);
@@ -149,9 +300,8 @@ export class EditorController {
   }
 
   private createSocketGizmo(info: OpenSocketInfo): void {
-    // Glowing pulsing ring indicator
     const ringGeo = new THREE.TorusGeometry(0.8, 0.08, 16, 32);
-    ringGeo.rotateX(Math.PI / 2); // Lay flat
+    ringGeo.rotateX(Math.PI / 2);
 
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
@@ -161,10 +311,57 @@ export class EditorController {
 
     const gizmo = new THREE.Mesh(ringGeo, ringMat);
     gizmo.position.copy(info.worldPosition);
-    gizmo.position.y += 0.05; // Slightly above floor
+    gizmo.position.y += 0.05;
     gizmo.userData = { socketInfo: info };
 
     this.socketGizmoGroup.add(gizmo);
+  }
+
+  private getSurfaceHitPoint(clientX: number, clientY: number): THREE.Vector3 | null {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    const tileGroups = tilesMap ? Array.from(tilesMap.values()).map((t) => t.group) : [];
+    const hits = this.raycaster.intersectObjects(tileGroups, true);
+    if (hits.length > 0) {
+      return hits[0].point.clone();
+    }
+
+    const hitPoint = new THREE.Vector3();
+    if (this.raycaster.ray.intersectPlane(this.groundPlane, hitPoint)) {
+      return hitPoint;
+    }
+    return null;
+  }
+
+  private findHitPropId(): string | null {
+    const propGroups = this.courseManager.getAllProps?.().map((p) => p.group) || [];
+    if (propGroups.length === 0) return null;
+    const propHits = this.raycaster.intersectObjects(propGroups, true);
+    if (propHits.length === 0) return null;
+    let obj: THREE.Object3D | null = propHits[0].object;
+    while (obj && !obj.userData?.propInstanceId) {
+      obj = obj.parent;
+    }
+    return obj?.userData?.propInstanceId || null;
+  }
+
+  private findHitTileId(): string | null {
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    if (!tilesMap) return null;
+    const tileGroups = Array.from(tilesMap.values()).map((t) => t.group);
+    const hits = this.raycaster.intersectObjects(tileGroups, true);
+    if (hits.length === 0) return null;
+    let obj: THREE.Object3D | null = hits[0].object;
+    while (obj && !obj.userData?.tileInstanceId) {
+      obj = obj.parent;
+    }
+    return obj?.userData?.tileInstanceId || null;
   }
 
   private handlePointerMove = (ev: PointerEvent): void => {
@@ -174,18 +371,50 @@ export class EditorController {
 
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
-    // Raycast against socket gizmos
+    // 0. Dragging existing placed prop
+    if (this.draggingProp) {
+      const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
+      const inst = this.courseManager.getProp?.(this.draggingProp.instanceId);
+      if (pt && inst) {
+        inst.group.position.copy(pt);
+        this.selectionRing.position.copy(pt);
+        this.selectionRing.position.y += 0.1;
+        this.draggingProp.moved = true;
+        this.canvas.style.cursor = "grabbing";
+      }
+      return;
+    }
+
+    // 1. Ghost preview update when placing prop
+    if (this.selectedPropId) {
+      const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
+      if (pt) {
+        this.ghostGroup.position.copy(pt);
+        this.ghostGroup.visible = true;
+      }
+      this.canvas.style.cursor = "crosshair";
+      return;
+    }
+
+    // 2. Erase mode cursor feedback
+    if (this.eraseMode) {
+      const hitProp = this.findHitPropId();
+      const hitTile = !hitProp ? this.findHitTileId() : null;
+      this.canvas.style.cursor = hitProp || hitTile ? "pointer" : "crosshair";
+      return;
+    }
+
+    // 3. Socket gizmo raycast
     const socketIntersects = this.raycaster.intersectObjects(this.socketGizmoGroup.children);
     if (socketIntersects.length > 0) {
       const hit = socketIntersects[0].object as THREE.Mesh;
       this.hoveredSocket = hit.userData.socketInfo;
-      (hit.material as THREE.MeshBasicMaterial).color.setHex(0xffaa00); // Amber highlight
+      (hit.material as THREE.MeshBasicMaterial).color.setHex(0xffaa00);
       this.canvas.style.cursor = "pointer";
       return;
     } else {
       this.hoveredSocket = null;
       this.canvas.style.cursor = "default";
-      // Reset gizmo colors
       for (const child of this.socketGizmoGroup.children) {
         if (child instanceof THREE.Mesh) {
           (child.material as THREE.MeshBasicMaterial).color.setHex(0x00ffff);
@@ -193,7 +422,7 @@ export class EditorController {
       }
     }
 
-    // Raycast against walls
+    // 4. Wall raycast
     this.hoveredWall = null;
     // @ts-ignore
     const tilesMap = this.courseManager["tiles"] as Map<string, any>;
@@ -208,7 +437,6 @@ export class EditorController {
     const wallIntersects = this.raycaster.intersectObjects(wallMeshes, true);
     if (wallIntersects.length > 0) {
       const hit = wallIntersects[0].object;
-      let isLeft = false;
       for (const [id, tile] of tilesMap.entries()) {
         const matchesWall = (rootWall?: THREE.Object3D) => {
           if (!rootWall) return false;
@@ -220,13 +448,11 @@ export class EditorController {
           return false;
         };
         if (matchesWall(tile.wallLMesh)) {
-          isLeft = true;
           this.hoveredWall = { tileInstanceId: id, side: "left", mesh: hit as THREE.Mesh };
           this.canvas.style.cursor = "pointer";
           break;
         }
         if (matchesWall(tile.wallRMesh)) {
-          isLeft = false;
           this.hoveredWall = { tileInstanceId: id, side: "right", mesh: hit as THREE.Mesh };
           this.canvas.style.cursor = "pointer";
           break;
@@ -235,61 +461,63 @@ export class EditorController {
     }
   };
 
-  private handleContextMenu = (ev: MouseEvent): void => {
+  private handlePointerDown = (ev: PointerEvent): void => {
+    if (ev.button !== 0) return; // Left click only (right/middle reserved for camera orbit)
+
     const rect = this.canvas.getBoundingClientRect();
     const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
-    const propGroups = this.courseManager.getAllProps?.().map((p) => p.group) || [];
-    const propHits = this.raycaster.intersectObjects(propGroups, true);
-    if (propHits.length > 0) {
-      ev.preventDefault();
-      let obj: THREE.Object3D | null = propHits[0].object;
-      while (obj && !obj.userData?.propInstanceId) {
-        obj = obj.parent;
-      }
-      const propInstanceId = obj?.userData?.propInstanceId;
-      if (propInstanceId) {
-        this.deleteProp(propInstanceId);
-      }
-    }
-  };
-
-  private handlePointerDown = (ev: PointerEvent): void => {
-    if (ev.button !== 0) return; // Left click only
-
-    // 0. Prop placement mode takes precedence when a prop is selected
-    if (this.selectedPropId) {
-      const rect = this.canvas.getBoundingClientRect();
-      const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-      this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
-
-      // Raycast against placed tile groups first, falling back to ground plane Y=0
-      // @ts-ignore
-      const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-      const tileGroups = tilesMap ? Array.from(tilesMap.values()).map((t) => t.group) : [];
-      const hits = this.raycaster.intersectObjects(tileGroups, true);
-      const hitPoint = new THREE.Vector3();
-      if (hits.length > 0) {
-        hitPoint.copy(hits[0].point);
-      } else if (!this.raycaster.ray.intersectPlane(this.groundPlane, hitPoint)) {
+    // 0. Erase mode
+    if (this.eraseMode) {
+      const hitPropId = this.findHitPropId();
+      if (hitPropId) {
+        this.deleteProp(hitPropId);
         return;
       }
-
-      this.placePropAtPoint(this.selectedPropId, hitPoint);
+      const hitTileId = this.findHitTileId();
+      if (hitTileId) {
+        this.deleteTile(hitTileId);
+      }
       return;
     }
 
-    // 1. Socket click
+    // 1. Prop placement mode
+    if (this.selectedPropId) {
+      const hitPoint = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
+      if (hitPoint) {
+        this.placePropAtPoint(this.selectedPropId, hitPoint);
+      }
+      return;
+    }
+
+    // 2. Socket click
     if (this.hoveredSocket) {
+      this.selectPlacedProp(null);
       this.onSocketClick?.(this.hoveredSocket, ev.clientX, ev.clientY);
       return;
     }
 
-    // 2. Wall toggle click
+    // 3. Select / begin drag on existing placed prop
+    const hitPropId = this.findHitPropId();
+    if (hitPropId) {
+      this.selectPlacedProp(hitPropId);
+      const inst = this.courseManager.getProp?.(hitPropId);
+      if (inst) {
+        this.draggingProp = {
+          instanceId: hitPropId,
+          startPos: [...inst.propData.position] as [number, number, number],
+          startRot: [...inst.propData.rotation] as [number, number, number],
+          moved: false,
+        };
+      }
+      return;
+    }
+
+    // 4. Wall toggle click
     if (this.hoveredWall) {
+      this.selectPlacedProp(null);
       const { tileInstanceId, side } = this.hoveredWall;
       const cmd: EditorCommand = {
         name: `Toggle ${side} wall`,
@@ -302,8 +530,71 @@ export class EditorController {
       };
       this.history.execute(cmd);
       this.onCourseModified?.();
+      return;
     }
+
+    // 5. Clicking empty space clears prop selection
+    this.selectPlacedProp(null);
   };
+
+  private handlePointerUp = (): void => {
+    if (!this.draggingProp) return;
+    const drag = this.draggingProp;
+    this.draggingProp = null;
+    this.canvas.style.cursor = "default";
+
+    if (!drag.moved) return;
+
+    const inst = this.courseManager.getProp?.(drag.instanceId);
+    if (!inst) return;
+    const newPos: [number, number, number] = [
+      inst.group.position.x,
+      inst.group.position.y,
+      inst.group.position.z,
+    ];
+    const rot: [number, number, number] = [...drag.startRot];
+
+    const cmd: EditorCommand = {
+      name: "Move prop",
+      execute: () => {
+        this.courseManager.updatePropTransform?.(drag.instanceId, newPos, rot);
+        this.selectPlacedProp(drag.instanceId);
+      },
+      undo: () => {
+        this.courseManager.updatePropTransform?.(drag.instanceId, drag.startPos, drag.startRot);
+        this.selectPlacedProp(drag.instanceId);
+      },
+    };
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+  };
+
+  public rotatePlacedProp(instanceId: string, deltaDeg: number): void {
+    const inst = this.courseManager.getProp?.(instanceId);
+    if (!inst) return;
+
+    const oldPos: [number, number, number] = [...inst.propData.position];
+    const oldRot: [number, number, number] = [...inst.propData.rotation];
+    const newRot: [number, number, number] = [
+      oldRot[0],
+      ((oldRot[1] + deltaDeg) % 360 + 360) % 360,
+      oldRot[2],
+    ];
+
+    const cmd: EditorCommand = {
+      name: "Rotate prop",
+      execute: () => {
+        this.courseManager.updatePropTransform?.(instanceId, oldPos, newRot);
+        this.selectPlacedProp(instanceId);
+      },
+      undo: () => {
+        this.courseManager.updatePropTransform?.(instanceId, oldPos, oldRot);
+        this.selectPlacedProp(instanceId);
+      },
+    };
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+  }
 
   public placePropAtPoint(propId: string, point: THREE.Vector3): void {
     const propData: PlacedProp = {
@@ -349,6 +640,66 @@ export class EditorController {
     };
     this.history.execute(cmd);
     this.onCourseModified?.();
+  }
+
+  public deleteTile(tileInstanceId: string): boolean {
+    // @ts-ignore
+    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
+    if (!tilesMap || tilesMap.size <= 1) return false; // Keep at least root tee tile
+
+    const existing = tilesMap.get(tileInstanceId);
+    if (!existing) return false;
+    if (existing.tileData.kitPieceId.includes("tee") && Array.from(tilesMap.keys())[0] === tileInstanceId) {
+      return false; // Protect starting tee box
+    }
+
+    const savedTile: PlacedTile = {
+      ...existing.tileData,
+      position: existing.tileData.position ? ([...existing.tileData.position] as [number, number, number]) : undefined,
+      walls: { ...existing.tileData.walls },
+      connectedSockets: existing.tileData.connectedSockets ? { ...existing.tileData.connectedSockets } : undefined,
+    };
+
+    // Capture incoming socket links from other tiles pointing to this tile so Undo restores them
+    const incomingLinks: Array<{ tileId: string; socketId: string }> = [];
+    for (const [otherId, otherTile] of tilesMap.entries()) {
+      const conns = otherTile.tileData.connectedSockets;
+      if (!conns) continue;
+      for (const [sockId, targetId] of Object.entries(conns)) {
+        if (targetId === tileInstanceId) {
+          incomingLinks.push({ tileId: otherId, socketId: sockId });
+        }
+      }
+    }
+
+    const cmd: EditorCommand = {
+      name: `Remove ${savedTile.kitPieceId}`,
+      execute: () => {
+        this.courseManager.removeTile(tileInstanceId);
+        this.refreshOpenSockets();
+      },
+      undo: () => {
+        const restored: PlacedTile = {
+          ...savedTile,
+          position: savedTile.position ? ([...savedTile.position] as [number, number, number]) : undefined,
+          walls: { ...savedTile.walls },
+          connectedSockets: savedTile.connectedSockets ? { ...savedTile.connectedSockets } : undefined,
+        };
+        this.courseManager.addTile(restored, true);
+        for (const link of incomingLinks) {
+          const parent = tilesMap.get(link.tileId);
+          if (parent) {
+            parent.tileData.connectedSockets = parent.tileData.connectedSockets || {};
+            parent.tileData.connectedSockets[link.socketId] = tileInstanceId;
+          }
+        }
+        this.refreshOpenSockets();
+      },
+    };
+
+    this.history.execute(cmd);
+    this.onCourseModified?.();
+    return true;
   }
 
   /**
@@ -434,14 +785,7 @@ export class EditorController {
         if (targetTile && targetTile.tileData.connectedSockets) {
           delete targetTile.tileData.connectedSockets[targetSocket.socketId];
         }
-        // @ts-ignore
-        const instantiated = this.courseManager["tiles"].get(newInstanceId);
-        if (instantiated) {
-          this.scene.remove(instantiated.group);
-          // @ts-ignore
-          this.courseManager["tiles"].delete(newInstanceId);
-          this.courseManager.rebuildWeldedFloorPhysics();
-        }
+        this.courseManager.removeTile(newInstanceId);
         this.refreshOpenSockets();
       },
     };
@@ -452,17 +796,22 @@ export class EditorController {
 
   public setGizmosVisible(visible: boolean): void {
     this.socketGizmoGroup.visible = visible;
+    if (!visible) {
+      this.ghostGroup.visible = false;
+      this.selectionRing.visible = false;
+    }
   }
 
   public dispose(): void {
     this.canvas.removeEventListener("pointermove", this.handlePointerMove);
     this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
-    this.canvas.removeEventListener("contextmenu", this.handleContextMenu);
     if (typeof window !== "undefined") {
+      window.removeEventListener("pointerup", this.handlePointerUp);
       window.removeEventListener("keydown", this.handleKeyDown);
     }
     this.scene.remove(this.socketGizmoGroup);
+    this.scene.remove(this.ghostGroup);
+    this.scene.remove(this.selectionRing);
     this.history.clear();
   }
 }
-

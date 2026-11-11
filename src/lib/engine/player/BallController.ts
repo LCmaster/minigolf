@@ -126,11 +126,21 @@ export class BallController {
     return this.mesh.position;
   }
 
-  public dispose(): void {
-    this.scene.remove(this.mesh);
+  public setVisible(visible: boolean): void {
+    this.mesh.visible = visible;
+  }
+
+  public disablePhysics(): void {
     if (this.rigidBody) {
       this.rapierWorld.removeRigidBody(this.rigidBody);
+      this.rigidBody = undefined as unknown as RAPIER.RigidBody;
+      this.collider = undefined as unknown as RAPIER.Collider;
     }
+  }
+
+  public dispose(): void {
+    this.scene.remove(this.mesh);
+    this.disablePhysics();
   }
 }
 
