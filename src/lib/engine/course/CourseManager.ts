@@ -9,6 +9,12 @@ import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
+import {
+  CUP_DEPTH,
+  createCupVisualGroup,
+  createFlagBillboard,
+  disposeCupVisuals,
+} from "./GoalCupVisuals";
 
 export interface InstantiatedTile {
   tileData: PlacedTile;
@@ -359,6 +365,18 @@ export class CourseManager {
     this.onHoleChanged?.();
   }
 
+  private removeGoalVisuals(): void {
+    if (this.flagSprite) {
+      this.scene.remove(this.flagSprite);
+    }
+    if (this.visualCupGroup) {
+      this.scene.remove(this.visualCupGroup);
+    }
+    disposeCupVisuals(this.visualCupGroup, this.flagSprite);
+    this.flagSprite = null;
+    this.visualCupGroup = null;
+  }
+
   private createGoalSensor(cupRimPos: THREE.Vector3): void {
     if (this.goalSensorCollider) {
       this.rapierWorld.removeCollider(this.goalSensorCollider, false);
@@ -368,70 +386,14 @@ export class CourseManager {
       this.rapierWorld.removeCollider(this.cupBottomCollider, false);
       this.cupBottomCollider = null;
     }
-    if (this.flagSprite) {
-      this.scene.remove(this.flagSprite);
-      this.flagSprite = null;
-    }
-    if (this.visualCupGroup) {
-      this.scene.remove(this.visualCupGroup);
-      this.visualCupGroup = null;
-    }
+    this.removeGoalVisuals();
 
-    const CUP_DEPTH = 0.30;
     const cupFloorY = cupRimPos.y - CUP_DEPTH;
     this.goalPosition = cupRimPos.clone();
     this.cupBottomPosition = new THREE.Vector3(cupRimPos.x, cupFloorY, cupRimPos.z);
 
     // High-visibility real 3D circular cup liner and bottom indicator
-    const cupGroup = new THREE.Group();
-    cupGroup.name = "Visual_Cup_Cavity";
-    cupGroup.position.set(cupRimPos.x, cupRimPos.y, cupRimPos.z);
-
-    // 1. Dark matte cup interior cavity
-    const interiorGeo = new THREE.CylinderGeometry(0.38, 0.38, CUP_DEPTH, 32, 1, false);
-    const interiorMat = new THREE.MeshStandardMaterial({
-      color: 0x121214,
-      roughness: 0.85,
-      metalness: 0.05,
-    });
-    const interiorMesh = new THREE.Mesh(interiorGeo, interiorMat);
-    interiorMesh.position.y = -CUP_DEPTH * 0.5;
-    interiorMesh.receiveShadow = true;
-    cupGroup.add(interiorMesh);
-
-    // 2. High-contrast target indicator ring seated cleanly at the bottom of the hole
-    const bottomDiscGeo = new THREE.CircleGeometry(0.36, 32);
-    bottomDiscGeo.rotateX(-Math.PI / 2);
-    const bottomDiscMat = new THREE.MeshBasicMaterial({ color: 0x09090b });
-    const bottomDisc = new THREE.Mesh(bottomDiscGeo, bottomDiscMat);
-    bottomDisc.position.y = -CUP_DEPTH + 0.008;
-    cupGroup.add(bottomDisc);
-
-    const targetRingGeo = new THREE.RingGeometry(0.18, 0.30, 32);
-    targetRingGeo.rotateX(-Math.PI / 2);
-    const targetRingMat = new THREE.MeshBasicMaterial({
-      color: 0xf59e0b,
-      side: THREE.DoubleSide,
-    });
-    const targetRing = new THREE.Mesh(targetRingGeo, targetRingMat);
-    targetRing.position.y = -CUP_DEPTH + 0.012;
-    cupGroup.add(targetRing);
-
-    // 3. Crisp ceramic white cup rim collar at turf edge
-    const rimGeo = new THREE.RingGeometry(0.36, 0.425, 32);
-    rimGeo.rotateX(-Math.PI / 2);
-    const rimMat = new THREE.MeshStandardMaterial({
-      color: 0xf3f4f6,
-      roughness: 0.2,
-      metalness: 0.1,
-      side: THREE.DoubleSide,
-    });
-    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-    rimMesh.position.y = 0.005;
-    rimMesh.receiveShadow = true;
-    cupGroup.add(rimMesh);
-
-    this.visualCupGroup = cupGroup;
+    this.visualCupGroup = createCupVisualGroup(cupRimPos, CUP_DEPTH);
     this.scene.add(this.visualCupGroup);
 
     // Solid cup floor collider to physically catch and support balls at the bottom of the cup
@@ -449,66 +411,8 @@ export class CourseManager {
     this.goalSensorCollider = this.rapierWorld.createCollider(desc);
 
     // Tournament flag billboard planted with pole base at the true bottom of the cup
-    this.flagSprite = this.createFlagBillboard(this.cupBottomPosition);
+    this.flagSprite = createFlagBillboard(this.cupBottomPosition);
     this.scene.add(this.flagSprite);
-  }
-
-  private createFlagBillboard(cupFloorPos: THREE.Vector3): THREE.Sprite {
-    if (typeof document === "undefined") {
-      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }));
-      sprite.center.set(0.5, 0);
-      sprite.scale.set(1.5, 1.5, 1.0);
-      sprite.position.set(cupFloorPos.x, cupFloorPos.y, cupFloorPos.z);
-      return sprite;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.clearRect(0, 0, 128, 128);
-
-      // Slender gold flagpole extending flush to the bottom edge (cup bottom)
-      ctx.fillStyle = "#f59e0b";
-      ctx.fillRect(61, 16, 6, 112);
-      ctx.beginPath();
-      ctx.arc(64, 16, 5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Vibrant pennant flag
-      ctx.beginPath();
-      ctx.moveTo(67, 20);
-      ctx.lineTo(122, 36);
-      ctx.lineTo(67, 52);
-      ctx.closePath();
-      ctx.fillStyle = "#ef4444";
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#ffffff";
-      ctx.stroke();
-
-      // Pin icon
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 18px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("⛳", 88, 36);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: true,
-      depthWrite: false,
-    });
-    const sprite = new THREE.Sprite(material);
-    sprite.center.set(0.5, 0);
-    sprite.scale.set(1.6, 1.6, 1.0);
-    sprite.position.set(cupFloorPos.x, cupFloorPos.y, cupFloorPos.z);
-    return sprite;
   }
 
   public getCupBottomCollider(): RAPIER.Collider | null {
@@ -1054,14 +958,7 @@ export class CourseManager {
       this.rapierWorld.removeCollider(this.terrainCollider, false);
       this.terrainCollider = null;
     }
-    if (this.flagSprite) {
-      this.scene.remove(this.flagSprite);
-      this.flagSprite = null;
-    }
-    if (this.visualCupGroup) {
-      this.scene.remove(this.visualCupGroup);
-      this.visualCupGroup = null;
-    }
+    this.removeGoalVisuals();
   }
 }
 
