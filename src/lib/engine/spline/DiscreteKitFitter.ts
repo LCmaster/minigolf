@@ -23,6 +23,7 @@ import {
   type KitCandidatePiece,
   type ThemeVocabulary,
 } from "./KitVocabulary";
+import { evaluatePrefixFeasibility } from "./PathFeasibility";
 
 export type { KitCandidatePiece };
 
@@ -38,10 +39,6 @@ export interface FitSplineResult {
   invalidNodeIndices: number[];
   lastValidNodeIndex: number;
 }
-
-const MAX_VALID_POS_ERROR_M = 2.05;
-const MAX_VALID_HEADING_ERROR_DEG = 12.5;
-const MAX_VALID_END_LONGITUDINAL_ERROR_M = 3.15;
 
 interface PinnedHeroSpec {
   kitPieceId: string;
@@ -567,71 +564,15 @@ function solvePrefixChain(
     }
   }
 
-  // Identify arc-lengths of intermediate sharp/bevel corners so corner-pivot steps allow natural turning sweep
-  const cornerArcLocations: number[] = [];
-  for (let si = 0; si < samples.length; si++) {
-    if (samples[si].isSharpCorner || samples[si].isBevelArc) {
-      cornerArcLocations.push(samples[si].s);
-    }
-  }
-  const isNearCorner = (sVal: number): boolean =>
-    cornerArcLocations.some((cs) => Math.abs(cs - sVal) <= 3.6);
-
-  // Evaluate feasibility: exact elevation, physical ramp-run room, tracking within tolerance, and endpoint reach
-  let isValid = bestState.elevStep === finalElevStep;
-  if (isValid) {
-    for (let span = 0; span < prefixNodes.length - 1; span++) {
-      const stepDiff = Math.abs(
-        getElevationStep(prefixNodes[span + 1]) - getElevationStep(prefixNodes[span])
-      );
-      const segHorizLen = Math.hypot(
-        prefixNodes[span + 1].position[0] - prefixNodes[span].position[0],
-        prefixNodes[span + 1].position[2] - prefixNodes[span].position[2]
-      );
-      if (stepDiff > 0 && segHorizLen + 1.5 < stepDiff * 6.0) {
-        isValid = false;
-        break;
-      }
-    }
-  }
-  if (isValid) {
-    for (let si = 0; si < bestState.steps.length; si++) {
-      const st = bestState.steps[si];
-      const nearCorner = st.kind === "turn" || isNearCorner(st.projS);
-      if (st.posErr > (nearCorner ? 2.45 : MAX_VALID_POS_ERROR_M)) {
-        isValid = false;
-        break;
-      }
-      if (!nearCorner && st.headingDeg > MAX_VALID_HEADING_ERROR_DEG) {
-        isValid = false;
-        break;
-      }
-    }
-  }
-
-  if (isValid && prefixNodes.length >= 2) {
-    const prevNode = prefixNodes[prefixNodes.length - 2];
-    const legDir = new THREE.Vector2(
-      endNode.position[0] - prevNode.position[0],
-      endNode.position[2] - prevNode.position[2]
-    );
-    if (legDir.lengthSq() > 1e-6) {
-      legDir.normalize();
-      const dx = realizedEndPos.x - endNode.position[0];
-      const dz = realizedEndPos.z - endNode.position[2];
-      const perpErr = Math.abs(dx * -legDir.y + dz * legDir.x);
-      const longErr = Math.abs(dx * legDir.x + dz * legDir.y);
-      const endDot = THREE.MathUtils.clamp(realizedEndTan.dot(legDir), -1, 1);
-      const endHeadingDeg = (Math.acos(endDot) * 180) / Math.PI;
-      if (
-        perpErr > MAX_VALID_POS_ERROR_M ||
-        longErr > MAX_VALID_END_LONGITUDINAL_ERROR_M ||
-        endHeadingDeg > MAX_VALID_HEADING_ERROR_DEG
-      ) {
-        isValid = false;
-      }
-    }
-  }
+  const isValid = evaluatePrefixFeasibility({
+    achievedElevStep: bestState.elevStep,
+    finalElevStep,
+    prefixNodes,
+    samples,
+    steps: bestState.steps,
+    realizedEndPos,
+    realizedEndTan,
+  });
 
   return { tiles: fittedTiles, ghostSegments, isValid, realizedEndPos };
 }
