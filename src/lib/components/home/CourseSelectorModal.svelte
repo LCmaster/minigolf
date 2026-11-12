@@ -72,31 +72,8 @@
             <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-[#8b4c20]/90 to-[#592c0d]/95 border-t-4 border-[#a15c2b]/85"></div>
           </div>
 
-          <!-- Floating Cartoon SVG "SELECT COURSE" Header + Back Button Straddling Top Border -->
-          <div class="absolute -top-9 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center gap-2.5 whitespace-nowrap">
-            <button
-              on:click={closeModal}
-              aria-label="Back to Menu"
-              title="Back to Menu"
-              class="shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_4px_0_#431407,0_6px_14px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-105 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
-                <path
-                  d="M15 5L7 12L15 19"
-                  stroke="#ffffff"
-                  stroke-width="4"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M8 12H19"
-                  stroke="#ffffff"
-                  stroke-width="4"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-
+          <!-- Floating Cartoon SVG "SELECT COURSE" Header Straddling Top Border -->
+          <div class="absolute -top-9 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center whitespace-nowrap">
             <svg
               viewBox="0 0 540 88"
               class="w-72 md:w-[410px] h-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.45)] overflow-visible"
@@ -128,6 +105,23 @@
               </text>
             </svg>
           </div>
+
+          <!-- Upper-Right Close ("X") Button Straddling Top-Right Corner -->
+          <button
+            on:click={closeModal}
+            aria-label="Close Select Course"
+            title="Close"
+            class="absolute -top-5 -right-5 z-30 w-12 h-12 rounded-2xl bg-gradient-to-b from-rose-400 via-red-500 to-red-700 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_4px_0_#431407,0_8px_16px_rgba(0,0,0,0.5)] hover:brightness-110 hover:scale-105 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+              <path
+                d="M6 6L18 18M18 6L6 18"
+                stroke="#ffffff"
+                stroke-width="4.2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
 
           <!-- Left & Right Cartoon Arrow Buttons Straddling Side Borders -->
           <button
