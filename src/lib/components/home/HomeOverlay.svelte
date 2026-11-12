@@ -2,6 +2,7 @@
   import { createEventDispatcher } from "svelte";
   import MiniGolfManiaLogo from "./MiniGolfManiaLogo.svelte";
   import ProfileCornerCard from "./ProfileCornerCard.svelte";
+  import CourseSelectorModal from "./CourseSelectorModal.svelte";
 
   export let isSceneReady = false;
   export let user = null;
@@ -9,6 +10,7 @@
   export let isMuted = false;
 
   const dispatch = createEventDispatcher();
+  let showCourseSelector = false;
 </script>
 
 <!-- Loading Overlay while 3D Carnival Park Course initializes -->
@@ -47,17 +49,17 @@
     <MiniGolfManiaLogo />
 
     <div class="w-full max-w-[330px] flex flex-col gap-3">
-      <!-- Primary Play Button -->
-      <a
-        href="/play"
-        class="group relative w-full h-16 rounded-full bg-gradient-to-b from-[#a3e635] via-[#65a30d] to-[#3f6212] border-[3px] border-white shadow-[0_6px_0_#1a2e05,0_12px_24px_rgba(0,0,0,0.45)] hover:brightness-105 hover:scale-[1.03] active:translate-y-1 active:shadow-[0_2px_0_#1a2e05] transition-all flex items-center justify-center gap-3 overflow-hidden"
+      <!-- Primary Play Button (Opens Official Course Selector Carousel) -->
+      <button
+        on:click={() => (showCourseSelector = true)}
+        class="group relative w-full h-16 rounded-full bg-gradient-to-b from-[#a3e635] via-[#65a30d] to-[#3f6212] border-[3px] border-white shadow-[0_6px_0_#1a2e05,0_12px_24px_rgba(0,0,0,0.45)] hover:brightness-105 hover:scale-[1.03] active:translate-y-1 active:shadow-[0_2px_0_#1a2e05] transition-all flex items-center justify-center gap-3 overflow-hidden cursor-pointer"
       >
         <span class="absolute inset-x-4 top-1 h-4 rounded-full bg-white/30 pointer-events-none"></span>
         <span class="text-2xl md:text-3xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]">
           PLAY NOW
         </span>
         <span class="text-2xl text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]">▶</span>
-      </a>
+      </button>
 
       <!-- Track Builder (Logged-in users only) -->
       {#if user}
@@ -86,4 +88,6 @@
 
   <div class="h-4"></div>
 </div>
+
+<CourseSelectorModal bind:isOpen={showCourseSelector} />
 

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import MiniGolfManiaLogo from "./MiniGolfManiaLogo.svelte";
 import ProfileCornerCard from "./ProfileCornerCard.svelte";
 import HomeOverlay from "./HomeOverlay.svelte";
+import CourseSelectorModal from "./CourseSelectorModal.svelte";
+import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
 
 describe("Home Menu Cartoon Arcade Components", () => {
   it("renders animated cartoon MINI GOLF MANIA SVG logo with kawaii golf ball and tee I", () => {
@@ -77,6 +79,25 @@ describe("Home Menu Cartoon Arcade Components", () => {
     expect(authedMenuRes.html).toContain("TRACK BUILDER");
     expect(authedMenuRes.html).not.toContain("🛠️");
     expect(authedMenuRes.html).toContain("/editor");
+  });
+
+  it("renders CourseSelectorModal with SELECT COURSE header, Official Tour card, artwork, Par badge, and PLAY link", () => {
+    const res = (CourseSelectorModal as any).render({
+      isOpen: true,
+      courses: [carnivalParkCourse],
+    });
+    expect(res.html).toContain("SELECT COURSE");
+    expect(res.html).toContain(carnivalParkCourse.name);
+    expect(res.html).toContain("9 HOLES");
+    expect(res.html).toContain("PLAY");
+    expect(res.html).toContain("/play?course=course_carnival_park_showcase");
+    expect(res.html).toContain("/courses/carnival-park-card.png");
+
+    const closedRes = (CourseSelectorModal as any).render({
+      isOpen: false,
+      courses: [carnivalParkCourse],
+    });
+    expect(closedRes.html).not.toContain("SELECT COURSE");
   });
 });
 
