@@ -517,5 +517,111 @@ describe("EditorController Unit Tests", () => {
 
     editor.dispose();
   });
+
+  it("prioritizes track tiles over overlapping decorative scenery while keeping playable props on track selectable", () => {
+    assetLoaderMock.getPiece.mockImplementation((id: string) => {
+      if (id === "prop_bumper_star_pink") {
+        return {
+          name: "Star Bumper",
+          sockets: [],
+          metadata: { id, category: "props", propRole: "playable" },
+        };
+      }
+      if (id === "prop_carnival_tent_pavilion" || id === "prop_rock_spire_large") {
+        return {
+          name: id,
+          sockets: [],
+          metadata: { id, category: "props", propRole: "decorative" },
+        };
+      }
+      return {
+        name: "Straight 6m",
+        sockets: [],
+        metadata: { id, category: "straights", hasDynamicWalls: true },
+      };
+    });
+
+    const editor = new EditorController(
+      canvasMock,
+      camera,
+      scene,
+      courseManagerMock,
+      assetLoaderMock
+    );
+
+    const tileGroup = new THREE.Group();
+    tileGroup.userData = { tileInstanceId: "t_mid" };
+    const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 0.2, 6), new THREE.MeshBasicMaterial());
+    tileGroup.add(floorMesh);
+    tileGroup.updateMatrixWorld(true);
+    scene.add(tileGroup);
+    courseManagerMock.tiles.set("t_mid", {
+      tileData: { instanceId: "t_mid", kitPieceId: "carnival_straight_6m", walls: { left: true, right: true } },
+      pieceTemplate: { metadata: { name: "Straight 6m", hasDynamicWalls: true }, sockets: [] },
+      group: tileGroup,
+    });
+
+    const makeProp = (instanceId: string, propId: string, pos: [number, number, number], size: [number, number, number]) => {
+      const grp = new THREE.Group();
+      grp.userData = { propInstanceId: instanceId };
+      grp.position.set(...pos);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshBasicMaterial());
+      grp.add(mesh);
+      grp.updateMatrixWorld(true);
+      scene.add(grp);
+      courseManagerMock.addProp({
+        instanceId,
+        propId,
+        position: pos,
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      });
+      const stored = courseManagerMock.getProp(instanceId);
+      stored.group = grp;
+    };
+
+    // Overhead decorative pavilion straddling the track tile at (0, 2, 0)
+    makeProp("p_arch", "prop_carnival_tent_pavilion", [0, 2, 0], [3, 0.5, 3]);
+    // Playable bumper sitting on top of the track tile at (2, 0.4, 0)
+    makeProp("p_bumper", "prop_bumper_star_pink", [2, 0.4, 0], [1, 0.6, 1]);
+    // Decorative rock outside the track at (7, 0.5, 0)
+    makeProp("p_rock", "prop_rock_spire_large", [7, 0.5, 0], [2, 2, 2]);
+
+    const tileClicks: any[] = [];
+    editor.onTileClick = (info) => tileClicks.push(info);
+
+    camera.position.set(0, 14, 0.01);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true);
+
+    const projectToClient = (wx: number, wy: number, wz: number) => {
+      const v = new THREE.Vector3(wx, wy, wz).project(camera);
+      return {
+        clientX: ((v.x + 1) / 2) * 800,
+        clientY: ((1 - v.y) / 2) * 600,
+      };
+    };
+
+    const downCb = canvasMock.addEventListener.mock.calls.find((c: any) => c[0] === "pointerdown")![1];
+
+    // 1. Clicking over tile covered by decorative pavilion selects the TILE, not the pavilion
+    const ptTile = projectToClient(0, 0.1, 0);
+    downCb({ button: 0, ...ptTile });
+    expect(tileClicks.map((t) => t.tileInstanceId)).toEqual(["t_mid"]);
+    expect(editor.getSelectedPlacedPropId()).toBeNull();
+
+    // 2. Clicking on playable bumper on top of the tile selects the BUMPER
+    const ptBumper = projectToClient(2, 0.4, 0);
+    downCb({ button: 0, ...ptBumper });
+    expect(editor.getSelectedPlacedPropId()).toBe("p_bumper");
+    expect(tileClicks.length).toBe(1);
+
+    // 3. Clicking decorative rock outside track tiles selects the ROCK
+    const ptRock = projectToClient(7, 0.5, 0);
+    downCb({ button: 0, ...ptRock });
+    expect(editor.getSelectedPlacedPropId()).toBe("p_rock");
+
+    editor.dispose();
+  });
 });
 

@@ -9,6 +9,7 @@ import type { CourseManager } from "../course/CourseManager";
 import { SocketSolver } from "../course/SocketSolver";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, SplinePathData } from "../types/CourseSchema";
+import { getPiecePropRole, type PropRole } from "../types/KitTypes";
 import { HistoryManager, type EditorCommand } from "./HistoryManager";
 import { PropEditTool } from "./PropEditTool";
 import { type GridSnapSize } from "../spline/PolylineMath";
@@ -358,19 +359,23 @@ export class EditorController {
     return null;
   }
 
-  private findHitPropId(): string | null {
-    const propGroups = this.courseManager.getAllProps?.().map((p) => p.group) || [];
-    if (propGroups.length === 0) return null;
-    const propHits = this.raycaster.intersectObjects(propGroups, true);
-    if (propHits.length === 0) return null;
-    let obj: THREE.Object3D | null = propHits[0].object;
+  private resolvePropRole(propInstanceId: string): PropRole {
+    const inst = this.courseManager.getProp?.(propInstanceId);
+    if (!inst) return "decorative";
+    const meta = this.assetLoader.getPiece?.(inst.propData.propId)?.metadata;
+    if (meta) return getPiecePropRole(meta);
+    return getPiecePropRole({ id: inst.propData.propId, tags: [inst.propData.propId] });
+  }
+
+  private extractPropInstanceId(object: THREE.Object3D): string | null {
+    let obj: THREE.Object3D | null = object;
     while (obj && !obj.userData?.propInstanceId) {
       obj = obj.parent;
     }
     return obj?.userData?.propInstanceId || null;
   }
 
-  private findHitTileId(): string | null {
+  private findHitTile(): { id: string; distance: number } | null {
     const tiles = this.courseManager.getAllTiles?.() ?? [];
     const targets: THREE.Object3D[] = tiles.map((t) => t.group);
     targets.push(...this.gapOverlay.getPickables());
@@ -381,7 +386,45 @@ export class EditorController {
     while (obj && !obj.userData?.tileInstanceId) {
       obj = obj.parent;
     }
-    return obj?.userData?.tileInstanceId || null;
+    const id = obj?.userData?.tileInstanceId;
+    return id ? { id, distance: hits[0].distance } : null;
+  }
+
+  /**
+   * Resolves raycast priority between track tiles and props so overlapping scenery
+   * (arches, tents, knolls, rocks) never steals clicks meant for track tiles,
+   * while closer playable props (bumpers, boosters) remain clickable above track surfaces.
+   */
+  private pickInteractiveTarget(): { kind: "prop" | "tile"; id: string } | null {
+    const propGroups = this.courseManager.getAllProps?.().map((p) => p.group) || [];
+    const propHits = propGroups.length > 0 ? this.raycaster.intersectObjects(propGroups, true) : [];
+    const tileHit = this.findHitTile();
+
+    let firstAnyProp: { id: string; distance: number } | null = null;
+    let firstPlayableProp: { id: string; distance: number } | null = null;
+
+    for (const hit of propHits) {
+      const id = this.extractPropInstanceId(hit.object);
+      if (!id) continue;
+      if (!firstAnyProp) {
+        firstAnyProp = { id, distance: hit.distance };
+      }
+      if (!firstPlayableProp && this.resolvePropRole(id) === "playable") {
+        firstPlayableProp = { id, distance: hit.distance };
+        break;
+      }
+    }
+
+    if (firstPlayableProp && (!tileHit || firstPlayableProp.distance <= tileHit.distance + 0.05)) {
+      return { kind: "prop", id: firstPlayableProp.id };
+    }
+    if (tileHit) {
+      return { kind: "tile", id: tileHit.id };
+    }
+    if (firstAnyProp) {
+      return { kind: "prop", id: firstAnyProp.id };
+    }
+    return null;
   }
 
   public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
@@ -473,9 +516,8 @@ export class EditorController {
     this.canvas.style.cursor = "default";
 
     // 4. Prop or track tile / gap hover cursor feedback
-    const hoverProp = this.findHitPropId();
-    const hoverTile = !hoverProp ? this.findHitTileId() : null;
-    this.canvas.style.cursor = hoverProp || hoverTile ? "pointer" : "default";
+    const hoverTarget = this.pickInteractiveTarget();
+    this.canvas.style.cursor = hoverTarget ? "pointer" : "default";
   };
 
   private handlePointerDown = (ev: PointerEvent): void => {
@@ -495,14 +537,11 @@ export class EditorController {
 
     // 0. Erase mode
     if (this.eraseMode) {
-      const hitPropId = this.findHitPropId();
-      if (hitPropId) {
-        this.deleteProp(hitPropId);
-        return;
-      }
-      const hitTileId = this.findHitTileId();
-      if (hitTileId) {
-        this.deleteTile(hitTileId);
+      const target = this.pickInteractiveTarget();
+      if (target?.kind === "prop") {
+        this.deleteProp(target.id);
+      } else if (target?.kind === "tile") {
+        this.deleteTile(target.id);
       }
       return;
     }
@@ -524,26 +563,23 @@ export class EditorController {
       return;
     }
 
-    // 3. Select / begin drag on existing placed prop
-    const hitPropId = this.findHitPropId();
-    if (hitPropId) {
-      this.selectPlacedProp(hitPropId);
-      this.propTool.beginDrag(hitPropId);
+    // 3. Pick playable prop, track tile (priority over overlapping scenery), or freeform scenery prop
+    const target = this.pickInteractiveTarget();
+    if (target?.kind === "prop") {
+      this.selectPlacedProp(target.id);
+      this.propTool.beginDrag(target.id);
       return;
     }
-
-    // 4. Left-clicking any track tile (including its walls or gap wireframe) opens Tile Action Popover
-    const hitTileId = this.findHitTileId();
-    if (hitTileId) {
+    if (target?.kind === "tile") {
       this.selectPlacedProp(null);
-      const info = this.getTileClickInfo(hitTileId);
+      const info = this.getTileClickInfo(target.id);
       if (info) {
         this.onTileClick?.(info, ev.clientX, ev.clientY);
       }
       return;
     }
 
-    // 5. Clicking empty space clears prop selection
+    // 4. Clicking empty space clears prop selection
     this.selectPlacedProp(null);
   };
 
