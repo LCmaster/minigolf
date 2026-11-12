@@ -59,23 +59,24 @@
     <!-- Cartoon Dark Outer Rim + Rainbow Beveled Frame -->
     <div class="relative w-full max-w-3xl rounded-[2.4rem] p-[4px] bg-[#2a1205] shadow-[0_24px_60px_rgba(0,0,0,0.7)]">
       <div class="rounded-[2.2rem] p-[7px] bg-gradient-to-r from-amber-300 via-pink-400 via-50% to-sky-400">
-        <div class="relative rounded-[1.85rem] border-[3px] border-[#3b1c08] overflow-hidden px-5 pt-11 pb-6 md:px-10 bg-sky-300">
-          <!-- Blurred Active Course Artwork Backdrop -->
-          <img
-            src={getCardArtwork(activeCourse)}
-            alt=""
-            aria-hidden="true"
-            class="absolute inset-0 w-full h-full object-cover blur-[5px] scale-105 brightness-95 pointer-events-none"
-          />
-          <div class="absolute inset-0 bg-gradient-to-b from-slate-900/15 via-transparent to-[#4a2810]/70 pointer-events-none"></div>
-          <!-- Wooden Deck Strip at the Bottom -->
-          <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-[#8b4c20]/90 to-[#592c0d]/95 border-t-4 border-[#a15c2b]/85 pointer-events-none"></div>
+        <div class="relative rounded-[1.85rem] border-[3px] border-[#3b1c08] px-6 pt-12 pb-6 md:px-12 bg-sky-300">
+          <!-- Clipped Inner Backdrop (Blurred Course Artwork + Wooden Deck Strip) -->
+          <div class="absolute inset-0 rounded-[1.68rem] overflow-hidden pointer-events-none">
+            <img
+              src={getCardArtwork(activeCourse)}
+              alt=""
+              aria-hidden="true"
+              class="w-full h-full object-cover blur-[5px] scale-105 brightness-95"
+            />
+            <div class="absolute inset-0 bg-gradient-to-b from-slate-900/15 via-transparent to-[#4a2810]/70"></div>
+            <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-[#8b4c20]/90 to-[#592c0d]/95 border-t-4 border-[#a15c2b]/85"></div>
+          </div>
 
-          <!-- Floating Cartoon SVG "SELECT COURSE" Header + Back Button -->
-          <div class="relative -mt-16 mb-3 flex items-center justify-center gap-2">
+          <!-- Floating Cartoon SVG "SELECT COURSE" Header + Back Button Straddling Top Border -->
+          <div class="absolute -top-9 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center gap-2.5 whitespace-nowrap">
             <svg
               viewBox="0 0 540 88"
-              class="w-72 md:w-[400px] h-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.45)] overflow-visible"
+              class="w-72 md:w-[410px] h-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.45)] overflow-visible"
               role="heading"
               aria-level="2"
             >
@@ -128,25 +129,41 @@
             </button>
           </div>
 
-          <!-- Carousel Stage -->
-          <div class="relative z-10 flex items-center justify-center gap-3 md:gap-6 pt-1">
-            <!-- Left Cartoon Arrow Button -->
-            <button
-              on:click={() => stepCourse(-1)}
-              aria-label="Previous Course"
-              class="shrink-0 w-14 h-14 rounded-full bg-gradient-to-b from-pink-300 via-rose-500 to-amber-500 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_5px_0_#881337,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <svg viewBox="0 0 24 24" class="w-7 h-7 -ml-0.5" fill="none">
-                <path
-                  d="M16 4L6 12L16 20V4Z"
-                  fill="#ffffff"
-                  stroke="#881337"
-                  stroke-width="2"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
+          <!-- Left & Right Cartoon Arrow Buttons Straddling Side Borders -->
+          <button
+            on:click={() => stepCourse(-1)}
+            aria-label="Previous Course"
+            class="absolute -left-7 top-1/2 -translate-y-1/2 z-30 w-14 h-14 rounded-full bg-gradient-to-b from-pink-300 via-rose-500 to-amber-500 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_5px_0_#881337,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" class="w-7 h-7 -ml-0.5" fill="none">
+              <path
+                d="M16 4L6 12L16 20V4Z"
+                fill="#ffffff"
+                stroke="#881337"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
 
+          <button
+            on:click={() => stepCourse(1)}
+            aria-label="Next Course"
+            class="absolute -right-7 top-1/2 -translate-y-1/2 z-30 w-14 h-14 rounded-full bg-gradient-to-b from-lime-300 via-emerald-500 to-green-700 border-[3px] border-white ring-2 ring-[#14532d] shadow-[0_5px_0_#14532d,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" class="w-7 h-7 ml-0.5" fill="none">
+              <path
+                d="M8 4L18 12L8 20V4Z"
+                fill="#ffffff"
+                stroke="#14532d"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <!-- Carousel Stage -->
+          <div class="relative z-10 flex items-center justify-center pt-1">
             <!-- 3-Slot Carousel Display -->
             <div class="flex items-center justify-center gap-4 w-full">
               {#if prevCourse}
@@ -214,23 +231,6 @@
                 </button>
               {/if}
             </div>
-
-            <!-- Right Cartoon Arrow Button -->
-            <button
-              on:click={() => stepCourse(1)}
-              aria-label="Next Course"
-              class="shrink-0 w-14 h-14 rounded-full bg-gradient-to-b from-lime-300 via-emerald-500 to-green-700 border-[3px] border-white ring-2 ring-[#14532d] shadow-[0_5px_0_#14532d,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <svg viewBox="0 0 24 24" class="w-7 h-7 ml-0.5" fill="none">
-                <path
-                  d="M8 4L18 12L8 20V4Z"
-                  fill="#ffffff"
-                  stroke="#14532d"
-                  stroke-width="2"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
           </div>
 
           <!-- Pagination Dots & Secondary Link to Hole Browser -->
