@@ -59,11 +59,17 @@
     <!-- Cartoon Dark Outer Rim + Rainbow Beveled Frame -->
     <div class="relative w-full max-w-3xl rounded-[2.4rem] p-[4px] bg-[#2a1205] shadow-[0_24px_60px_rgba(0,0,0,0.7)]">
       <div class="rounded-[2.2rem] p-[7px] bg-gradient-to-r from-amber-300 via-pink-400 via-50% to-sky-400">
-        <div class="relative rounded-[1.85rem] border-[3px] border-[#3b1c08] overflow-hidden px-5 pt-11 pb-6 md:px-10 bg-gradient-to-b from-sky-300 via-sky-200 to-[#7c431b]">
-          <!-- Subtle Scenic Sky Clouds & Wooden Deck Floor inside Modal -->
-          <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-[#8b4c20] to-[#592c0d] border-t-4 border-[#a15c2b] pointer-events-none"></div>
-          <div class="absolute top-6 left-10 w-24 h-8 bg-white/60 rounded-full blur-[1px] pointer-events-none"></div>
-          <div class="absolute top-10 right-14 w-32 h-9 bg-white/55 rounded-full blur-[1px] pointer-events-none"></div>
+        <div class="relative rounded-[1.85rem] border-[3px] border-[#3b1c08] overflow-hidden px-5 pt-11 pb-6 md:px-10 bg-sky-300">
+          <!-- Blurred Active Course Artwork Backdrop -->
+          <img
+            src={getCardArtwork(activeCourse)}
+            alt=""
+            aria-hidden="true"
+            class="absolute inset-0 w-full h-full object-cover blur-[5px] scale-105 brightness-95 pointer-events-none"
+          />
+          <div class="absolute inset-0 bg-gradient-to-b from-slate-900/15 via-transparent to-[#4a2810]/70 pointer-events-none"></div>
+          <!-- Wooden Deck Strip at the Bottom -->
+          <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-[#8b4c20]/90 to-[#592c0d]/95 border-t-4 border-[#a15c2b]/85 pointer-events-none"></div>
 
           <!-- Floating Cartoon SVG "SELECT COURSE" Header + Back Button -->
           <div class="relative -mt-16 mb-3 flex items-center justify-center gap-2">
