@@ -44,6 +44,8 @@ export interface SplinePathData {
   closed?: false;
 }
 
+export type CourseVisibility = "private" | "public";
+
 export interface HoleData {
   holeNumber: number; // 1 to 18
   name?: string; // Optional display title for tour HUD & editor
@@ -54,6 +56,8 @@ export interface HoleData {
   props: PlacedProp[];
   showBoundary?: boolean; // Render delimited park perimeter around hole
   splinePath?: SplinePathData; // Optional persisted authoring spline path
+  visibility?: CourseVisibility; // Private draft vs shareable/community-eligible hole
+  allowRemix?: boolean; // Whether community players may remix this custom hole
 }
 
 export interface CourseData {
@@ -64,6 +68,7 @@ export interface CourseData {
   authorName?: string;
   createdAt: number; // Timestamp ms
   updatedAt: number; // Timestamp ms
+  visibility?: CourseVisibility; // Private draft vs public community-playable tour
   holes: HoleData[];
 }
 
