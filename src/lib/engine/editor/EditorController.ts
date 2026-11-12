@@ -34,14 +34,10 @@ import {
 } from "../spline/SplineTrackSync";
 import { fitTilesToSpline } from "../spline/DiscreteKitFitter";
 import { SplineOverlay } from "../spline/SplineOverlay";
+import { SocketOverlayManager, type OpenSocketInfo } from "./SocketOverlayManager";
+import { GapOverlayManager } from "./GapOverlayManager";
 
-export interface OpenSocketInfo {
-  tileInstanceId: string;
-  socketId: string;
-  worldPosition: THREE.Vector3;
-  normal: THREE.Vector3;
-  elevation: number;
-}
+export type { OpenSocketInfo };
 
 export interface SelectedSplineNodeInfo {
   index: number;
@@ -80,15 +76,17 @@ export class EditorController {
   private assetLoader: AssetLoader;
 
   public history: HistoryManager;
-  public openSockets: OpenSocketInfo[] = [];
 
   // Visual gizmos & previews
-  private socketGizmoGroup: THREE.Group;
-  private gapGizmoGroup: THREE.Group;
+  private socketOverlay: SocketOverlayManager;
+  private gapOverlay: GapOverlayManager;
   private ghostGroup: THREE.Group;
   private selectionRing: THREE.Mesh;
   private raycaster: THREE.Raycaster;
-  private hoveredSocket: OpenSocketInfo | null = null;
+
+  public get openSockets(): OpenSocketInfo[] {
+    return this.socketOverlay.openSockets;
+  }
 
   private selectedPropId: string | null = null;
   private propRotationY: number = 0;
@@ -152,13 +150,8 @@ export class EditorController {
     this.history = new HistoryManager();
     this.raycaster = new THREE.Raycaster();
 
-    this.socketGizmoGroup = new THREE.Group();
-    this.socketGizmoGroup.name = "Editor_SocketGizmos";
-    this.scene.add(this.socketGizmoGroup);
-
-    this.gapGizmoGroup = new THREE.Group();
-    this.gapGizmoGroup.name = "Editor_GapGizmos";
-    this.scene.add(this.gapGizmoGroup);
+    this.socketOverlay = new SocketOverlayManager(this.scene);
+    this.gapOverlay = new GapOverlayManager(this.scene);
 
     this.ghostGroup = new THREE.Group();
     this.ghostGroup.name = "Editor_PropGhost";
@@ -352,8 +345,8 @@ export class EditorController {
       this.selectedPropId = null;
       this.rebuildGhostPreview();
       this.selectPlacedProp(null);
-      this.socketGizmoGroup.visible = false;
-      this.gapGizmoGroup.visible = false;
+      this.socketOverlay.setVisible(false);
+      this.gapOverlay.setVisible(false);
       this.syncSplineFromCourse();
       if (this.activeSpline && this.activeSpline.nodes.length > 0) {
         this.selectedSplineNodeIndex = this.activeSpline.nodes.length - 1;
@@ -363,8 +356,8 @@ export class EditorController {
     } else {
       this.draggingSpline = null;
       this.splineOverlay.setVisible(false);
-      this.socketGizmoGroup.visible = this.enabled;
-      this.gapGizmoGroup.visible = this.enabled;
+      this.socketOverlay.setVisible(this.enabled);
+      this.gapOverlay.setVisible(this.enabled);
       this.refreshOpenSockets();
       this.onSplineSelectionChanged?.(null);
     }
@@ -739,117 +732,9 @@ export class EditorController {
   }
 
   public refreshOpenSockets(): void {
-    this.openSockets = [];
-    while (this.socketGizmoGroup.children.length > 0) {
-      this.socketGizmoGroup.remove(this.socketGizmoGroup.children[0]);
-    }
-
     const tiles = this.courseManager.getAllTiles?.() ?? [];
-    for (const instantiated of tiles) {
-      const instanceId = instantiated.tileData.instanceId;
-      const tileData: PlacedTile = instantiated.tileData;
-      const template = instantiated.pieceTemplate;
-      const group = instantiated.group;
-
-      for (const socket of template.sockets) {
-        if (tileData.connectedSockets && tileData.connectedSockets[socket.id]) {
-          continue;
-        }
-
-        const localPos = new THREE.Vector3(...socket.position);
-        localPos.applyEuler(group.rotation);
-        const worldPos = new THREE.Vector3().addVectors(group.position, localPos);
-
-        const localNorm = new THREE.Vector3(...socket.normal);
-        localNorm.applyEuler(group.rotation).normalize();
-
-        const info: OpenSocketInfo = {
-          tileInstanceId: instanceId,
-          socketId: socket.id,
-          worldPosition: worldPos,
-          normal: localNorm,
-          elevation: worldPos.y,
-        };
-
-        this.openSockets.push(info);
-        this.createSocketGizmo(info);
-      }
-    }
-
-    this.refreshGapGizmos();
-  }
-
-  private refreshGapGizmos(): void {
-    while (this.gapGizmoGroup.children.length > 0) {
-      const child = this.gapGizmoGroup.children[0];
-      this.gapGizmoGroup.remove(child);
-    }
-
-    const tiles = this.courseManager.getAllTiles?.() ?? [];
-    for (const instantiated of tiles) {
-      const instanceId = instantiated.tileData.instanceId;
-      const tileData: PlacedTile = instantiated.tileData;
-      if (!tileData.isGap) continue;
-
-      const template = instantiated.pieceTemplate;
-      const group: THREE.Group = instantiated.group;
-      const dims = template?.metadata?.dimensions || [6, 0.6, 6];
-      const w = Math.max(2, dims[0]);
-      const l = Math.max(2, dims[2]);
-
-      const hitGeo = new THREE.BoxGeometry(w, 0.45, l);
-      const hitMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        transparent: true,
-        opacity: 0.14,
-        depthWrite: false,
-      });
-      const hitMesh = new THREE.Mesh(hitGeo, hitMat);
-
-      // Center hit box along the tile span (or midpoint between In/Out sockets if offset)
-      const inSock = template?.sockets?.find((s: any) => s.id === "LOC_Socket_In");
-      const outSock = template?.sockets?.find((s: any) => s.id === "LOC_Socket_Out");
-      const centerLocal = new THREE.Vector3(0, 0.12, 0);
-      if (inSock && outSock) {
-        centerLocal.set(
-          (inSock.position[0] + outSock.position[0]) * 0.5,
-          (inSock.position[1] + outSock.position[1]) * 0.5 + 0.12,
-          (inSock.position[2] + outSock.position[2]) * 0.5
-        );
-      }
-
-      hitMesh.position.copy(centerLocal.applyEuler(group.rotation).add(group.position));
-      hitMesh.rotation.copy(group.rotation);
-      hitMesh.userData = { tileInstanceId: instanceId };
-
-      const edges = new THREE.EdgesGeometry(hitGeo);
-      const wire = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 })
-      );
-      wire.userData = { tileInstanceId: instanceId };
-      hitMesh.add(wire);
-
-      this.gapGizmoGroup.add(hitMesh);
-    }
-  }
-
-  private createSocketGizmo(info: OpenSocketInfo): void {
-    const ringGeo = new THREE.TorusGeometry(0.8, 0.08, 16, 32);
-    ringGeo.rotateX(Math.PI / 2);
-
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.85,
-    });
-
-    const gizmo = new THREE.Mesh(ringGeo, ringMat);
-    gizmo.position.copy(info.worldPosition);
-    gizmo.position.y += 0.05;
-    gizmo.userData = { socketInfo: info };
-
-    this.socketGizmoGroup.add(gizmo);
+    this.socketOverlay.refresh(tiles);
+    this.gapOverlay.refresh(tiles);
   }
 
   private getSurfaceHitPoint(clientX: number, clientY: number): THREE.Vector3 | null {
@@ -887,9 +772,7 @@ export class EditorController {
   private findHitTileId(): string | null {
     const tiles = this.courseManager.getAllTiles?.() ?? [];
     const targets: THREE.Object3D[] = tiles.map((t) => t.group);
-    if (this.gapGizmoGroup.visible && this.gapGizmoGroup.children.length > 0) {
-      targets.push(...this.gapGizmoGroup.children);
-    }
+    targets.push(...this.gapOverlay.getPickables());
     if (targets.length === 0) return null;
     const hits = this.raycaster.intersectObjects(targets, true);
     if (hits.length === 0) return null;
@@ -1038,22 +921,12 @@ export class EditorController {
     }
 
     // 3. Socket gizmo raycast
-    const socketIntersects = this.raycaster.intersectObjects(this.socketGizmoGroup.children);
-    if (socketIntersects.length > 0) {
-      const hit = socketIntersects[0].object as THREE.Mesh;
-      this.hoveredSocket = hit.userData.socketInfo;
-      (hit.material as THREE.MeshBasicMaterial).color.setHex(0xffaa00);
+    const hoveredSocket = this.socketOverlay.updateHover(this.raycaster);
+    if (hoveredSocket) {
       this.canvas.style.cursor = "pointer";
       return;
-    } else {
-      this.hoveredSocket = null;
-      this.canvas.style.cursor = "default";
-      for (const child of this.socketGizmoGroup.children) {
-        if (child instanceof THREE.Mesh) {
-          (child.material as THREE.MeshBasicMaterial).color.setHex(0x00ffff);
-        }
-      }
     }
+    this.canvas.style.cursor = "default";
 
     // 4. Prop or track tile / gap hover cursor feedback
     const hoverProp = this.findHitPropId();
@@ -1139,9 +1012,9 @@ export class EditorController {
     }
 
     // 2. Socket click
-    if (this.hoveredSocket) {
+    if (this.socketOverlay.hoveredSocket) {
       this.selectPlacedProp(null);
-      this.onSocketClick?.(this.hoveredSocket, ev.clientX, ev.clientY);
+      this.onSocketClick?.(this.socketOverlay.hoveredSocket, ev.clientX, ev.clientY);
       return;
     }
 
@@ -1579,7 +1452,7 @@ export class EditorController {
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (!enabled) {
-      this.hoveredSocket = null;
+      this.socketOverlay.clearHover();
       this.draggingProp = null;
       this.draggingSpline = null;
       this.splineOverlay.clearGhost();
@@ -1595,8 +1468,8 @@ export class EditorController {
 
   public setGizmosVisible(visible: boolean): void {
     this.setEnabled(visible);
-    this.socketGizmoGroup.visible = visible && !this.trackPathMode;
-    this.gapGizmoGroup.visible = visible && !this.trackPathMode;
+    this.socketOverlay.setVisible(visible && !this.trackPathMode);
+    this.gapOverlay.setVisible(visible && !this.trackPathMode);
     this.splineOverlay.setVisible(visible && this.trackPathMode);
     if (!visible) {
       this.ghostGroup.visible = false;
@@ -1613,8 +1486,8 @@ export class EditorController {
       window.removeEventListener("keydown", this.handleKeyDown);
     }
     this.splineOverlay.dispose();
-    this.scene.remove(this.socketGizmoGroup);
-    this.scene.remove(this.gapGizmoGroup);
+    this.socketOverlay.dispose();
+    this.gapOverlay.dispose();
     this.scene.remove(this.ghostGroup);
     this.scene.remove(this.selectionRing);
     this.history.clear();
