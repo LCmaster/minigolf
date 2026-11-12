@@ -40,6 +40,7 @@ describe("Carnival Park Course Simulation (Sunny Creek & Midway Bend)", () => {
       let ubxWallLGeo: THREE.BufferGeometry | null = null;
       let ubxWallRGeo: THREE.BufferGeometry | null = null;
       let ubxWallBackGeo: THREE.BufferGeometry | null = null;
+      let ubxSensorGeo: THREE.BufferGeometry | null = null;
       const ubxColliderGeos: THREE.BufferGeometry[] = [];
       const locators = new Map<string, THREE.Vector3>();
       const sockets: SocketDefinition[] = [];
@@ -63,6 +64,9 @@ describe("Carnival Park Course Simulation (Sunny Creek & Midway Bend)", () => {
         } else if ((cleanName === "UBX_Wall_Back" || cleanName === "UBX_Wall_B") && child instanceof THREE.Mesh) {
           ubxWallBackGeo = child.geometry.clone();
           ubxWallBackGeo.applyMatrix4(child.matrixWorld);
+        } else if (cleanName.includes("Sensor") && cleanName.startsWith("UBX_") && child instanceof THREE.Mesh) {
+          ubxSensorGeo = child.geometry.clone();
+          ubxSensorGeo.applyMatrix4(child.matrixWorld);
         } else if (cleanName.startsWith("UBX_") && child instanceof THREE.Mesh) {
           const g = child.geometry.clone();
           g.applyMatrix4(child.matrixWorld);
@@ -85,6 +89,7 @@ describe("Carnival Park Course Simulation (Sunny Creek & Midway Bend)", () => {
         ubxWallLGeometry: ubxWallLGeo,
         ubxWallRGeometry: ubxWallRGeo,
         ubxWallBackGeometry: ubxWallBackGeo,
+        ubxSensorGeometry: ubxSensorGeo,
         ubxColliderGeometries: ubxColliderGeos,
         sockets: sockets.length > 0 ? sockets : meta.sockets,
         locators,
@@ -198,5 +203,137 @@ describe("Carnival Park Course Simulation (Sunny Creek & Midway Bend)", () => {
     ball.dispose();
     cm.clear();
     world.free();
+  });
+
+  it("provides a complete 9-hole stylized Carnival Park course with valid socket chains, zero self-overlaps, new signature assets, and playable roll on every hole", () => {
+    expect(carnivalParkCourse.holes).toHaveLength(9);
+
+    const usedTiles = new Set<string>();
+    const usedProps = new Set<string>();
+
+    for (let idx = 0; idx < carnivalParkCourse.holes.length; idx++) {
+      const hole = carnivalParkCourse.holes[idx];
+      expect(hole.holeNumber).toBe(idx + 1);
+      expect(hole.par).toBeGreaterThanOrEqual(3);
+      expect(hole.tiles.length).toBeGreaterThanOrEqual(4);
+
+      for (const t of hole.tiles) usedTiles.add(t.kitPieceId);
+      for (const p of hole.props) usedProps.add(p.propId);
+
+      const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+      const scene = new THREE.Scene();
+      const cm = new CourseManager(scene, world, RAPIER, mockAssetLoader);
+      const ball = new BallController(scene, world, RAPIER);
+
+      cm.loadHole(hole);
+      const placedTiles = cm.getAllTiles();
+      expect(placedTiles.length).toBe(hole.tiles.length);
+      expect(cm.getAllProps().length).toBe(hole.props.length);
+      expect(cm.goalPosition).not.toBeNull();
+      expect(cm.getGoalSensorCollider()).not.toBeNull();
+
+      // Verify no non-adjacent tile centers overlap at the same elevation
+      for (let i = 0; i < placedTiles.length; i++) {
+        for (let j = i + 2; j < placedTiles.length; j++) {
+          const a = placedTiles[i].group.position;
+          const b = placedTiles[j].group.position;
+          const horizDist = Math.hypot(a.x - b.x, a.z - b.z);
+          if (Math.abs(a.y - b.y) < 0.8) {
+            expect(horizDist).toBeGreaterThan(4.2);
+          }
+        }
+      }
+
+      // Forward putt from tee should roll along -Z and stay cleanly supported on the course
+      ball.createPhysicsBody(cm.spawnPosition);
+      ball.shoot(new THREE.Vector3(0, 0, -0.05));
+      for (let s = 0; s < 120; s++) {
+        world.step();
+        ball.update();
+      }
+      const pos = ball.getPosition();
+      expect(pos.z).toBeLessThan(cm.spawnPosition.z - 2.0);
+      expect(pos.y).toBeGreaterThan(-0.5);
+
+      ball.dispose();
+      cm.clear();
+      world.free();
+    }
+
+    expect(usedTiles.has("carnival_split_lane_6x12")).toBe(true);
+    expect(usedTiles.has("carnival_tunnel_6x6")).toBe(true);
+    expect(usedProps.has("prop_carnival_hoop_6m")).toBe(true);
+    expect(usedProps.has("prop_carnival_tent_pavilion")).toBe(true);
+    expect(usedProps.has("prop_bumper_star_pink")).toBe(true);
+  });
+
+  it("simulates Hole 3 Carousel Split deflection and Hole 4 Sky-Hoop boosted aerial jump over the 6m gap", () => {
+    // 1. Hole 4: booster pad + ramp jump clears the 6m gap under prop_carnival_hoop_6m to Y=1.5m landing
+    {
+      const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+      const scene = new THREE.Scene();
+      const cm = new CourseManager(scene, world, RAPIER, mockAssetLoader);
+      const ball = new BallController(scene, world, RAPIER);
+      const eventQueue = new RAPIER.EventQueue(true);
+
+      cm.loadHole(carnivalParkCourse.holes[3]); // Hole 4
+      ball.createPhysicsBody(cm.spawnPosition);
+      ball.shoot(new THREE.Vector3(0, 0, -0.145));
+
+      let boosted = false;
+      for (let s = 0; s < 320; s++) {
+        world.step(eventQueue);
+        eventQueue.drainCollisionEvents((h1, h2, started) => {
+          if (!started) return;
+          const b1 = cm.getBoosterSensor(h1);
+          const b2 = cm.getBoosterSensor(h2);
+          const info = b1 || b2;
+          if (info && !boosted) {
+            boosted = true;
+            ball.applyImpulse(info.direction.clone().multiplyScalar(info.impulse));
+          }
+        });
+        ball.update();
+      }
+
+      expect(boosted).toBe(true);
+      const finalPos = ball.getPosition();
+      // Landed beyond the Z=-15..Z=-9 gap cleanly onto the lower green deck (Z < -15, Y ~ 0.08)
+      expect(finalPos.z).toBeLessThan(-15.0);
+      expect(finalPos.y).toBeGreaterThan(-0.05);
+      expect(finalPos.y).toBeLessThan(0.6);
+
+      eventQueue.free();
+      ball.dispose();
+      cm.clear();
+      world.free();
+    }
+
+    // 2. Hole 3: angled bank shot passes through Funhouse Tunnel and deflects past Carousel Split island
+    {
+      const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+      const scene = new THREE.Scene();
+      const cm = new CourseManager(scene, world, RAPIER, mockAssetLoader);
+      const ball = new BallController(scene, world, RAPIER);
+
+      cm.loadHole(carnivalParkCourse.holes[2]); // Hole 3
+      ball.createPhysicsBody(cm.spawnPosition);
+      ball.shoot(new THREE.Vector3(0.018, 0, -0.105));
+
+      for (let s = 0; s < 280; s++) {
+        world.step();
+        ball.update();
+      }
+
+      const pos = ball.getPosition();
+      expect(pos.y).toBeGreaterThan(-0.1);
+      expect(pos.y).toBeLessThan(0.5);
+      // Cleared tunnel (Z=0) and past carousel split island center (Z=-9 -> Z < -12)
+      expect(pos.z).toBeLessThan(-12.0);
+
+      ball.dispose();
+      cm.clear();
+      world.free();
+    }
   });
 });

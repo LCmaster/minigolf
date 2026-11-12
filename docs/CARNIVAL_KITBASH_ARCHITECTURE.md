@@ -82,7 +82,8 @@ Instead of a floating island void, `RenderPipeline.ts` creates a `ParkBackdrop`:
 - **Procedural Generation (`HoleGenerator.ts` & `AutoDecorate.ts`)**:
   - `HoleGenerator.generateHole({ par, style, includeObstacles, theme })` builds guaranteed-solvable socket-connected layouts in either `country_club` or `carnival_park` theme (inserting `carnival_bridge_pond_6x12` and ramps when enabled).
   - `autoDecorateHole()` (also triggered manually via **🌲 Decorate** in `/editor`) adds `terrain_hill_knoll_6x6` under elevated tiles, `prop_carnival_arch_6m` over the tee, and scatters trees, boulders, toadstools, grass tufts, and wildflowers outside a `6.2m` track clearance radius without removing existing user props.
-- **Save & Play (`CourseStorage.ts` → `/play`)**:
+- **Save, 9-Hole Tour & Play (`carnivalParkCourse.ts`, `carnivalShowcaseHoles.ts`, `CourseStorage.ts` → `/play`)**:
+  - `carnivalParkCourse.ts` provides a full **9-hole** stylized tour (**1. Sunny Creek & Midway Bend**, **2. Big Top Windmill**, **3. Carousel Split**, **4. Sky-Hoop Leap**, **5. Midway Pinball Alley**, **6. Cliffside Switchback**, **7. Candy Cove Crosswalk**, **8. Funhouse Turbo Slalom**, **9. Grand Big-Top Finale**) featuring the custom Blender kitbash attractions (`carnival_split_lane_6x12`, `carnival_tunnel_6x6`, `prop_carnival_hoop_6m`, `prop_carnival_tent_pavilion`, and `prop_bumper_star_pink`).
   - Clicking **💾 Save** stores the hole locally (`localStorage`) and surfaces a **🎮 Play Saved** link (`/play?course=<id>`).
-  - `/play` (`src/routes/play/+page.svelte`) includes a course selector dropdown with **Carnival Park Showcase** and all user-saved custom courses.
+  - `/play` (`src/routes/play/+page.svelte`) includes a course selector dropdown with **Carnival Park Showcase** (all 9 holes) and all user-saved custom courses.
 

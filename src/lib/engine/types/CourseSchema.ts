@@ -46,6 +46,7 @@ export interface SplinePathData {
 
 export interface HoleData {
   holeNumber: number; // 1 to 18
+  name?: string; // Optional display title for tour HUD & editor
   par: number; // Standard par target (2, 3, 4, 5)
   teeTileId: string; // instanceId of the starting tee_box
   cupTileId: string; // instanceId of the finishing green_cup

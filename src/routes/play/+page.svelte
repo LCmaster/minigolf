@@ -162,10 +162,13 @@
       {/each}
     </select>
 
-    <div class="flex items-center justify-between pb-2 border-b border-white/10">
+    <div class="flex items-center justify-between pb-1 border-b border-white/10">
       <span class="text-xs font-bold text-gray-400">HOLE {currentHole.holeNumber} OF {activeCourse.holes.length}</span>
       <span class="text-xs text-emerald-400 font-bold">{currentFps} FPS</span>
     </div>
+    {#if currentHole.name}
+      <div class="text-xs font-bold text-cyan-300 truncate">{currentHole.name}</div>
+    {/if}
 
     <div class="grid grid-cols-2 gap-3 text-center pt-1">
       <div class="bg-black/30 p-2 rounded-2xl border border-white/5">

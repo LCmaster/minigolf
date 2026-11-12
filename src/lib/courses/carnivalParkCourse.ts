@@ -1,10 +1,11 @@
 /**
  * carnivalParkCourse.ts
- * "Carnival Park" showcase course featuring Hole 1: "Sunny Creek & Midway Bend",
- * reconstructed purely from modular 6m kitbash tiles and Carnival/Nature props.
+ * Complete 9-hole stylized "Carnival Park" course combining modular 6m/12m kitbash tracks,
+ * funhouse tunnels, carousel splits, stunt hoop jumps, windmills, and playground props.
  */
 
 import type { CourseData } from "$lib/engine/types/CourseSchema";
+import { carnivalExpansionHoles } from "./carnivalShowcaseHoles";
 
 export const carnivalParkCourse: CourseData = {
   id: "course_carnival_park_showcase",
@@ -17,6 +18,7 @@ export const carnivalParkCourse: CourseData = {
   holes: [
     {
       holeNumber: 1,
+      name: "Sunny Creek & Midway Bend",
       par: 3,
       teeTileId: "sc_tee",
       cupTileId: "sc_cup",
@@ -263,6 +265,7 @@ export const carnivalParkCourse: CourseData = {
     // Hole 2: Big Top Windmill & Waterfall Lagoon (Par 4)
     {
       holeNumber: 2,
+      name: "Big Top Windmill",
       par: 4,
       teeTileId: "bt_tee",
       cupTileId: "bt_cup",
@@ -545,6 +548,7 @@ export const carnivalParkCourse: CourseData = {
         },
       ],
     },
+    ...carnivalExpansionHoles,
   ],
 };
 
