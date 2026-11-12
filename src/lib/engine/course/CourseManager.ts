@@ -7,6 +7,7 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
+import { BoosterVisuals } from "./BoosterVisuals";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
 import { walkOrderedTileChain } from "../spline/SplineTrackSync";
@@ -36,6 +37,7 @@ export interface InstantiatedTile {
   wallRCollider?: RAPIER.Collider;
   wallBackCollider?: RAPIER.Collider;
   boosterSensorCollider?: RAPIER.Collider;
+  boosterVisuals?: BoosterVisuals;
 }
 
 export class CourseManager {
@@ -247,11 +249,16 @@ export class CourseManager {
           .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
         const boosterCol = this.rapierWorld.createCollider(boosterDesc);
         instantiated.boosterSensorCollider = boosterCol;
+        const boosterVisuals = new BoosterVisuals();
+        boosterVisuals.update(0);
+        group.add(boosterVisuals.group);
+        instantiated.boosterVisuals = boosterVisuals;
         const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
         this.boosterSensors.set(boosterCol.handle, {
           direction: forwardDir,
           impulse: 0.038,
           center: group.position.clone(),
+          visuals: boosterVisuals,
         });
       }
     }
@@ -460,6 +467,13 @@ export class CourseManager {
     return this.goalSensorCollider;
   }
 
+  /** Advances hover/pulse/flash animation of every booster's chevron visuals. */
+  public updateBoosterVisuals(time: number, deltaTime: number): void {
+    for (const info of this.boosterSensors.values()) {
+      info.visuals?.update(time, deltaTime);
+    }
+  }
+
   public getBoosterSensor(colliderHandle: number): BoosterSensorInfo | undefined {
     return this.boosterSensors.get(colliderHandle);
   }
@@ -522,6 +536,7 @@ export class CourseManager {
     if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
     if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
     if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
+    tile.boosterVisuals?.dispose();
     if (tile.boosterSensorCollider) {
       this.boosterSensors.delete(tile.boosterSensorCollider.handle);
       this.rapierWorld.removeCollider(tile.boosterSensorCollider, false);
@@ -845,6 +860,7 @@ export class CourseManager {
   public clear(): void {
     for (const tile of this.tiles.values()) {
       this.scene.remove(tile.group);
+      tile.boosterVisuals?.dispose();
       if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
       if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
       if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);

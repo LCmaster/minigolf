@@ -351,5 +351,47 @@ describe("CourseManager Dynamic Socket Snapping (TDD)", () => {
 
     cm.clear();
   });
+  it("adds hovering chevron visuals to booster hazard tiles and animates/disposes them", async () => {
+    const RAPIER = await import("@dimforge/rapier3d-compat");
+    await RAPIER.init();
+
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+
+    const mockLoader: any = {
+      getPiece: (id: string) => ({
+        metadata: { id, dimensions: [6, 0.6, 3], hasDynamicWalls: false, tags: ["hazard", "booster"] },
+        visualTemplate: new THREE.Group(),
+        sockets: [],
+        locators: new Map(),
+      }),
+    };
+
+    const { CourseManager } = await import("./CourseManager");
+    const cm = new CourseManager(scene, world, RAPIER, mockLoader);
+
+    const tile = cm.addTile({
+      instanceId: "boost_tile",
+      kitPieceId: "hazard_booster_strip_6x3",
+      position: [0, 0, 0],
+      rotationY: 0,
+      walls: { left: true, right: true },
+    });
+    expect(tile).not.toBeNull();
+
+    const chevrons = tile!.group.getObjectByName("Visual_Booster_Chevrons");
+    expect(chevrons).toBeTruthy();
+
+    const sensor = cm.getBoosterSensor(tile!.boosterSensorCollider!.handle)!;
+    expect(sensor.visuals).toBeDefined();
+
+    const y0 = sensor.visuals!.chevrons[0].position.y;
+    cm.updateBoosterVisuals(0.7, 0.016);
+    expect(sensor.visuals!.chevrons[0].position.y).not.toBeCloseTo(y0, 4);
+
+    cm.removeTile("boost_tile");
+    expect(cm.getBoosterSensor(tile!.boosterSensorCollider!.handle)).toBeUndefined();
+    cm.clear();
+  });
 });
 
