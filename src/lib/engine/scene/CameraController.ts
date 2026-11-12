@@ -125,6 +125,15 @@ export class CameraController {
     this.target.copy(targetPos);
   }
 
+  public setHeading(forwardDir: THREE.Vector3 | THREE.Vector2): void {
+    const fx = "x" in forwardDir ? forwardDir.x : 0;
+    const fz = "z" in forwardDir ? (forwardDir as THREE.Vector3).z : (forwardDir as THREE.Vector2).y;
+    const len = Math.hypot(fx, fz);
+    if (len > 0.0001) {
+      this.yawAngle = Math.atan2(-fx / len, -fz / len);
+    }
+  }
+
   public snapToTarget(): void {
     this.currentLookTarget.copy(this.target);
     const desiredPos = this.calculateDesiredPosition(this.target);
@@ -152,11 +161,20 @@ export class CameraController {
     );
   }
 
-  public playIntroFlyover(teePos: THREE.Vector3, cupPos: THREE.Vector3, duration: number = 2.0): void {
+  public playIntroFlyover(
+    teePos: THREE.Vector3,
+    cupPos: THREE.Vector3,
+    duration: number = 2.0,
+    initialHeading?: THREE.Vector3 | THREE.Vector2
+  ): void {
     this.isFlyover = true;
     this.mode = "flyover";
     this.flyoverProgress = 0;
     this.flyoverDuration = duration;
+
+    if (initialHeading) {
+      this.setHeading(initialHeading);
+    }
 
     // Overview starting high over the cup/green
     this.flyoverStartLook.copy(cupPos);

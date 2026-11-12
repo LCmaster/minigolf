@@ -134,5 +134,41 @@ describe("CameraController Dual-Pitch & Orbit (TDD)", () => {
 
     controller.dispose();
   });
+
+  it("aligns camera heading with given forward direction", () => {
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    const controller = new CameraController(camera);
+    const target = new THREE.Vector3(0, 0, 0);
+    controller.setTarget(target);
+
+    // Heading pointing in +X: camera should be placed behind target at -X, looking toward +X
+    controller.setHeading(new THREE.Vector3(1, 0, 0));
+    controller.snapToTarget();
+
+    expect(camera.position.x).toBeLessThan(0);
+    expect(camera.position.z).toBeCloseTo(0, 1);
+
+    // Heading pointing in +Z: camera should be placed at -Z, looking toward +Z
+    controller.setHeading(new THREE.Vector3(0, 0, 1));
+    controller.snapToTarget();
+
+    expect(camera.position.z).toBeLessThan(0);
+    expect(camera.position.x).toBeCloseTo(0, 1);
+  });
+
+  it("honors initialHeading during playIntroFlyover", () => {
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    const controller = new CameraController(camera);
+    const teePos = new THREE.Vector3(0, 0, 0);
+    const cupPos = new THREE.Vector3(0, 0, 10);
+    const initialHeading = new THREE.Vector3(1, 0, 0); // Along +X
+
+    controller.playIntroFlyover(teePos, cupPos, 1.0, initialHeading);
+    controller.skipFlyover();
+
+    // After flyover, camera must sit behind the tee (at -X) looking along +X
+    expect(camera.position.x).toBeLessThan(0);
+    expect(camera.position.z).toBeCloseTo(0, 1);
+  });
 });
 
