@@ -6,7 +6,14 @@
 
 import * as THREE from "three";
 
-export type CameraMode = "aiming" | "following" | "cup_zoom" | "overview" | "flyover" | "editor_free";
+export type CameraMode =
+  | "aiming"
+  | "following"
+  | "cup_zoom"
+  | "overview"
+  | "flyover"
+  | "editor_free"
+  | "turntable";
 
 export class CameraController {
   public camera: THREE.PerspectiveCamera;
@@ -29,6 +36,7 @@ export class CameraController {
   // Free-roam editor camera state
   private editorDistance: number = 24.0;
   private editorPitchDeg: number = 42.0;
+  private turntableSpeedRadPerSec: number = 0.14;
   private pressedKeys: Set<string> = new Set();
   public onFrameRequested?: () => void;
 
@@ -63,7 +71,7 @@ export class CameraController {
   }
 
   public get pitchAngleDeg(): number {
-    if (this.mode === "editor_free") {
+    if (this.mode === "editor_free" || this.mode === "turntable") {
       return this.editorPitchDeg;
     }
     return this.MIN_PITCH_DEG + this.pitchProgress * (this.MAX_PITCH_DEG - this.MIN_PITCH_DEG);
@@ -74,7 +82,7 @@ export class CameraController {
   }
 
   public get orbitDistance(): number {
-    if (this.mode === "editor_free") {
+    if (this.mode === "editor_free" || this.mode === "turntable") {
       return this.editorDistance;
     }
     const baseDist = this.MIN_DISTANCE + this.pitchProgress * (this.MAX_DISTANCE - this.MIN_DISTANCE);
@@ -91,6 +99,9 @@ export class CameraController {
     if (this.mode === "editor_free") {
       this.editorDistance = Math.max(12.0, Math.min(60.0, radius * 1.45));
       this.editorPitchDeg = 42.0;
+    } else if (this.mode === "turntable") {
+      this.editorDistance = Math.max(16.0, Math.min(44.0, radius * 1.25));
+      this.editorPitchDeg = 22.0;
     }
     this.snapToTarget();
   }
@@ -186,6 +197,16 @@ export class CameraController {
   }
 
   public update(deltaTime: number, ballSpeed: number = 0): void {
+    if (this.mode === "turntable") {
+      this.yawAngle += this.turntableSpeedRadPerSec * Math.min(deltaTime, 0.1);
+      const desiredPos = this.calculateDesiredPosition(this.target);
+      this.currentLookTarget.copy(this.target);
+      this.currentCameraPos.copy(desiredPos);
+      this.camera.position.copy(this.currentCameraPos);
+      this.camera.lookAt(this.currentLookTarget);
+      return;
+    }
+
     if (this.mode === "editor_free") {
       this.applyEditorKeyboardPan(deltaTime);
       const desiredPos = this.calculateDesiredPosition(this.target);

@@ -110,5 +110,29 @@ describe("CameraController Dual-Pitch & Orbit (TDD)", () => {
 
     controller.dispose();
   });
+
+  it("supports continuous turntable orbit mode around course target", () => {
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+    const controller = new CameraController(camera);
+
+    controller.mode = "turntable";
+    controller.setTarget(new THREE.Vector3(0, 1, -10));
+    controller.setEditorView(26, 26);
+    controller.snapToTarget();
+
+    const startPos = camera.position.clone();
+    const startDist = startPos.distanceTo(controller.target);
+    expect(startDist).toBeCloseTo(26, 2);
+
+    for (let i = 0; i < 10; i++) {
+      controller.update(0.1);
+    }
+    const nextPos = camera.position.clone();
+    expect(nextPos.distanceTo(controller.target)).toBeCloseTo(26, 2);
+    expect(Math.hypot(nextPos.x - startPos.x, nextPos.z - startPos.z)).toBeGreaterThan(1.0);
+    expect(nextPos.y).toBeCloseTo(startPos.y, 3);
+
+    controller.dispose();
+  });
 });
 

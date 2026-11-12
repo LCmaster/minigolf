@@ -131,6 +131,23 @@ export class GameEngine {
     }
   }
 
+  /**
+   * Configures a clean, HUD-free turntable camera flyover for the home showcase screen
+   * without spawning the player golf ball or enabling slingshot input.
+   */
+  public setShowcaseTurntableMode(enabled: boolean): void {
+    this.isEditorMode = enabled;
+    if (enabled) {
+      this.slingshotInput.setEnabled(false);
+      this.ballController.setVisible(false);
+      this.ballController.disablePhysics();
+      this.cameraController.mode = "turntable";
+      this.frameCameraOnCourse();
+    } else {
+      this.setEditorMode(false);
+    }
+  }
+
   public frameCameraOnCourse(): void {
     const tiles = this.courseManager.getAllTiles();
     if (tiles.length === 0) {
