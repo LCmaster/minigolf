@@ -101,13 +101,6 @@ export function createFlagBillboard(cupFloorPos: THREE.Vector3): THREE.Sprite {
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
-
-    // Pin icon
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⛳", 88, 36);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
