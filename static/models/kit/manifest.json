@@ -2605,6 +2605,111 @@
       "hasDynamicWalls": false,
       "sockets": [],
       "tags": ["prop", "nature", "rock", "stylized_rock", "small", "carnival"]
+    },
+    "carnival_split_lane_6x12": {
+      "id": "carnival_split_lane_6x12",
+      "name": "Carousel Split Island (6x12)",
+      "category": "obstacles",
+      "propRole": "playable",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_split_lane_6x12.glb",
+      "dimensions": [6, 4.8, 12],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 6],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0, 0, -6],
+          "normal": [0, 0, -1],
+          "type": "track_arcade_6m",
+          "elevation": 0
+        }
+      ],
+      "tags": ["obstacle", "carousel", "split", "carnival"]
+    },
+    "carnival_tunnel_6x6": {
+      "id": "carnival_tunnel_6x6",
+      "name": "Funhouse Arch Tunnel (6m)",
+      "category": "obstacles",
+      "propRole": "playable",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/carnival_tunnel_6x6.glb",
+      "dimensions": [6, 4, 6],
+      "turfWidth": 5.2,
+      "railHeight": 0.6,
+      "hasDynamicWalls": true,
+      "sockets": [
+        {
+          "id": "LOC_Socket_In",
+          "position": [0, 0, 3],
+          "normal": [0, 0, 1],
+          "type": "track_arcade_6m",
+          "elevation": 0
+        },
+        {
+          "id": "LOC_Socket_Out",
+          "position": [0, 0, -3],
+          "normal": [0, 0, -1],
+          "type": "track_arcade_6m",
+          "elevation": 0
+        }
+      ],
+      "tags": ["obstacle", "tunnel", "funhouse", "carnival"]
+    },
+    "prop_carnival_hoop_6m": {
+      "id": "prop_carnival_hoop_6m",
+      "name": "Star Circus Hoop",
+      "category": "props",
+      "propRole": "decorative",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_carnival_hoop_6m.glb",
+      "dimensions": [6.4, 6.4, 1.2],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": ["prop", "carnival", "arch", "hoop"]
+    },
+    "prop_carnival_tent_pavilion": {
+      "id": "prop_carnival_tent_pavilion",
+      "name": "Big Top Pavilion Tent",
+      "category": "props",
+      "propRole": "decorative",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_carnival_tent_pavilion.glb",
+      "dimensions": [5.7, 6.2, 5.7],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": ["prop", "carnival", "tent", "pavilion"]
+    },
+    "prop_bumper_star_pink": {
+      "id": "prop_bumper_star_pink",
+      "name": "Pink Star Bumper",
+      "category": "props",
+      "propRole": "playable",
+      "theme": "carnival_park",
+      "preserveMaterials": true,
+      "glbPath": "models/kit/prop_bumper_star_pink.glb",
+      "dimensions": [1.14, 0.78, 1.14],
+      "turfWidth": 0,
+      "railHeight": 0,
+      "hasDynamicWalls": false,
+      "sockets": [],
+      "tags": ["prop", "bumper", "star", "playable", "carnival"]
     }
   }
 }

@@ -45,6 +45,8 @@ describe("KitVocabulary", () => {
   it("identifies hero and hazard pieces consistently across piece IDs and template categories", () => {
     expect(isHeroOrHazardPiece("hazard_sand_trap_6x6")).toBe(true);
     expect(isHeroOrHazardPiece("carnival_bridge_pond_6x12")).toBe(true);
+    expect(isHeroOrHazardPiece("carnival_split_lane_6x12")).toBe(true);
+    expect(isHeroOrHazardPiece("carnival_tunnel_6x6")).toBe(true);
     expect(isHeroOrHazardPiece("big_top_windmill_6x6")).toBe(true);
     expect(isHeroOrHazardPiece("carnival_straight_6m")).toBe(false);
     expect(
@@ -82,3 +84,4 @@ describe("KitVocabulary", () => {
     expect(leftTurn90?.exitSocketId).toBe("LOC_Socket_In");
   });
 });
+

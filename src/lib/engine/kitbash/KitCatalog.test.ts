@@ -10,11 +10,15 @@ describe("KitCatalog", () => {
   it("provides theme-specific snap and swap options with turn flags", () => {
     const carnivalSnap = getTrackSnapOptions("carnival_park");
     expect(carnivalSnap.some((o) => o.id === "carnival_green_cup_6x6")).toBe(true);
+    expect(carnivalSnap.some((o) => o.id === "carnival_split_lane_6x12")).toBe(true);
+    expect(carnivalSnap.some((o) => o.id === "carnival_tunnel_6x6")).toBe(true);
 
     const classicSnap = getTrackSnapOptions("country_club");
     expect(classicSnap.some((o) => o.id === "green_cup_standard_6x6")).toBe(true);
 
     const carnivalSwap = getTrackSwapOptions("carnival_park");
+    expect(carnivalSwap.some((o) => o.id === "carnival_split_lane_6x12")).toBe(true);
+    expect(carnivalSwap.some((o) => o.id === "carnival_tunnel_6x6")).toBe(true);
     const turn60 = carnivalSwap.find((o) => o.id === "carnival_turn_60deg_rounded");
     expect(turn60?.isTurn).toBe(true);
     const straight = carnivalSwap.find((o) => o.id === "carnival_straight_6m");
@@ -36,3 +40,4 @@ describe("KitCatalog", () => {
     expect(getCupVariantOptions("country_club")).toHaveLength(2);
   });
 });
+

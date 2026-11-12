@@ -13,6 +13,7 @@
   const PROP_ICONS = {
     prop_carnival_booster_pad: "🚀",
     prop_carnival_wedge_bumper: "🔺",
+    prop_bumper_star_pink: "⭐",
     prop_bumper_peg_yellow: "🟡",
     prop_bumper_peg_blue: "🔵",
     prop_bumper_peg_red: "🔴",
@@ -21,6 +22,8 @@
     prop_spinner_paddle: "⚔️",
     prop_carnival_arch_6m: "🎪",
     prop_bigtop_gate_6m: "⛺",
+    prop_carnival_hoop_6m: "🌟",
+    prop_carnival_tent_pavilion: "🎡",
     prop_lantern_bunting: "🎏",
     terrain_hill_knoll_6x6: "⛰️",
     terrain_pond_patch_6x6: "💧",

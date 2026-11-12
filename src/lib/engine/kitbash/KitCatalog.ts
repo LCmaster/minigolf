@@ -14,6 +14,8 @@ const CARNIVAL_SWAP_TRACK_OPTIONS: KitMenuOption[] = [
   { id: "carnival_straight_6m", label: "Straight (6m)", icon: "🟩", isTurn: false },
   { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉", isTurn: false },
   { id: "carnival_windmill_6x12", label: "Windmill Gate (12m)", icon: "🎡", isTurn: false },
+  { id: "carnival_split_lane_6x12", label: "Carousel Split (12m)", icon: "🎠", isTurn: false },
+  { id: "carnival_tunnel_6x6", label: "Funhouse Tunnel (6m)", icon: "🌈", isTurn: false },
   { id: "carnival_ramp_up_15deg_6x6", label: "Ramp Up (+1.5m)", icon: "📈", isTurn: false },
   { id: "carnival_ramp_down_15deg_6x6", label: "Ramp Down (-1.5m)", icon: "📉", isTurn: false },
   { id: "carnival_turn_15deg_rounded", label: "Turn 15°", icon: "↪️", isTurn: true },
@@ -47,6 +49,8 @@ const CARNIVAL_SNAP_OPTIONS: KitMenuOption[] = [
   { id: "carnival_ramp_down_15deg_6x6", label: "Carnival Ramp Down", icon: "📉" },
   { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉" },
   { id: "carnival_windmill_6x12", label: "Windmill Gate (12m)", icon: "🎡" },
+  { id: "carnival_split_lane_6x12", label: "Carousel Split (12m)", icon: "🎠" },
+  { id: "carnival_tunnel_6x6", label: "Funhouse Tunnel (6m)", icon: "🌈" },
   { id: "carnival_green_cup_6x6", label: "Carnival Cup Green", icon: "⛳" },
 ];
 
@@ -95,3 +99,4 @@ export function getHazardOptions(): KitMenuOption[] {
 export function getCupVariantOptions(theme: string): KitMenuOption[] {
   return theme === "carnival_park" ? CARNIVAL_CUP_OPTIONS : CLASSIC_CUP_OPTIONS;
 }
+

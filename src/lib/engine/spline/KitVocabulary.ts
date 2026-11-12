@@ -49,7 +49,9 @@ export function isHeroOrHazardPiece(kitPieceId: string, template?: ParsedKitPiec
   if (
     kitPieceId.startsWith("hazard_") ||
     kitPieceId.includes("bridge") ||
-    kitPieceId.includes("windmill")
+    kitPieceId.includes("windmill") ||
+    kitPieceId.includes("split_lane") ||
+    kitPieceId.includes("tunnel")
   ) {
     return true;
   }
@@ -163,3 +165,4 @@ export function buildThemeVocabulary(theme: string, assetLoader: AssetLoader): T
 
   return { teeId, cupId, candidates, rampUpPiece, rampDownPiece };
 }
+

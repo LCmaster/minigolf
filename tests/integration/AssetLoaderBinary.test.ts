@@ -248,4 +248,43 @@ describe("AssetLoader Binary GLB Integration Tests", () => {
     expect(collectUbx(lagoon)).toContain("UBX_Waterfall_Bluff");
     expect(collectUbx(lagoon)).toContain("UBX_Waterfall_Water");
   });
+
+  it("parses new Carnival expansion GLBs (split lane, tunnel, hoop, tent pavilion, star bumper)", async () => {
+    const collect = (root: THREE.Group) => {
+      const names: string[] = [];
+      root.traverse((c) => {
+        if (c.name) names.push(c.name.replace(/(?:\.\d+|\d{3})+$/, ""));
+      });
+      return names;
+    };
+
+    const split = await parseGlbFromDisk("models/kit/carnival_split_lane_6x12.glb");
+    const splitNames = collect(split);
+    expect(splitNames).toContain("Mesh_Floor");
+    expect(splitNames).toContain("Mesh_Carousel_Island");
+    expect(splitNames).toContain("UBX_Floor");
+    expect(splitNames).toContain("UBX_Carousel_Island");
+    expect(splitNames).toContain("LOC_Socket_In");
+    expect(splitNames).toContain("LOC_Socket_Out");
+
+    const tunnel = await parseGlbFromDisk("models/kit/carnival_tunnel_6x6.glb");
+    const tunnelNames = collect(tunnel);
+    expect(tunnelNames).toContain("Mesh_Floor");
+    expect(tunnelNames).toContain("Mesh_Funhouse_Arches");
+    expect(tunnelNames).toContain("UBX_Floor");
+    expect(tunnelNames).toContain("LOC_Socket_In");
+    expect(tunnelNames).toContain("LOC_Socket_Out");
+
+    const hoop = await parseGlbFromDisk("models/kit/prop_carnival_hoop_6m.glb");
+    expect(collect(hoop)).toContain("Mesh_Carnival_Hoop");
+    expect(collect(hoop)).toContain("UBX_Hoop_Pedestal");
+
+    const tent = await parseGlbFromDisk("models/kit/prop_carnival_tent_pavilion.glb");
+    expect(collect(tent)).toContain("Mesh_Tent_Pavilion");
+    expect(collect(tent)).toContain("UBX_Tent_Body");
+
+    const star = await parseGlbFromDisk("models/kit/prop_bumper_star_pink.glb");
+    expect(collect(star)).toContain("Mesh_Bumper_Star");
+    expect(collect(star)).toContain("UBX_Star_Bumper");
+  });
 });
