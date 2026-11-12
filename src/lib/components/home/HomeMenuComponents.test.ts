@@ -4,11 +4,12 @@ import ProfileCornerCard from "./ProfileCornerCard.svelte";
 import HomeOverlay from "./HomeOverlay.svelte";
 
 describe("Home Menu Cartoon Arcade Components", () => {
-  it("renders animated cartoon MINI GOLF MANIA SVG logo with kawaii golf ball", () => {
+  it("renders animated cartoon MINI GOLF MANIA SVG logo with kawaii golf ball and tee I", () => {
     const res = (MiniGolfManiaLogo as any).render({});
     expect(res.html).toContain("<svg");
     expect(res.html).toContain("MINI");
-    expect(res.html).toContain("MANIA");
+    expect(res.html).toContain("MAN");
+    expect(res.html).toContain("golf-tee-i");
     expect(res.html).toContain("kawaii-golf-ball");
   });
 

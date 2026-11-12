@@ -18,6 +18,12 @@
         <stop offset="100%" stop-color="#1d4ed8" />
       </linearGradient>
 
+      <linearGradient id="teeGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e0f2fe" />
+        <stop offset="32%" stop-color="#38bdf8" />
+        <stop offset="100%" stop-color="#1d4ed8" />
+      </linearGradient>
+
       <radialGradient id="ballGrad" cx="35%" cy="30%" r="70%">
         <stop offset="0%" stop-color="#ffffff" />
         <stop offset="70%" stop-color="#e2e8f0" />
@@ -49,12 +55,71 @@
       <circle cx="496" cy="40" r="6" fill="#7dd3fc" />
     </g>
 
-    <!-- Top Line: MINI G [BALL] LF -->
+    <!-- Bottom Line: MAN [TEE-I] A (rendered first so bouncing ball sits cleanly above tee cup) -->
     <g filter="url(#cartoonShadow)">
       <text
-        x="212"
+        x="366"
+        y="214"
+        text-anchor="end"
+        font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
+        font-weight="900"
+        font-size="102"
+        letter-spacing="4"
+        fill="url(#blueWordGrad)"
+        stroke="#0c2d6b"
+        stroke-width="16"
+        stroke-linejoin="round"
+        style="paint-order: stroke fill;"
+      >
+        MAN
+      </text>
+
+      <!-- Golf Tee replacing the "I" directly beneath the bouncing ball -->
+      <g class="golf-tee-i" transform="translate(394, 134)">
+        <!-- Outer dark outline matching MANIA stroke -->
+        <path
+          d="M -22,2 Q 0,8 22,2 L 17,15 L 8,21 L 5,78 Q 0,84 -5,78 L -8,21 L -17,15 Z"
+          fill="url(#teeGrad)"
+          stroke="#0c2d6b"
+          stroke-width="13"
+          stroke-linejoin="round"
+          style="paint-order: stroke fill;"
+        />
+        <!-- Crisp tee cup rim highlight -->
+        <ellipse cx="0" cy="4" rx="18" ry="4" fill="#e0f2fe" opacity="0.9" />
+        <!-- Tee stripe accents -->
+        <rect x="-6.5" y="30" width="13" height="5" rx="2" fill="#fde047" opacity="0.9" />
+      </g>
+
+      <text
+        x="422"
+        y="214"
+        text-anchor="start"
+        font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
+        font-weight="900"
+        font-size="102"
+        letter-spacing="4"
+        fill="url(#blueWordGrad)"
+        stroke="#0c2d6b"
+        stroke-width="16"
+        stroke-linejoin="round"
+        style="paint-order: stroke fill;"
+      >
+        A
+      </text>
+
+      <!-- Glossy shine highlights inside MANIA -->
+      <circle cx="182" cy="160" r="3.5" fill="#ffffff" opacity="0.9" />
+      <circle cx="315" cy="156" r="4" fill="#ffffff" opacity="0.85" />
+      <circle cx="456" cy="163" r="3" fill="#ffffff" opacity="0.9" />
+    </g>
+
+    <!-- Top Line: MINI G [BALL] LF centered symmetrically around x=320 with ball over Tee-I (x=394) -->
+    <g filter="url(#cartoonShadow)">
+      <text
+        x="354"
         y="112"
-        text-anchor="middle"
+        text-anchor="end"
         font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
         font-weight="900"
         font-size="82"
@@ -69,9 +134,9 @@
       </text>
 
       <text
-        x="485"
+        x="434"
         y="112"
-        text-anchor="middle"
+        text-anchor="start"
         font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
         font-weight="900"
         font-size="82"
@@ -85,12 +150,12 @@
         LF
       </text>
 
-      <!-- Kawaii Golf Ball acting as the "O" -->
-      <g class="kawaii-golf-ball animate-bounce-slow" transform="translate(390, 74)">
-        <circle cx="0" cy="0" r="35" fill="url(#ballGrad)" stroke="#1e293b" stroke-width="6" />
+      <!-- Kawaii Golf Ball acting as the "O", poised above the Golf Tee "I" -->
+      <g class="kawaii-golf-ball animate-bounce-slow" transform="translate(394, 76)">
+        <circle cx="0" cy="0" r="34" fill="url(#ballGrad)" stroke="#1e293b" stroke-width="6" />
         <!-- Subtle golf dimples -->
-        <circle cx="-16" cy="-18" r="2.3" fill="#cbd5e1" />
-        <circle cx="15" cy="-19" r="2.3" fill="#cbd5e1" />
+        <circle cx="-15" cy="-18" r="2.3" fill="#cbd5e1" />
+        <circle cx="15" cy="-18" r="2.3" fill="#cbd5e1" />
         <circle cx="21" cy="-5" r="2.1" fill="#cbd5e1" />
         <circle cx="-21" cy="-4" r="2.1" fill="#cbd5e1" />
         <!-- Cute Eyes -->
@@ -111,44 +176,19 @@
         />
       </g>
     </g>
-
-    <!-- Bottom Line: MANIA -->
-    <g filter="url(#cartoonShadow)">
-      <text
-        x="320"
-        y="212"
-        text-anchor="middle"
-        font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
-        font-weight="900"
-        font-size="102"
-        letter-spacing="5"
-        fill="url(#blueWordGrad)"
-        stroke="#0c2d6b"
-        stroke-width="16"
-        stroke-linejoin="round"
-        style="paint-order: stroke fill;"
-      >
-        MANIA
-      </text>
-      <!-- Glossy shine highlights inside MANIA -->
-      <circle cx="182" cy="160" r="3.5" fill="#ffffff" opacity="0.9" />
-      <circle cx="315" cy="156" r="4" fill="#ffffff" opacity="0.85" />
-      <circle cx="445" cy="163" r="3" fill="#ffffff" opacity="0.9" />
-    </g>
   </svg>
 </div>
 
 <style>
   @keyframes bounceSlow {
     0%, 100% {
-      transform: translate(390px, 74px);
+      transform: translate(394px, 78px);
     }
     50% {
-      transform: translate(390px, 67px);
+      transform: translate(394px, 68px);
     }
   }
   .animate-bounce-slow {
     animation: bounceSlow 2.6s ease-in-out infinite;
   }
 </style>
-
