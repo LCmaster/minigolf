@@ -326,6 +326,8 @@ export class GameEngine {
     // Out of bounds check
     if (this.ballController.state === "out_of_bounds") {
       this.ballController.respawn();
+      this.cameraController.setHeading(this.courseManager.spawnHeading);
+      this.cameraController.snapToTarget();
       this.emit("outOfBounds", {
         holeNumber: 1,
         reason: "cliff_fall",
@@ -414,9 +416,12 @@ export class GameEngine {
     if (this.courseManager.goalPosition) {
       this.cameraController.playIntroFlyover(
         this.courseManager.spawnPosition,
-        this.courseManager.goalPosition
+        this.courseManager.goalPosition,
+        2.0,
+        this.courseManager.spawnHeading
       );
     } else {
+      this.cameraController.setHeading(this.courseManager.spawnHeading);
       this.cameraController.setTarget(this.courseManager.spawnPosition);
       this.cameraController.snapToTarget();
     }

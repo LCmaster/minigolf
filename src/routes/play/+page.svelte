@@ -102,9 +102,11 @@
       engine.cameraController.playIntroFlyover(
         engine.courseManager.spawnPosition,
         engine.courseManager.goalPosition,
-        2.0
+        2.0,
+        engine.courseManager.spawnHeading
       );
     } else {
+      engine.cameraController.setHeading(engine.courseManager.spawnHeading);
       engine.cameraController.setTarget(engine.courseManager.spawnPosition);
       engine.cameraController.snapToTarget();
     }
@@ -140,6 +142,8 @@
   function respawnBall() {
     if (!engine) return;
     engine.ballController.respawn();
+    engine.cameraController.setHeading(engine.courseManager.spawnHeading);
+    engine.cameraController.snapToTarget();
   }
 
   onDestroy(() => {
