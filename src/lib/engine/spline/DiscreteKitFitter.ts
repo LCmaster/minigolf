@@ -17,17 +17,14 @@ import {
   sampleSplineChain,
 } from "./SplineMath";
 import { resolveOrderedTileChain } from "./SplineTrackSync";
+import {
+  buildThemeVocabulary,
+  isHeroOrHazardPiece,
+  type KitCandidatePiece,
+  type ThemeVocabulary,
+} from "./KitVocabulary";
 
-export interface KitCandidatePiece {
-  kitPieceId: string;
-  template: ParsedKitPiece;
-  entrySocketId: "LOC_Socket_In" | "LOC_Socket_Out";
-  exitSocketId: "LOC_Socket_In" | "LOC_Socket_Out";
-  kind: "straight" | "turn" | "ramp_up" | "ramp_down" | "hero";
-  turnSign: number; // -1 left, 0 straight/ramp, +1 right
-  elevDeltaStep: number;
-  baseLength: number;
-}
+export type { KitCandidatePiece };
 
 export interface GhostSegmentPreview {
   kitPieceId: string;
@@ -84,16 +81,6 @@ interface BeamState {
   }>;
 }
 
-const DEFAULT_HANDLE_LEN = 2.4;
-
-function isHeroOrHazardId(id: string): boolean {
-  return (
-    id.startsWith("hazard_") ||
-    id.includes("bridge") ||
-    id.includes("windmill")
-  );
-}
-
 function getWorldMatrixAndExit(
   parentWorldMatrix: THREE.Matrix4,
   parentOutSocketId: string,
@@ -129,143 +116,6 @@ function getWorldMatrixAndExit(
   return { worldMatrix, exitPos, tangentXZ };
 }
 
-function getThemePieceId(
-  assetLoader: AssetLoader,
-  theme: string,
-  carnivalId: string,
-  classicId: string
-): string | null {
-  if (theme === "carnival_park") {
-    if (assetLoader.getPiece(carnivalId)) return carnivalId;
-    if (assetLoader.getPiece(classicId)) return classicId;
-  } else {
-    if (assetLoader.getPiece(classicId)) return classicId;
-    if (assetLoader.getPiece(carnivalId)) return carnivalId;
-  }
-  return null;
-}
-
-function buildThemeVocabulary(
-  theme: string,
-  assetLoader: AssetLoader
-): {
-  teeId: string;
-  cupId: string | null;
-  candidates: KitCandidatePiece[];
-  rampUpPiece: ParsedKitPiece | undefined;
-  rampDownPiece: ParsedKitPiece | undefined;
-} {
-  const teeId =
-    getThemePieceId(assetLoader, theme, "carnival_tee_6x6", "tee_box_6x6") ||
-    "tee_box_6x6";
-  const cupId = getThemePieceId(
-    assetLoader,
-    theme,
-    "carnival_green_cup_6x6",
-    "green_cup_standard_6x6"
-  );
-  const straightId = getThemePieceId(
-    assetLoader,
-    theme,
-    "carnival_straight_6m",
-    "straight_6m"
-  );
-  const rampUpId = getThemePieceId(
-    assetLoader,
-    theme,
-    "carnival_ramp_up_15deg_6x6",
-    "ramp_up_15deg_6x6"
-  );
-  const rampDownId = getThemePieceId(
-    assetLoader,
-    theme,
-    "carnival_ramp_down_15deg_6x6",
-    "ramp_down_15deg_6x6"
-  );
-
-  const candidates: KitCandidatePiece[] = [];
-
-  if (straightId) {
-    const tpl = assetLoader.getPiece(straightId)!;
-    candidates.push({
-      kitPieceId: straightId,
-      template: tpl,
-      entrySocketId: "LOC_Socket_In",
-      exitSocketId: "LOC_Socket_Out",
-      kind: "straight",
-      turnSign: 0,
-      elevDeltaStep: 0,
-      baseLength: 6.0,
-    });
-  }
-
-  for (const ang of [15, 30, 45, 60, 75, 90]) {
-    const turnId = getThemePieceId(
-      assetLoader,
-      theme,
-      `carnival_turn_${ang}deg_rounded`,
-      `turn_${ang}deg_rounded`
-    );
-    if (!turnId) continue;
-    const tpl = assetLoader.getPiece(turnId)!;
-    if (tpl.sockets.length < 2) continue;
-
-    // Right turn (forward socket order)
-    candidates.push({
-      kitPieceId: turnId,
-      template: tpl,
-      entrySocketId: "LOC_Socket_In",
-      exitSocketId: "LOC_Socket_Out",
-      kind: "turn",
-      turnSign: 1,
-      elevDeltaStep: 0,
-      baseLength: (ang * Math.PI * 6.0) / 180,
-    });
-
-    // Left turn (symmetric reversed socket attachment: enter Out, exit In)
-    candidates.push({
-      kitPieceId: turnId,
-      template: tpl,
-      entrySocketId: "LOC_Socket_Out",
-      exitSocketId: "LOC_Socket_In",
-      kind: "turn",
-      turnSign: -1,
-      elevDeltaStep: 0,
-      baseLength: (ang * Math.PI * 6.0) / 180,
-    });
-  }
-
-  const rampUpPiece = rampUpId ? assetLoader.getPiece(rampUpId) : undefined;
-  if (rampUpId && rampUpPiece) {
-    candidates.push({
-      kitPieceId: rampUpId,
-      template: rampUpPiece,
-      entrySocketId: "LOC_Socket_In",
-      exitSocketId: "LOC_Socket_Out",
-      kind: "ramp_up",
-      turnSign: 0,
-      elevDeltaStep: 1,
-      baseLength: 6.0,
-    });
-  }
-
-  const rampDownPiece = rampDownId ? assetLoader.getPiece(rampDownId) : undefined;
-  if (rampDownId && rampDownPiece) {
-    candidates.push({
-      kitPieceId: rampDownId,
-      template: rampDownPiece,
-      entrySocketId: "LOC_Socket_In",
-      exitSocketId: "LOC_Socket_Out",
-      kind: "ramp_down",
-      turnSign: 0,
-      elevDeltaStep: -1,
-      baseLength: 6.0,
-    });
-  }
-
-  return { teeId, cupId, candidates, rampUpPiece, rampDownPiece };
-}
-
 function extractPreservedContext(existingTiles: PlacedTile[], assetLoader: AssetLoader) {
   const ordered = resolveOrderedTileChain(existingTiles, assetLoader);
   const teeTile = ordered.find((t) => t.tile.kitPieceId.includes("tee")) || ordered[0];
@@ -280,7 +130,7 @@ function extractPreservedContext(existingTiles: PlacedTile[], assetLoader: Asset
 
   for (let i = 0; i < ordered.length; i++) {
     const r = ordered[i];
-    if (isHeroOrHazardId(r.tile.kitPieceId) || r.tile.isGap) {
+    if (isHeroOrHazardPiece(r.tile.kitPieceId, r.template) || r.tile.isGap) {
       const dims = r.template.metadata?.dimensions;
       heroes.push({
         kitPieceId: r.tile.kitPieceId,
@@ -303,7 +153,7 @@ function extractPreservedContext(existingTiles: PlacedTile[], assetLoader: Asset
 function solvePrefixChain(
   prefixNodes: SplineWaypoint[],
   fullNodeCount: number,
-  vocab: ReturnType<typeof buildThemeVocabulary>,
+  vocab: ThemeVocabulary,
   teeTile: PlacedTile | undefined,
   cupTile: PlacedTile | undefined,
   heroes: PinnedHeroSpec[],

@@ -13,6 +13,7 @@ import type {
   SplineWaypoint,
 } from "../types/CourseSchema";
 import { ELEVATION_STEP_METERS, cloneSplinePath } from "./SplineMath";
+import { DEFAULT_HANDLE_LEN, isHeroOrHazardPiece } from "./KitVocabulary";
 
 export interface ResolvedTileTransform {
   tile: PlacedTile;
@@ -25,17 +26,6 @@ export interface ResolvedTileTransform {
   exitTangentXZ: THREE.Vector2;
   yawDeg: number;
   elevationStep: number;
-}
-
-const DEFAULT_HANDLE_LEN = 2.4;
-
-function isHeroOrHazardTile(tile: PlacedTile, template?: ParsedKitPiece): boolean {
-  const id = tile.kitPieceId;
-  if (id.startsWith("hazard_") || id.includes("bridge") || id.includes("windmill")) {
-    return true;
-  }
-  const cat = template?.metadata?.category;
-  return cat === "obstacles" || cat === "hazards";
 }
 
 function getYawDegFromDirXZ(dir: THREE.Vector2): number {
@@ -287,7 +277,7 @@ export function deriveSplineFromTiles(
 
     const yawDelta = normalizeAngleDeltaDeg(lastAnchorYaw, r.yawDeg);
     const stepChanged = r.elevationStep !== lastAnchorStep;
-    const heroAnchor = isHeroOrHazardTile(r.tile, r.template);
+    const heroAnchor = isHeroOrHazardPiece(r.tile.kitPieceId, r.template);
     const distFromLast = r.exitPosition.distanceTo(lastAnchorPos);
 
     if ((yawDelta >= 25 || stepChanged || heroAnchor) && distFromLast >= 4.0) {
