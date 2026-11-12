@@ -28,7 +28,7 @@ describe("Play HUD & Scorecard Cartoon Components", () => {
     expect(res.html).toContain('href="/"');
   });
 
-  it("renders PlayResultModals for Hole Sink with callout badge and Next Hole action", () => {
+  it("renders PlayResultModals for Hole Sink with catchphrase as SVG title and full scoreboard", () => {
     const res = (PlayResultModals as any).render({
       isCupSunk: true,
       isCourseFinished: false,
@@ -39,8 +39,9 @@ describe("Play HUD & Scorecard Cartoon Components", () => {
       scoreCard: [{ hole: 1, par: 3, strokes: 2, relative: -1 }],
     });
 
-    expect(res.html).toContain("HOLE 1 SINK!");
     expect(res.html).toContain("BIRDIE!");
+    expect(res.html).not.toContain("HOLE 1 SINK!");
+    expect(res.html).toContain("TOTAL");
     expect(res.html).toContain("NEXT HOLE");
   });
 
@@ -69,3 +70,4 @@ describe("Play HUD & Scorecard Cartoon Components", () => {
     expect(res.html).toContain("HOME MENU");
   });
 });
+
