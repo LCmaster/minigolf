@@ -15,8 +15,8 @@ import type {
   SplinePathData,
   SplineWaypoint,
 } from "../types/CourseSchema";
-import { getPiecePropRole } from "../types/KitTypes";
 import { HistoryManager, type EditorCommand } from "./HistoryManager";
+import { PropEditTool } from "./PropEditTool";
 import {
   ELEVATION_STEP_METERS,
   bisectorBevelDragToRadius,
@@ -80,21 +80,17 @@ export class EditorController {
   // Visual gizmos & previews
   private socketOverlay: SocketOverlayManager;
   private gapOverlay: GapOverlayManager;
-  private ghostGroup: THREE.Group;
-  private selectionRing: THREE.Mesh;
+  private propTool: PropEditTool;
   private raycaster: THREE.Raycaster;
 
   public get openSockets(): OpenSocketInfo[] {
     return this.socketOverlay.openSockets;
   }
 
-  private selectedPropId: string | null = null;
-  private propRotationY: number = 0;
   private eraseMode: boolean = false;
   private trackPathMode: boolean = false;
   private enabled: boolean = true;
   private activeTheme: string = "carnival_park";
-  private selectedPlacedPropId: string | null = null;
 
   // Spline Track Editor state
   private splineOverlay: SplineOverlay;
@@ -108,14 +104,6 @@ export class EditorController {
     initialHole: HoleData;
     workingSpline: SplinePathData;
     planeY: number;
-    moved: boolean;
-  } | null = null;
-
-  // Prop drag state
-  private draggingProp: {
-    instanceId: string;
-    startPos: [number, number, number];
-    startRot: [number, number, number];
     moved: boolean;
   } | null = null;
 
@@ -152,23 +140,15 @@ export class EditorController {
 
     this.socketOverlay = new SocketOverlayManager(this.scene);
     this.gapOverlay = new GapOverlayManager(this.scene);
-
-    this.ghostGroup = new THREE.Group();
-    this.ghostGroup.name = "Editor_PropGhost";
-    this.ghostGroup.visible = false;
-    this.scene.add(this.ghostGroup);
-
-    const selGeo = new THREE.TorusGeometry(1.1, 0.08, 12, 32);
-    selGeo.rotateX(Math.PI / 2);
-    const selMat = new THREE.MeshBasicMaterial({
-      color: 0xfbbf24,
-      transparent: true,
-      opacity: 0.9,
+    this.propTool = new PropEditTool({
+      scene: this.scene,
+      courseManager: this.courseManager,
+      assetLoader: this.assetLoader,
+      history: this.history,
+      onToolStateChanged: () => this.emitToolState(),
+      onCourseModified: () => this.onCourseModified?.(),
+      onPropPlaced: (prop) => this.onPropPlaced?.(prop),
     });
-    this.selectionRing = new THREE.Mesh(selGeo, selMat);
-    this.selectionRing.name = "Editor_SelectionRing";
-    this.selectionRing.visible = false;
-    this.scene.add(this.selectionRing);
 
     this.splineOverlay = new SplineOverlay(this.scene);
 
@@ -178,7 +158,7 @@ export class EditorController {
   public get toolMode(): EditorToolMode {
     if (this.trackPathMode) return "track_path";
     if (this.eraseMode) return "erase";
-    if (this.selectedPropId) return "place_prop";
+    if (this.propTool.getSelectedPropId()) return "place_prop";
     return "select";
   }
 
@@ -191,7 +171,7 @@ export class EditorController {
   }
 
   public getSelectedPlacedPropId(): string | null {
-    return this.selectedPlacedPropId;
+    return this.propTool.getSelectedPlacedPropId();
   }
 
   public getSelectedSplineNodeInfo(): SelectedSplineNodeInfo | null {
@@ -252,8 +232,8 @@ export class EditorController {
   private emitToolState(): void {
     this.onToolStateChanged?.({
       tool: this.toolMode,
-      selectedPropId: this.selectedPropId,
-      selectedPlacedPropId: this.selectedPlacedPropId,
+      selectedPropId: this.propTool.getSelectedPropId(),
+      selectedPlacedPropId: this.propTool.getSelectedPlacedPropId(),
       eraseMode: this.eraseMode,
       trackPathMode: this.trackPathMode,
     });
@@ -266,7 +246,7 @@ export class EditorController {
   public undo(): boolean {
     const ok = this.history.undo();
     if (!ok) return false;
-    this.clearSelectionIfMissing();
+    this.propTool.clearSelectionIfMissing();
     this.refreshOpenSockets();
     this.syncSplineFromCourse();
     this.onCourseModified?.();
@@ -276,7 +256,7 @@ export class EditorController {
   public redo(): boolean {
     const ok = this.history.redo();
     if (!ok) return false;
-    this.clearSelectionIfMissing();
+    this.propTool.clearSelectionIfMissing();
     this.refreshOpenSockets();
     this.syncSplineFromCourse();
     this.onCourseModified?.();
@@ -299,25 +279,25 @@ export class EditorController {
       ev.preventDefault();
       this.redo();
     } else if (ev.key === "r" || ev.key === "R") {
-      if (this.selectedPlacedPropId && !this.selectedPropId && !this.eraseMode) {
-        this.rotatePlacedProp(this.selectedPlacedPropId, 45);
+      const placedId = this.propTool.getSelectedPlacedPropId();
+      if (placedId && !this.propTool.getSelectedPropId() && !this.eraseMode) {
+        this.propTool.rotatePlacedProp(placedId, 45);
       } else {
-        this.propRotationY = (this.propRotationY + 45) % 360;
-        this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
+        this.propTool.rotateBrush(45);
       }
     } else if (ev.key === "t" || ev.key === "T") {
       this.setTrackPathMode(!this.trackPathMode);
     } else if (ev.key === "x" || ev.key === "X") {
       this.setEraseMode(!this.eraseMode);
     } else if (ev.key === "Delete" || ev.key === "Backspace") {
+      const placedId = this.propTool.getSelectedPlacedPropId();
       if (this.trackPathMode) {
         ev.preventDefault();
         this.deleteSelectedSplineNode();
-      } else if (this.selectedPlacedPropId) {
+      } else if (placedId) {
         ev.preventDefault();
-        const id = this.selectedPlacedPropId;
-        this.selectPlacedProp(null);
-        this.deleteProp(id);
+        this.propTool.selectPlacedProp(null);
+        this.propTool.deleteProp(placedId);
       }
     } else if (ev.key === "Escape") {
       this.setTrackPathMode(false);
@@ -342,9 +322,8 @@ export class EditorController {
     this.trackPathMode = enabled;
     if (enabled) {
       this.eraseMode = false;
-      this.selectedPropId = null;
-      this.rebuildGhostPreview();
-      this.selectPlacedProp(null);
+      this.propTool.setSelectedProp(null, true);
+      this.propTool.selectPlacedProp(null, true);
       this.socketOverlay.setVisible(false);
       this.gapOverlay.setVisible(false);
       this.syncSplineFromCourse();
@@ -365,82 +344,25 @@ export class EditorController {
   }
 
   public setSelectedProp(propId: string | null): void {
-    this.selectedPropId = propId;
     if (propId) {
       this.eraseMode = false;
       if (this.trackPathMode) this.setTrackPathMode(false);
-      this.selectPlacedProp(null);
     }
-    this.rebuildGhostPreview();
-    this.emitToolState();
+    this.propTool.setSelectedProp(propId);
   }
 
   public setEraseMode(enabled: boolean): void {
     this.eraseMode = enabled;
     if (enabled) {
-      this.selectedPropId = null;
       if (this.trackPathMode) this.setTrackPathMode(false);
-      this.rebuildGhostPreview();
-      this.selectPlacedProp(null);
+      this.propTool.setSelectedProp(null, true);
+      this.propTool.selectPlacedProp(null, true);
     }
     this.emitToolState();
   }
 
   public selectPlacedProp(instanceId: string | null): void {
-    this.selectedPlacedPropId = instanceId;
-    if (!instanceId) {
-      this.selectionRing.visible = false;
-    } else {
-      const prop = this.courseManager.getProp?.(instanceId);
-      if (prop) {
-        this.selectionRing.position.copy(prop.group.position);
-        this.selectionRing.position.y += 0.1;
-        this.selectionRing.visible = true;
-      } else {
-        this.selectionRing.visible = false;
-        this.selectedPlacedPropId = null;
-      }
-    }
-    this.emitToolState();
-  }
-
-  private clearSelectionIfMissing(): void {
-    if (this.selectedPlacedPropId && !this.courseManager.getProp?.(this.selectedPlacedPropId)) {
-      this.selectPlacedProp(null);
-    } else if (this.selectedPlacedPropId) {
-      this.selectPlacedProp(this.selectedPlacedPropId);
-    }
-  }
-
-  private rebuildGhostPreview(): void {
-    while (this.ghostGroup.children.length > 0) {
-      this.ghostGroup.remove(this.ghostGroup.children[0]);
-    }
-    this.ghostGroup.visible = false;
-
-    if (!this.selectedPropId || typeof this.assetLoader?.getPiece !== "function") return;
-    const template = this.assetLoader.getPiece(this.selectedPropId);
-    if (!template || !template.visualTemplate) return;
-
-    const propRole = getPiecePropRole(template.metadata);
-    const ghostTint = propRole === "playable" ? 0xfbbf24 : 0x34d399;
-
-    const ghostClone = template.visualTemplate.clone(true);
-    ghostClone.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = false;
-        child.receiveShadow = false;
-        child.material = new THREE.MeshBasicMaterial({
-          color: ghostTint,
-          transparent: true,
-          opacity: 0.5,
-          depthWrite: false,
-        });
-      }
-    });
-    this.ghostGroup.add(ghostClone);
-    this.ghostGroup.rotation.y = (this.propRotationY * Math.PI) / 180;
-    this.ghostGroup.visible = true;
+    this.propTool.selectPlacedProp(instanceId);
   }
 
   public syncSplineFromCourse(): SplinePathData | null {
@@ -728,7 +650,7 @@ export class EditorController {
   }
 
   public getPropRotationY(): number {
-    return this.propRotationY;
+    return this.propTool.getPropRotationY();
   }
 
   public refreshOpenSockets(): void {
@@ -887,29 +809,14 @@ export class EditorController {
       return;
     }
 
-    // 0. Dragging existing placed prop
-    if (this.draggingProp) {
+    // 0. Dragging or ghost preview for props
+    if (this.propTool.isDragging() || this.propTool.getSelectedPropId()) {
       const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
-      const inst = this.courseManager.getProp?.(this.draggingProp.instanceId);
-      if (pt && inst) {
-        inst.group.position.copy(pt);
-        this.selectionRing.position.copy(pt);
-        this.selectionRing.position.y += 0.1;
-        this.draggingProp.moved = true;
-        this.canvas.style.cursor = "grabbing";
+      const res = this.propTool.updateHoverAndDrag(pt);
+      if (res.handled) {
+        if (res.cursor) this.canvas.style.cursor = res.cursor;
+        return;
       }
-      return;
-    }
-
-    // 1. Ghost preview update when placing prop
-    if (this.selectedPropId) {
-      const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
-      if (pt) {
-        this.ghostGroup.position.copy(pt);
-        this.ghostGroup.visible = true;
-      }
-      this.canvas.style.cursor = "crosshair";
-      return;
     }
 
     // 2. Erase mode cursor feedback
@@ -1003,10 +910,11 @@ export class EditorController {
     }
 
     // 1. Prop placement mode
-    if (this.selectedPropId) {
+    const activeBrushId = this.propTool.getSelectedPropId();
+    if (activeBrushId) {
       const hitPoint = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
       if (hitPoint) {
-        this.placePropAtPoint(this.selectedPropId, hitPoint);
+        this.propTool.placePropAtPoint(activeBrushId, hitPoint);
       }
       return;
     }
@@ -1022,15 +930,7 @@ export class EditorController {
     const hitPropId = this.findHitPropId();
     if (hitPropId) {
       this.selectPlacedProp(hitPropId);
-      const inst = this.courseManager.getProp?.(hitPropId);
-      if (inst) {
-        this.draggingProp = {
-          instanceId: hitPropId,
-          startPos: [...inst.propData.position] as [number, number, number],
-          startRot: [...inst.propData.rotation] as [number, number, number],
-          moved: false,
-        };
-      }
+      this.propTool.beginDrag(hitPropId);
       return;
     }
 
@@ -1066,7 +966,7 @@ export class EditorController {
   private handlePointerUp = (): void => {
     if (!this.enabled) {
       this.draggingSpline = null;
-      this.draggingProp = null;
+      this.propTool.cancelDrag();
       return;
     }
     if (this.draggingSpline) {
@@ -1088,108 +988,22 @@ export class EditorController {
       return;
     }
 
-    if (!this.draggingProp) return;
-    const drag = this.draggingProp;
-    this.draggingProp = null;
-    this.canvas.style.cursor = "default";
-
-    if (!drag.moved) return;
-
-    const inst = this.courseManager.getProp?.(drag.instanceId);
-    if (!inst) return;
-    const newPos: [number, number, number] = [
-      inst.group.position.x,
-      inst.group.position.y,
-      inst.group.position.z,
-    ];
-    const rot: [number, number, number] = [...drag.startRot];
-
-    const cmd: EditorCommand = {
-      name: "Move prop",
-      execute: () => {
-        this.courseManager.updatePropTransform?.(drag.instanceId, newPos, rot);
-        this.selectPlacedProp(drag.instanceId);
-      },
-      undo: () => {
-        this.courseManager.updatePropTransform?.(drag.instanceId, drag.startPos, drag.startRot);
-        this.selectPlacedProp(drag.instanceId);
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
+    if (this.propTool.isDragging()) {
+      this.canvas.style.cursor = "default";
+      this.propTool.finishDrag();
+    }
   };
 
   public rotatePlacedProp(instanceId: string, deltaDeg: number): void {
-    const inst = this.courseManager.getProp?.(instanceId);
-    if (!inst) return;
-
-    const oldPos: [number, number, number] = [...inst.propData.position];
-    const oldRot: [number, number, number] = [...inst.propData.rotation];
-    const newRot: [number, number, number] = [
-      oldRot[0],
-      ((oldRot[1] + deltaDeg) % 360 + 360) % 360,
-      oldRot[2],
-    ];
-
-    const cmd: EditorCommand = {
-      name: "Rotate prop",
-      execute: () => {
-        this.courseManager.updatePropTransform?.(instanceId, oldPos, newRot);
-        this.selectPlacedProp(instanceId);
-      },
-      undo: () => {
-        this.courseManager.updatePropTransform?.(instanceId, oldPos, oldRot);
-        this.selectPlacedProp(instanceId);
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
+    this.propTool.rotatePlacedProp(instanceId, deltaDeg);
   }
 
   public placePropAtPoint(propId: string, point: THREE.Vector3): void {
-    const propData: PlacedProp = {
-      instanceId: `prop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      propId,
-      position: [point.x, point.y, point.z],
-      rotation: [0, this.propRotationY, 0],
-      scale: [1, 1, 1],
-    };
-
-    const cmd: EditorCommand = {
-      name: `Place ${propId}`,
-      execute: () => {
-        this.courseManager.addProp(propData);
-      },
-      undo: () => {
-        this.courseManager.removeProp(propData.instanceId);
-      },
-    };
-    this.history.execute(cmd);
-    this.onPropPlaced?.(propData);
-    this.onCourseModified?.();
+    this.propTool.placePropAtPoint(propId, point);
   }
 
   public deleteProp(propInstanceId: string): void {
-    const existing = this.courseManager.getProp?.(propInstanceId);
-    if (!existing) return;
-    const savedData: PlacedProp = {
-      ...existing.propData,
-      position: [...existing.propData.position] as [number, number, number],
-      rotation: [...existing.propData.rotation] as [number, number, number],
-      scale: [...existing.propData.scale] as [number, number, number],
-    };
-
-    const cmd: EditorCommand = {
-      name: `Remove ${savedData.propId}`,
-      execute: () => {
-        this.courseManager.removeProp(propInstanceId);
-      },
-      undo: () => {
-        this.courseManager.addProp(savedData);
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
+    this.propTool.deleteProp(propInstanceId);
   }
 
   public deleteTile(tileInstanceId: string): boolean {
@@ -1453,11 +1267,10 @@ export class EditorController {
     this.enabled = enabled;
     if (!enabled) {
       this.socketOverlay.clearHover();
-      this.draggingProp = null;
+      this.propTool.cancelDrag();
       this.draggingSpline = null;
       this.splineOverlay.clearGhost();
-      this.ghostGroup.visible = false;
-      this.selectionRing.visible = false;
+      this.propTool.hideVisuals();
       this.canvas.style.cursor = "default";
     }
   }
@@ -1472,8 +1285,7 @@ export class EditorController {
     this.gapOverlay.setVisible(visible && !this.trackPathMode);
     this.splineOverlay.setVisible(visible && this.trackPathMode);
     if (!visible) {
-      this.ghostGroup.visible = false;
-      this.selectionRing.visible = false;
+      this.propTool.hideVisuals();
     }
   }
 
@@ -1488,8 +1300,7 @@ export class EditorController {
     this.splineOverlay.dispose();
     this.socketOverlay.dispose();
     this.gapOverlay.dispose();
-    this.scene.remove(this.ghostGroup);
-    this.scene.remove(this.selectionRing);
+    this.propTool.dispose();
     this.history.clear();
   }
 }
