@@ -21,22 +21,30 @@ export interface ParsedKitPiece {
   locators: Map<string, THREE.Vector3>;
 }
 
+export interface AssetLoaderDeps {
+  gltfLoader?: { loadAsync(url: string): Promise<{ scene: THREE.Group }> };
+  textureLoader?: { loadAsync(url: string): Promise<THREE.Texture> };
+  fetchFn?: typeof fetch;
+}
+
 export class AssetLoader {
-  private loader: GLTFLoader;
-  private textureLoader: THREE.TextureLoader;
+  private loader: { loadAsync(url: string): Promise<{ scene: THREE.Group }> };
+  private textureLoader: { loadAsync(url: string): Promise<THREE.Texture> };
+  private fetchFn: typeof fetch;
   private manifest: KitManifest | null = null;
   private pieces: Map<string, ParsedKitPiece> = new Map();
   private sharedMaterial: THREE.MeshStandardMaterial | null = null;
   private carnivalTurfMaterial: THREE.MeshStandardMaterial | null = null;
   private pondWaterMaterial: THREE.MeshStandardMaterial | null = null;
 
-  constructor() {
-    this.loader = new GLTFLoader();
-    this.textureLoader = new THREE.TextureLoader();
+  constructor(deps?: AssetLoaderDeps) {
+    this.loader = deps?.gltfLoader ?? new GLTFLoader();
+    this.textureLoader = deps?.textureLoader ?? new THREE.TextureLoader();
+    this.fetchFn = deps?.fetchFn ?? ((input, init) => fetch(input, init));
   }
 
   public async init(manifestUrl: string = "/models/kit/manifest.json"): Promise<void> {
-    const res = await fetch(manifestUrl);
+    const res = await this.fetchFn(manifestUrl);
     this.manifest = await res.json();
 
     if (!this.manifest) {
@@ -191,6 +199,10 @@ export class AssetLoader {
 
   public getManifest(): KitManifest | null {
     return this.manifest;
+  }
+
+  public getSharedMaterial(): THREE.MeshStandardMaterial | null {
+    return this.sharedMaterial;
   }
 }
 
