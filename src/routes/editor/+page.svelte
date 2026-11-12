@@ -10,6 +10,9 @@
   import TileActionMenu from "$lib/components/editor/TileActionMenu.svelte";
   import PropPalette from "$lib/components/editor/PropPalette.svelte";
   import WfcWizardModal from "$lib/components/editor/WfcWizardModal.svelte";
+  import EditorToolbar from "$lib/components/editor/EditorToolbar.svelte";
+  import PathWaypointInspector from "$lib/components/editor/PathWaypointInspector.svelte";
+  import PlaytestOverlay from "$lib/components/editor/PlaytestOverlay.svelte";
 
   let canvas;
   let engine;
@@ -327,162 +330,31 @@
   <canvas bind:this={canvas} class="w-full h-full block {isPlaytestMode ? 'cursor-crosshair' : 'cursor-default'}"></canvas>
 
   <!-- Top Navigation Header -->
-  <header class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
-    <!-- Left: Status & Mode -->
-    <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto">
-      <div class="flex items-center gap-2">
-        <span class="w-3 h-3 rounded-full {isReady ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}"></span>
-        <span class="font-bold text-sm text-white font-sans">
-          {isPlaytestMode ? '⛳ Playtest Mode' : '🛠️ Track Runner Editor'}
-        </span>
-      </div>
-      <span class="text-xs text-gray-500 font-mono">|</span>
-      <span class="text-xs font-mono text-emerald-400 font-bold">{currentFps} FPS</span>
-    </div>
-
-    <!-- Center: Primary Action Toolbar -->
-    <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl shadow-2xl flex items-center gap-1.5 pointer-events-auto">
-      {#if !isPlaytestMode}
-        <div class="flex items-center bg-black/30 rounded-xl p-0.5 border border-white/10">
-          <button
-            on:click={() => (activeTheme = "carnival_park")}
-            class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all {activeTheme === 'carnival_park' ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}"
-          >
-            🎪 Carnival
-          </button>
-          <button
-            on:click={() => (activeTheme = "country_club")}
-            class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all {activeTheme === 'country_club' ? 'bg-emerald-500 text-black' : 'text-gray-400 hover:text-white'}"
-          >
-            🏌️ Classic
-          </button>
-        </div>
-
-        <button
-          on:click={() => (showWfcModal = true)}
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-bold font-mono transition-all active:scale-95"
-          title="Auto-generate a complete hole using WFC"
-        >
-          <span>🤖</span>
-          <span>Auto-Gen</span>
-        </button>
-
-        <button
-          on:click={handleLoadSunnyCreek}
-          class="px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono transition-all"
-          title="Load Sunny Creek & Midway Bend showcase hole"
-        >
-          🌉 Sunny Creek
-        </button>
-
-        <button
-          on:click={handleLoadBigTop}
-          class="px-2.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/30 text-rose-300 text-xs font-bold font-mono transition-all"
-          title="Load Big Top Windmill showcase hole"
-        >
-          🎡 Big Top
-        </button>
-
-        <button
-          on:click={handleAutoDecorate}
-          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-xs font-bold font-mono transition-all"
-          title="Decorate surroundings with hill knolls, trees, boulders & toadstools"
-        >
-          🌲 Decorate
-        </button>
-
-        <button
-          on:click={toggleBoundary}
-          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold font-mono transition-colors {showBoundary ? 'text-amber-300' : 'text-gray-500'}"
-          title="Toggle park perimeter fence"
-        >
-          🪵 Fence
-        </button>
-
-        <button
-          on:click={() => engine?.frameCameraOnCourse()}
-          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-300 text-xs font-bold font-mono transition-colors"
-          title="Center camera on course (F)"
-        >
-          🎯 Frame
-        </button>
-
-        <button
-          on:click={toggleTrackPathMode}
-          class="px-2.5 py-2 rounded-xl border text-xs font-bold font-mono transition-all {isTrackPathMode ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10 text-gray-300'}"
-          title="Edit spline track path, handles & elevation (T)"
-        >
-          〰️ Edit Track
-        </button>
-
-        <button
-          on:click={toggleEraseMode}
-          class="px-2.5 py-2 rounded-xl border text-xs font-bold font-mono transition-all {isEraseMode ? 'bg-red-500/30 border-red-400 text-red-200 shadow-lg' : 'bg-white/5 border-transparent hover:bg-white/10 text-gray-300'}"
-          title="Erase props or non-root track tiles (X)"
-        >
-          🧹 Erase
-        </button>
-
-        <button
-          on:click={handleClearToTee}
-          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-200 text-xs font-bold font-mono transition-colors"
-          title="Reset workspace to single tee tile"
-        >
-          🗑️ Clear
-        </button>
-
-        <div class="w-px h-5 bg-white/10 mx-1"></div>
-
-        <button
-          on:click={handleUndo}
-          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors"
-          title="Undo (Ctrl+Z)"
-        >
-          ↩️ Undo
-        </button>
-        <button
-          on:click={handleRedo}
-          class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors"
-          title="Redo (Ctrl+Y)"
-        >
-          ↪️ Redo
-        </button>
-      {/if}
-
-      <!-- Playtest Mode Toggle -->
-      <button
-        on:click={togglePlaytestMode}
-        class="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs font-mono transition-all shadow-lg active:scale-95 {isPlaytestMode ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}"
-      >
-        <span>{isPlaytestMode ? '⏹️ Exit Test' : '▶️ Test Putt'}</span>
-      </button>
-
-      {#if !isPlaytestMode}
-        <button
-          on:click={handleSaveCourse}
-          class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono transition-all"
-        >
-          {saveFeedback || '💾 Save'}
-        </button>
-        {#if savedCourseId}
-          <a
-            href="/play?course={savedCourseId}"
-            class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-mono transition-all"
-          >
-            🎮 Play Saved
-          </a>
-        {/if}
-      {/if}
-    </div>
-
-    <!-- Right: Back to Home -->
-    <a
-      href="/"
-      class="bg-slate-900/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-300 hover:text-white pointer-events-auto transition-colors"
-    >
-      Exit to Menu
-    </a>
-  </header>
+  <EditorToolbar
+    {isReady}
+    {isPlaytestMode}
+    {currentFps}
+    {activeTheme}
+    {showBoundary}
+    {isTrackPathMode}
+    {isEraseMode}
+    {saveFeedback}
+    {savedCourseId}
+    on:setTheme={(e) => (activeTheme = e.detail)}
+    on:openWfc={() => (showWfcModal = true)}
+    on:loadSunnyCreek={handleLoadSunnyCreek}
+    on:loadBigTop={handleLoadBigTop}
+    on:autoDecorate={handleAutoDecorate}
+    on:toggleBoundary={toggleBoundary}
+    on:frameCamera={() => engine?.frameCameraOnCourse()}
+    on:toggleTrackPath={toggleTrackPathMode}
+    on:toggleErase={toggleEraseMode}
+    on:clearToTee={handleClearToTee}
+    on:undo={handleUndo}
+    on:redo={handleRedo}
+    on:togglePlaytest={togglePlaytestMode}
+    on:saveCourse={handleSaveCourse}
+  />
 
   <!-- Bottom-Left Prop Palette (Editor Mode only) -->
   {#if !isPlaytestMode}
@@ -496,117 +368,16 @@
 
     <!-- Selected Spline Waypoint Inspector (Track Edit Mode only) -->
     {#if isTrackPathMode && selectedSplineNode}
-      <div class="absolute bottom-6 right-6 bg-slate-900/90 backdrop-blur-xl border border-cyan-400/30 p-3.5 rounded-2xl shadow-2xl text-white font-mono space-y-2.5 w-64">
-        <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
-          <span class="text-xs font-bold text-cyan-300 uppercase tracking-wider">
-            {#if selectedSplineNode.isRoot}
-              ⛳ Tee Start (#0)
-            {:else if selectedSplineNode.index === selectedSplineNode.nodeCount - 1}
-              🏁 Path End (#{selectedSplineNode.index})
-            {:else}
-              〰️ Waypoint #{selectedSplineNode.index}
-            {/if}
-          </span>
-          <span class="text-[11px] text-amber-300 font-bold">
-            Y: {selectedSplineNode.elevationMeters.toFixed(1)}m
-          </span>
-        </div>
-
-        {#if selectedSplineNode.invalidCount > 0}
-          <div class="px-2.5 py-1.5 rounded-xl bg-red-500/20 border border-red-400/50 text-[10px] font-bold text-red-200 leading-snug">
-            ⚠️ {selectedSplineNode.isInvalid ? 'This point is highlighted Red: ' : 'Red path points: '}unreachable with kit tiles. Track built up to last valid point.
-          </div>
-        {/if}
-
-        <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
-          <button
-            on:click={() => editorController?.stepSelectedNodeElevation(-1)}
-            class="py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 transition-colors"
-            title="Lower elevation step (-1.5m)"
-          >
-            ⬇️ -1.5m
-          </button>
-          <button
-            on:click={() => editorController?.stepSelectedNodeElevation(1)}
-            class="py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 transition-colors"
-            title="Raise elevation step (+1.5m)"
-          >
-            ⬆️ +1.5m
-          </button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
-          <button
-            on:click={() => editorController?.toggleSelectedNodeBevel()}
-            disabled={!selectedSplineNode.canBevel}
-            class="py-1.5 px-2 rounded-xl border transition-colors {!selectedSplineNode.canBevel ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed' : selectedSplineNode.bevelRadius > 0.15 ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200' : 'bg-amber-500/20 border-amber-400/50 text-amber-200'}"
-            title="Toggle between Sharp corner turn and rounded Bevel arc"
-          >
-            {selectedSplineNode.bevelRadius > 0.15 ? `⭕ Bevel ${selectedSplineNode.bevelRadius.toFixed(1)}m` : '📐 Sharp'}
-          </button>
-          <button
-            on:click={() => editorController?.deleteSelectedSplineNode()}
-            disabled={!selectedSplineNode.canDelete}
-            class="py-1.5 px-2 rounded-xl border text-xs font-bold transition-colors {selectedSplineNode.canDelete ? 'bg-red-500/20 hover:bg-red-500/35 border-red-400/40 text-red-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
-            title="Delete selected waypoint (Del)"
-          >
-            🗑️ Del Node
-          </button>
-        </div>
-
-        {#if selectedSplineNode.canBevel}
-          <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
-            <button
-              on:click={() => editorController?.stepSelectedNodeBevel(-3.0)}
-              disabled={selectedSplineNode.bevelRadius <= 0.15}
-              class="py-1 px-2 rounded-xl border transition-colors {selectedSplineNode.bevelRadius > 0.15 ? 'bg-white/5 hover:bg-white/15 border-white/10 text-gray-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
-              title="Decrease corner bevel radius (-3m)"
-            >
-              ➖ Bevel
-            </button>
-            <button
-              on:click={() => editorController?.stepSelectedNodeBevel(3.0)}
-              disabled={selectedSplineNode.bevelRadius >= selectedSplineNode.maxBevelRadius - 0.15}
-              class="py-1 px-2 rounded-xl border transition-colors {selectedSplineNode.bevelRadius < selectedSplineNode.maxBevelRadius - 0.15 ? 'bg-white/5 hover:bg-white/15 border-white/10 text-gray-200' : 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'}"
-              title="Increase corner bevel radius (+3m)"
-            >
-              ➕ Bevel
-            </button>
-          </div>
-        {/if}
-
-        <!-- World Grid Snap Selector -->
-        <div class="pt-2 border-t border-white/10 space-y-1.5">
-          <div class="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-            <span>⊞ World Grid Snap</span>
-            <span class="text-cyan-300">{gridSnapSize > 0 ? `${gridSnapSize}m` : 'Off'}</span>
-          </div>
-          <div class="grid grid-cols-4 gap-1 bg-black/30 p-0.5 rounded-xl border border-white/10 text-[11px] font-bold">
-            {#each [
-              { size: 0, label: 'Off' },
-              { size: 1, label: '1m' },
-              { size: 3, label: '3m' },
-              { size: 6, label: '6m' },
-            ] as opt}
-              <button
-                on:click={() => (gridSnapSize = opt.size)}
-                class="py-1 rounded-lg transition-colors {gridSnapSize === opt.size ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/50' : 'text-slate-400 hover:text-white'}"
-              >
-                {opt.label}
-              </button>
-            {/each}
-          </div>
-          {#if gridSnapSize > 0}
-            <button
-              on:click={() => editorController?.snapAllSplineNodesToGrid()}
-              class="w-full py-1 px-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/40 text-xs font-bold text-cyan-200 transition-colors"
-              title="Align all existing waypoints cleanly onto the active world grid"
-            >
-              🧲 Align Path to {gridSnapSize}m Grid
-            </button>
-          {/if}
-        </div>
-      </div>
+      <PathWaypointInspector
+        {selectedSplineNode}
+        {gridSnapSize}
+        on:stepElevation={(e) => editorController?.stepSelectedNodeElevation(e.detail)}
+        on:toggleBevel={() => editorController?.toggleSelectedNodeBevel()}
+        on:stepBevel={(e) => editorController?.stepSelectedNodeBevel(e.detail)}
+        on:deleteNode={() => editorController?.deleteSelectedSplineNode()}
+        on:setGridSnap={(e) => (gridSnapSize = e.detail)}
+        on:alignPath={() => editorController?.snapAllSplineNodesToGrid()}
+      />
     {/if}
 
     <!-- Editor Hint Banner -->
@@ -625,59 +396,20 @@
     </div>
   {/if}
 
-  <!-- Playtest HUD Stats (Playtest Mode only) -->
+  <!-- Playtest HUD & Sink Modal -->
   {#if isPlaytestMode}
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-white font-mono shadow-2xl flex items-center gap-6">
-      <div class="text-center">
-        <div class="text-[10px] text-gray-400">PAR</div>
-        <div class="text-lg font-bold text-cyan-400">3</div>
-      </div>
-      <div class="w-px h-6 bg-white/10"></div>
-      <div class="text-center">
-        <div class="text-[10px] text-gray-400">STROKES</div>
-        <div class="text-lg font-bold text-amber-400">{strokes}</div>
-      </div>
-      <div class="w-px h-6 bg-white/10"></div>
-      <button
-        on:click={() => engine.ballController.respawn()}
-        class="bg-white/10 hover:bg-white/20 text-xs font-bold px-3 py-1.5 rounded-xl border border-white/10 transition-colors"
-      >
-        Respawn Ball
-      </button>
-    </div>
-  {/if}
-
-  <!-- Celebratory Sink Modal -->
-  {#if isCupSunk}
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-      <div class="bg-black/90 backdrop-blur-xl border border-emerald-500/50 p-8 rounded-3xl text-center shadow-2xl pointer-events-auto space-y-4">
-        <div class="text-5xl">⛳ 🎉</div>
-        <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 font-sans">
-          HOLE IN!
-        </div>
-        <div class="text-lg text-white font-mono">
-          Total Strokes: <span class="font-bold text-amber-400">{strokes}</span>
-        </div>
-        <div class="flex gap-3 justify-center">
-          <button
-            on:click={() => {
-              engine.resetBallToTee();
-              isCupSunk = false;
-              strokes = 0;
-            }}
-            class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
-          >
-            Putt Again
-          </button>
-          <button
-            on:click={togglePlaytestMode}
-            class="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2 rounded-xl transition-all"
-          >
-            Edit Track
-          </button>
-        </div>
-      </div>
-    </div>
+    <PlaytestOverlay
+      par={3}
+      {strokes}
+      {isCupSunk}
+      on:respawn={() => engine.ballController.respawn()}
+      on:puttAgain={() => {
+        engine.resetBallToTee();
+        isCupSunk = false;
+        strokes = 0;
+      }}
+      on:exitPlaytest={togglePlaytestMode}
+    />
   {/if}
 
   <!-- Radial Context Snap Menu (Appears on clicking open socket ring) -->
