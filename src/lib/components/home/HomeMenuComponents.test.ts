@@ -12,26 +12,37 @@ describe("Home Menu Cartoon Arcade Components", () => {
     expect(res.html).toContain("kawaii-golf-ball");
   });
 
-  it("renders ProfileCornerCard for Guest vs signed-in user", () => {
-    const guestRes = (ProfileCornerCard as any).render({
+  it("renders ProfileCornerCard collapsed as avatar button by default and shows profile box when opened", () => {
+    const collapsedGuest = (ProfileCornerCard as any).render({
       user: null,
       canEditLevels: false,
       isMuted: false,
+      isOpen: false,
     });
-    expect(guestRes.html).toContain("PROFILES");
-    expect(guestRes.html).toContain("Guest");
-    expect(guestRes.html).toContain("Sign In");
-    expect(guestRes.html).toContain("/auth/signin");
+    expect(collapsedGuest.html).toContain('aria-label="Toggle Profile Menu"');
+    expect(collapsedGuest.html).not.toContain("PROFILES");
 
-    const authedRes = (ProfileCornerCard as any).render({
+    const openGuest = (ProfileCornerCard as any).render({
+      user: null,
+      canEditLevels: false,
+      isMuted: false,
+      isOpen: true,
+    });
+    expect(openGuest.html).toContain("PROFILES");
+    expect(openGuest.html).toContain("Guest");
+    expect(openGuest.html).toContain("Sign In");
+    expect(openGuest.html).toContain("/auth/signin");
+
+    const openAuthed = (ProfileCornerCard as any).render({
       user: { displayName: "Luiz", email: "luiz@example.com" },
       canEditLevels: true,
       isMuted: true,
+      isOpen: true,
     });
-    expect(authedRes.html).toContain("Luiz");
-    expect(authedRes.html).toContain("/profile");
-    expect(authedRes.html).toContain("/mylevels");
-    expect(authedRes.html).toContain("Sign Out");
+    expect(openAuthed.html).toContain("Luiz");
+    expect(openAuthed.html).toContain("/profile");
+    expect(openAuthed.html).toContain("/mylevels");
+    expect(openAuthed.html).toContain("Sign Out");
   });
 
   it("renders HomeOverlay loader state, real action buttons, and auth-gated Track Builder", () => {

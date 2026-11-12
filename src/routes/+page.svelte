@@ -29,8 +29,9 @@
     try {
       engine = new GameEngine(canvas);
       await engine.init();
-      engine.loadHole(carnivalParkCourse.holes[0]);
+      engine.courseManager.loadHole(carnivalParkCourse.holes[0]);
       engine.setShowcaseTurntableMode(true);
+      engine.renderPipeline.resize();
       engine.start();
     } catch (err) {
       console.error("Failed to initialize home 3D flyover:", err);
