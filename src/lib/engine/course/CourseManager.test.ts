@@ -286,5 +286,70 @@ describe("CourseManager Dynamic Socket Snapping (TDD)", () => {
 
     cm.clear();
   });
+
+  it("calculates spawnHeading aligned with tee direction and spline path", async () => {
+    const RAPIER = await import("@dimforge/rapier3d-compat");
+    await RAPIER.init();
+
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+
+    const mockLoader: any = {
+      getPiece: (id: string) => ({
+        metadata: { id, dimensions: [6, 0.6, 6], hasDynamicWalls: true },
+        visualTemplate: new THREE.Group(),
+        sockets: [
+          { id: "LOC_Socket_Out", position: [0, 0, -3], normal: [0, 0, -1], type: "track", elevation: 0 },
+        ],
+        locators: new Map([
+          ["LOC_Spawn_Tee", new THREE.Vector3(0, 0.2, 0)],
+        ]),
+      }),
+    };
+
+    const { CourseManager } = await import("./CourseManager");
+    const cm = new CourseManager(scene, world, RAPIER, mockLoader);
+
+    // 1. Tee tile with rotationY = -90 (pointing towards +X)
+    cm.loadHole({
+      holeId: "test_h1",
+      par: 3,
+      teeTileId: "tee",
+      cupTileId: "cup",
+      tiles: [
+        {
+          instanceId: "tee",
+          kitPieceId: "tee_6x6",
+          position: [0, 0, 0],
+          rotationY: -90,
+          walls: { left: true, right: true },
+        },
+      ],
+    });
+
+    expect(cm.spawnHeading.x).toBeCloseTo(1.0, 2);
+    expect(cm.spawnHeading.z).toBeCloseTo(0.0, 2);
+
+    // 2. Hole with spline path overrides/sets spawnHeading directly from nodes[0] -> nodes[1]
+    cm.loadHole({
+      holeId: "test_h2",
+      par: 3,
+      teeTileId: "tee",
+      cupTileId: "cup",
+      tiles: [],
+      splinePath: {
+        closed: false,
+        nodes: [
+          { position: [0, 0, 0], handleOffset: [0, 0] },
+          { position: [0, 0, 5], handleOffset: [0, 0] },
+        ],
+      },
+    });
+
+    expect(cm.spawnHeading.x).toBeCloseTo(0.0, 2);
+    expect(cm.spawnHeading.z).toBeCloseTo(1.0, 2);
+
+    cm.clear();
+  });
 });
 

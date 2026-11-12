@@ -59,6 +59,7 @@ export class CourseManager {
   public goalPosition: THREE.Vector3 | null = null;
   public cupBottomPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
+  public spawnHeading: THREE.Vector3 = new THREE.Vector3(0, 0, -1);
   public showBoundary: boolean = true;
   public onHoleChanged?: () => void;
 
@@ -86,6 +87,7 @@ export class CourseManager {
   public loadHole(hole: HoleData): void {
     this.clear();
     this.showBoundary = hole.showBoundary ?? true;
+    this.spawnHeading.set(0, 0, -1);
     this.splinePath = hole.splinePath
       ? {
           closed: false,
@@ -96,6 +98,15 @@ export class CourseManager {
           })),
         }
       : null;
+
+    if (this.splinePath?.nodes && this.splinePath.nodes.length >= 2) {
+      const n0 = this.splinePath.nodes[0].position;
+      const n1 = this.splinePath.nodes[1].position;
+      const dir = new THREE.Vector3(n1[0] - n0[0], 0, n1[2] - n0[2]);
+      if (dir.lengthSq() > 0.0001) {
+        this.spawnHeading.copy(dir.normalize());
+      }
+    }
 
     for (const tileData of hole.tiles) {
       this.addTile(tileData, false);
@@ -198,6 +209,24 @@ export class CourseManager {
         loc.applyEuler(group.rotation);
         loc.add(group.position);
         this.spawnPosition.copy(loc);
+
+        const hasSplineNodes = Boolean(this.splinePath?.nodes && this.splinePath.nodes.length >= 2);
+        if (!hasSplineNodes) {
+          const outSocket = template.sockets.find((s) => s.id === "LOC_Socket_Out");
+          if (outSocket) {
+            const sockPos = new THREE.Vector3(...outSocket.position).applyMatrix4(group.matrixWorld);
+            const heading = new THREE.Vector3(sockPos.x - this.spawnPosition.x, 0, sockPos.z - this.spawnPosition.z);
+            if (heading.lengthSq() > 0.0001) {
+              this.spawnHeading.copy(heading.normalize());
+            } else {
+              const fwd = new THREE.Vector3(0, 0, -1).applyEuler(group.rotation);
+              this.spawnHeading.set(fwd.x, 0, fwd.z).normalize();
+            }
+          } else {
+            const fwd = new THREE.Vector3(0, 0, -1).applyEuler(group.rotation);
+            this.spawnHeading.set(fwd.x, 0, fwd.z).normalize();
+          }
+        }
       }
 
       // Check for Goal sensor locator (anchor rim at tile surface, cup cavity & indicator at true bottom)
