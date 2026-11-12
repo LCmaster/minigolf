@@ -62,13 +62,6 @@
       </button>
 
       <button
-        on:click={() => goto("/game")}
-        class="w-full py-2.5 flex justify-center items-center gap-2 rounded-full font-bold text-sm tracking-wider bg-white/70 hover:bg-white border border-white/60 shadow-sm text-[#4A4A4A] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
-      >
-        <span>Legacy Spline Mode</span>
-      </button>
-
-      <button
         on:click={() => modalStore.trigger(modal)}
         class="w-full py-3 flex justify-center items-center gap-3 rounded-full font-bold text-lg tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
       >

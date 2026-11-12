@@ -64,7 +64,7 @@
       <button 
         class="py-2 px-6 rounded-full font-black tracking-widest bg-gradient-to-b from-[#F6A655] to-[#E57300] border-2 border-white/50 shadow-lg text-white hover:scale-[1.05] active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:scale-100"
         disabled={loading || error || levels.length === 0}
-        on:click={() => goto(`/game?campaignId=${campaignId}`)}
+        on:click={() => goto("/play")}
       >
         PLAY CAMPAIGN
       </button>
@@ -149,7 +149,7 @@
                       </button>
                       <button 
                         class="py-1.5 px-4 rounded-full font-bold text-sm tracking-wider bg-[#7ACC52] hover:bg-[#68B345] border border-white/50 shadow-sm text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
-                        on:click|stopPropagation={() => goto(`/game?courseId=${level.id}`)}
+                        on:click|stopPropagation={() => goto("/play")}
                       >
                         Play
                       </button>

@@ -1,6 +1,6 @@
 # Carnival Park Modular Kitbash Architecture
 
-This document describes how the stylized **Carnival Park** course kitbash system (modeled after `assets/sunny_creek_midway_bend.blend`) integrates into Mini Golf Mania's Three.js + Rapier engine (`/play` and `/editor`) alongside the existing `country_club` arcade kit.
+This document describes how the stylized **Carnival Park** course kitbash system (modeled after `assets/sunny_creek_midway_bend.blend`) integrates into Mini Golf Mania's Three.js + Rapier engine (`/play` and `/editor`) alongside the existing `country_club` arcade kit (legacy V1 Threlte routes and components have been removed).
 
 ---
 

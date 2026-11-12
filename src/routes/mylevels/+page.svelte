@@ -93,9 +93,9 @@
       <h1 class="text-3xl font-black tracking-widest text-[#4A4A4A] drop-shadow-sm">MY LEVELS</h1>
       <button 
         class="py-2 px-6 rounded-full font-bold tracking-wider bg-[#F6A655] hover:bg-[#E57300] border-2 border-white shadow-md text-white hover:scale-[1.05] active:scale-95 transition-all cursor-pointer" 
-        on:click={() => goto("/campaign/builder")}
+        on:click={() => goto("/editor")}
       >
-        Bundle Campaign
+        New Hole
       </button>
     </div>
   {#if loading}
@@ -155,17 +155,10 @@
                         >
                           Edit
                         </button>
-                      {:else}
-                        <button 
-                          class="py-2 px-5 rounded-full font-bold tracking-wider bg-[#4A4A4A] hover:bg-[#333333] border-2 border-white shadow-md text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
-                          on:click|stopPropagation={() => goto(`/campaign/builder?campaignId=${level.id}`)}
-                        >
-                          Edit
-                        </button>
                       {/if}
                       <button 
                         class="py-2 px-6 rounded-full font-black tracking-widest bg-gradient-to-b from-[#F6A655] to-[#E57300] border-2 border-white/50 shadow-lg text-white hover:scale-105 active:scale-95 transition-all cursor-pointer" 
-                        on:click|stopPropagation={() => level.isCampaign ? goto(`/campaign/${level.id}`) : goto(`/game?courseId=${level.id}`)}
+                        on:click|stopPropagation={() => level.isCampaign ? goto(`/campaign/${level.id}`) : goto("/play")}
                       >
                         PLAY
                       </button>
