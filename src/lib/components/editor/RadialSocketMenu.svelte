@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import { getHazardOptions, getTrackSnapOptions } from "$lib/engine/kitbash/KitCatalog";
 
   export let x = 0;
   export let y = 0;
@@ -9,38 +10,9 @@
   const dispatch = createEventDispatcher();
 
   let activeSection = "track"; // "track" | "hazards"
+  const hazardTileOptions = getHazardOptions();
 
-  const carnivalOptions = [
-    { id: "carnival_straight_6m", label: "Carnival Straight", icon: "🟩" },
-    { id: "carnival_turn_15deg_rounded", label: "Carnival Turn 15°", icon: "↗️" },
-    { id: "carnival_turn_30deg_rounded", label: "Carnival Turn 30°", icon: "↗️" },
-    { id: "carnival_turn_45deg_rounded", label: "Carnival Turn 45°", icon: "↗️" },
-    { id: "carnival_turn_90deg_rounded", label: "Carnival Turn 90°", icon: "⤵️" },
-    { id: "carnival_ramp_up_15deg_6x6", label: "Carnival Ramp Up", icon: "📈" },
-    { id: "carnival_ramp_down_15deg_6x6", label: "Carnival Ramp Down", icon: "📉" },
-    { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉" },
-    { id: "carnival_windmill_6x12", label: "Windmill Gate (12m)", icon: "🎡" },
-    { id: "carnival_green_cup_6x6", label: "Carnival Cup Green", icon: "⛳" },
-  ];
-
-  const classicOptions = [
-    { id: "straight_6m", label: "Straight (6m)", icon: "➡️" },
-    { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️" },
-    { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️" },
-    { id: "turn_banked_90deg_6x6", label: "Banked 90°", icon: "🎢" },
-    { id: "ramp_up_15deg_6x6", label: "Ramp Up (1.5m)", icon: "📈" },
-    { id: "ramp_down_15deg_6x6", label: "Ramp Down (1.5m)", icon: "📉" },
-    { id: "obstacle_windmill_6x12", label: "Windmill Gate", icon: "🎡" },
-    { id: "green_cup_standard_6x6", label: "Cup Green", icon: "⛳" },
-  ];
-
-  const hazardTileOptions = [
-    { id: "hazard_booster_strip_6x3", label: "Booster Strip (3m)", icon: "⚡" },
-    { id: "hazard_sand_trap_6x6", label: "Sand Trap (6m)", icon: "🏖️" },
-    { id: "hazard_water_channel_6x6", label: "Water Channel (6m)", icon: "🌊" },
-  ];
-
-  $: trackOptions = theme === "carnival_park" ? carnivalOptions : classicOptions;
+  $: trackOptions = getTrackSnapOptions(theme);
   $: options = activeSection === "hazards" ? hazardTileOptions : trackOptions;
 
   function selectOption(pieceId) {

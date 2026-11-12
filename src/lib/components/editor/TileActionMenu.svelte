@@ -1,5 +1,10 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import {
+    getCupVariantOptions,
+    getHazardOptions,
+    getTrackSwapOptions,
+  } from "$lib/engine/kitbash/KitCatalog";
 
   export let x = 0;
   export let y = 0;
@@ -11,48 +16,10 @@
   let activeSection = "track"; // "track" | "hazards"
   let turnLeft = false;
 
-  const carnivalTrackOptions = [
-    { id: "carnival_straight_6m", label: "Straight (6m)", icon: "🟩", isTurn: false },
-    { id: "carnival_bridge_pond_6x12", label: "Pond Bridge (12m)", icon: "🌉", isTurn: false },
-    { id: "carnival_windmill_6x12", label: "Windmill Gate (12m)", icon: "🎡", isTurn: false },
-    { id: "carnival_ramp_up_15deg_6x6", label: "Ramp Up (+1.5m)", icon: "📈", isTurn: false },
-    { id: "carnival_ramp_down_15deg_6x6", label: "Ramp Down (-1.5m)", icon: "📉", isTurn: false },
-    { id: "carnival_turn_15deg_rounded", label: "Turn 15°", icon: "↪️", isTurn: true },
-    { id: "carnival_turn_30deg_rounded", label: "Turn 30°", icon: "↪️", isTurn: true },
-    { id: "carnival_turn_45deg_rounded", label: "Turn 45°", icon: "↗️", isTurn: true },
-    { id: "carnival_turn_60deg_rounded", label: "Turn 60°", icon: "↗️", isTurn: true },
-    { id: "carnival_turn_75deg_rounded", label: "Turn 75°", icon: "⤴️", isTurn: true },
-    { id: "carnival_turn_90deg_rounded", label: "Turn 90°", icon: "⤵️", isTurn: true },
-  ];
+  const hazardOptions = getHazardOptions();
 
-  const classicTrackOptions = [
-    { id: "straight_6m", label: "Straight (6m)", icon: "➡️", isTurn: false },
-    { id: "bridge_overpass_6x12", label: "Bridge (12m)", icon: "🌉", isTurn: false },
-    { id: "obstacle_windmill_6x12", label: "Windmill (12m)", icon: "🎡", isTurn: false },
-    { id: "ramp_up_15deg_6x6", label: "Ramp Up (+1.5m)", icon: "📈", isTurn: false },
-    { id: "ramp_down_15deg_6x6", label: "Ramp Down (-1.5m)", icon: "📉", isTurn: false },
-    { id: "turn_30deg_rounded", label: "Turn 30°", icon: "↪️", isTurn: true },
-    { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️", isTurn: true },
-    { id: "turn_60deg_rounded", label: "Turn 60°", icon: "↗️", isTurn: true },
-    { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️", isTurn: true },
-    { id: "turn_banked_90deg_6x6", label: "Banked 90°", icon: "🎢", isTurn: true },
-  ];
-
-  const hazardOptions = [
-    { id: "hazard_booster_strip_6x3", label: "Booster Strip (3m)", icon: "⚡", isTurn: false },
-    { id: "hazard_sand_trap_6x6", label: "Sand Trap (6m)", icon: "🏖️", isTurn: false },
-    { id: "hazard_water_channel_6x6", label: "Water Channel (6m)", icon: "🌊", isTurn: false },
-  ];
-
-  $: cupOptions =
-    theme === "carnival_park"
-      ? [{ id: "carnival_green_cup_6x6", label: "Carnival Cup", icon: "⛳", isTurn: false }]
-      : [
-          { id: "green_cup_standard_6x6", label: "Standard Cup", icon: "⛳", isTurn: false },
-          { id: "green_cup_funnel_6x6", label: "Funnel Cup", icon: "🕳️", isTurn: false },
-        ];
-
-  $: baseTrackOptions = theme === "carnival_park" ? carnivalTrackOptions : classicTrackOptions;
+  $: cupOptions = getCupVariantOptions(theme);
+  $: baseTrackOptions = getTrackSwapOptions(theme);
   $: swapOptions = tileInfo?.isCup
     ? cupOptions
     : activeSection === "hazards"
