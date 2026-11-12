@@ -26,6 +26,18 @@ describe("Play HUD & Scorecard Cartoon Components", () => {
     expect(res.html).toContain('aria-label="Toggle Audio"');
     expect(res.html).toContain('aria-label="Respawn Ball"');
     expect(res.html).toContain('href="/"');
+
+    const evenHud = (PlayHud as any).render({
+      availableCourses: [carnivalParkCourse],
+      activeCourse: carnivalParkCourse,
+      selectedCourseId: carnivalParkCourse.id,
+      currentHole: carnivalParkCourse.holes[0],
+      strokes: 0,
+      totalScore: 0,
+      isMuted: false,
+    });
+    expect(evenHud.html).not.toContain(">E<");
+    expect(evenHud.html).toContain(">0<");
   });
 
   it("renders PlayResultModals for Hole Sink with catchphrase as SVG title and full scoreboard", () => {
@@ -66,6 +78,8 @@ describe("Play HUD & Scorecard Cartoon Components", () => {
 
     expect(res.html).toContain("COURSE COMPLETE!");
     expect(res.html).toContain(`>${expectedPar}<`);
+    expect(res.html).not.toContain(">E<");
+    expect(res.html).toContain(">0<");
     expect(res.html).toContain("PLAY AGAIN");
     expect(res.html).toContain("HOME MENU");
   });

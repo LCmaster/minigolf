@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import { formatRelativeScore } from "$lib/engine/course/CourseStorage";
 
   export let availableCourses = [];
   export let activeCourse;
@@ -11,7 +12,7 @@
 
   const dispatch = createEventDispatcher();
 
-  $: formattedTotal = totalScore === 0 ? "E" : totalScore > 0 ? `+${totalScore}` : `${totalScore}`;
+  $: formattedTotal = formatRelativeScore(totalScore);
 </script>
 
 <!-- Non-blocking HUD Container so canvas aiming/orbiting works everywhere outside widgets -->
@@ -108,3 +109,4 @@
     </a>
   </div>
 </div>
+

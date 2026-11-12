@@ -226,3 +226,9 @@ export function computeTotalPar(holes: Pick<HoleData, "par">[]): number {
   return holes.reduce((acc, h) => acc + (Number.isFinite(h.par) ? h.par : 3), 0);
 }
 
+/** Formats a relative-to-par score cleanly as `"0"`, `"+N"`, or `"-N"`. */
+export function formatRelativeScore(relative: number): string {
+  if (!Number.isFinite(relative) || relative === 0) return "0";
+  return relative > 0 ? `+${relative}` : `${relative}`;
+}
+

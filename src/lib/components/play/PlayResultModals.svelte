@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { computeTotalPar } from "$lib/engine/course/CourseStorage";
+  import { computeTotalPar, formatRelativeScore } from "$lib/engine/course/CourseStorage";
 
   export let isCupSunk = false;
   export let isCourseFinished = false;
@@ -16,7 +16,7 @@
   $: playedPar = scoreCard.reduce((acc, curr) => acc + curr.par, 0);
   $: totalCoursePar = isCourseFinished ? computeTotalPar(activeCourse?.holes ?? []) : playedPar || holePar;
   $: totalStrokes = scoreCard.reduce((acc, curr) => acc + curr.strokes, 0);
-  $: formattedTotal = totalScore === 0 ? "E" : totalScore > 0 ? `+${totalScore}` : `${totalScore}`;
+  $: formattedTotal = formatRelativeScore(totalScore);
   $: isLastHole = (currentHole?.holeNumber ?? 1) >= (activeCourse?.holes?.length ?? 1);
 
   function getCalloutTitle(s, par) {
@@ -108,7 +108,7 @@
                           ? 'text-rose-600'
                           : 'text-slate-500'}"
                     >
-                      {s.relative === 0 ? "E" : s.relative > 0 ? `+${s.relative}` : s.relative}
+                      {formatRelativeScore(s.relative)}
                     </span>
                   </div>
                 {/each}
