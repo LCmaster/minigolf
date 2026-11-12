@@ -402,7 +402,7 @@ describe("EditorController Unit Tests", () => {
     expect(editor.toggleSelectedNodeBevel()).toBe(false);
 
     // Select intermediate corner (idx 1) -> defaults to Sharp, toggleSelectedNodeBevel rounds it & Undo restores Sharp
-    (editor as any).selectedSplineNodeIndex = 1;
+    editor.selectSplineNode(1);
     expect(editor.getSelectedSplineNodeInfo()?.canBevel).toBe(true);
     expect(editor.getSelectedSplineNodeInfo()?.corner).toBe(true);
     expect(editor.toggleSelectedNodeBevel()).toBe(true);
@@ -429,14 +429,14 @@ describe("EditorController Unit Tests", () => {
     working.nodes[1].position[0] = 4.4;
     working.nodes[1].position[2] = -10.9;
     splineCourseMock.setSplinePath(working);
-    (editor as any).activeSpline = working;
+    editor.setActiveSpline(working);
 
     expect(editor.snapAllSplineNodesToGrid()).toBe(true);
     expect(splineCourseMock.getSplinePath().nodes[1].position[0]).toBe(3);
     expect(editor.undo()).toBe(true);
 
     // Delete inserted tail node works (cannot delete root node 0)
-    (editor as any).selectedSplineNodeIndex = splineCourseMock.getSplinePath().nodes.length - 1;
+    editor.selectSplineNode(splineCourseMock.getSplinePath().nodes.length - 1);
     expect(editor.deleteSelectedSplineNode()).toBe(true);
     expect(splineCourseMock.getSplinePath().nodes.length).toBe(3);
 
