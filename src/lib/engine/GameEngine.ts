@@ -15,6 +15,7 @@ import { CameraController } from "./scene/CameraController";
 import { AudioManager } from "./audio/AudioManager";
 import type { EngineEventMap } from "./types/EngineEvents";
 import type { HoleData } from "./types/CourseSchema";
+import type { BoosterSensorInfo } from "./course/PropInstanceManager";
 
 export class GameEngine {
   public renderPipeline: RenderPipeline;
@@ -34,6 +35,7 @@ export class GameEngine {
   private fpsCounter: number = 0;
   private fpsTimer: number = 0;
   private boosterCooldownTimer: number = 0;
+  private boosterVisualTime: number = 0;
 
   private eventListeners: { [K in keyof EngineEventMap]?: Function[] } = {};
 
@@ -205,6 +207,24 @@ export class GameEngine {
     }
   }
 
+  /** Applies a booster's impulse, starts its cooldown, plays audio, and flashes its chevrons. */
+  public triggerBooster(booster: BoosterSensorInfo): void {
+    const { direction, impulse } = booster;
+    if (this.ballController.rigidBody) {
+      this.ballController.rigidBody.applyImpulse(
+        new this.physicsWorld.rapier.Vector3(
+          direction.x * impulse,
+          direction.y * impulse,
+          direction.z * impulse
+        ),
+        true
+      );
+    }
+    this.boosterCooldownTimer = 0.35;
+    this.audio.playBumper();
+    booster.visuals?.triggerFlash();
+  }
+
   private loop = (): void => {
     if (!this.isRunning) return;
 
@@ -233,6 +253,10 @@ export class GameEngine {
       this.fpsTimer = 0;
     }
 
+    // Booster chevrons animate in both play and editor modes
+    this.boosterVisualTime += deltaTime;
+    this.courseManager.updateBoosterVisuals(this.boosterVisualTime, deltaTime);
+
     // Step physics simulation (only active during play / playtest mode)
     if (this.isEditorMode) {
       this.cameraController.update(deltaTime, 0);
@@ -259,7 +283,7 @@ export class GameEngine {
       this.courseManager.getCupBottomPosition?.() || this.courseManager.getGoalPosition();
     const ballHandle = this.ballController.collider?.handle;
     let ballEnteredHole = false;
-    let pendingBooster: { direction: THREE.Vector3; impulse: number } | null = null;
+    let pendingBooster: BoosterSensorInfo | null = null;
     let hitBumper = false;
 
     this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
@@ -284,17 +308,7 @@ export class GameEngine {
     });
 
     if (pendingBooster && this.ballController.rigidBody) {
-      const { direction, impulse } = pendingBooster;
-      this.ballController.rigidBody.applyImpulse(
-        new this.physicsWorld.rapier.Vector3(
-          direction.x * impulse,
-          direction.y * impulse,
-          direction.z * impulse
-        ),
-        true
-      );
-      this.boosterCooldownTimer = 0.35;
-      this.audio.playBumper();
+      this.triggerBooster(pendingBooster);
     } else if (hitBumper) {
       this.audio.playBumper();
     }

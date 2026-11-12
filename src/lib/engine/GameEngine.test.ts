@@ -108,4 +108,37 @@ describe("GameEngine Headless Orchestrator Tests", () => {
 
     engine.dispose();
   });
+  it("animates booster visuals every frame and flashes them when a booster is triggered", async () => {
+    const engine = new GameEngine(undefined, { headless: true });
+    vi.spyOn(engine.assetLoader, "init").mockImplementation(async () => {});
+    vi.spyOn(engine.assetLoader, "getPiece").mockImplementation((id: string) => {
+      if (id.includes("tee")) return MockFactories.createMockPiece(id, { isTee: true });
+      if (id.includes("cup")) return MockFactories.createMockPiece(id, { isCup: true });
+      return MockFactories.createMockPiece(id);
+    });
+    await engine.init();
+    engine.loadTestHole();
+
+    const animateSpy = vi.spyOn(engine.courseManager, "updateBoosterVisuals");
+    engine.stepFrame(1 / 60);
+    expect(animateSpy).toHaveBeenCalledTimes(1);
+    expect(animateSpy.mock.calls[0][1]).toBeCloseTo(1 / 60, 5);
+
+    // Editor mode (no physics) still animates the chevrons
+    engine.setEditorMode(true);
+    engine.stepFrame(1 / 60);
+    expect(animateSpy).toHaveBeenCalledTimes(2);
+    engine.setEditorMode(false);
+
+    const flash = vi.fn();
+    engine.triggerBooster({
+      direction: new THREE.Vector3(0, 0, -1),
+      impulse: 0.038,
+      center: new THREE.Vector3(),
+      visuals: { triggerFlash: flash } as any,
+    });
+    expect(flash).toHaveBeenCalledTimes(1);
+
+    engine.dispose();
+  });
 });
