@@ -53,7 +53,8 @@ describe("Home Menu Cartoon Arcade Components", () => {
       canEditLevels: false,
       isMuted: false,
     });
-    expect(loadingRes.html).toContain("Loading Carnival Park");
+    expect(loadingRes.html).toContain("Loading");
+    expect(loadingRes.html).not.toContain("Loading Carnival Park");
 
     const guestMenuRes = (HomeOverlay as any).render({
       isSceneReady: true,

@@ -19,10 +19,7 @@
     </div>
     <div class="text-center space-y-1.5">
       <div class="text-2xl font-black tracking-wide text-slate-900 drop-shadow-sm">
-        Loading Carnival Park...
-      </div>
-      <div class="text-xs font-bold uppercase tracking-widest text-slate-800/75">
-        Preparing 3D Course Flyover
+        Loading
       </div>
     </div>
     <div class="w-56 h-3 rounded-full bg-white/60 border-2 border-slate-800 overflow-hidden">
