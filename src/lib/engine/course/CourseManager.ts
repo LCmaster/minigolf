@@ -15,6 +15,14 @@ import {
   createFlagBillboard,
   disposeCupVisuals,
 } from "./GoalCupVisuals";
+import {
+  PropInstanceManager,
+  createStaticTrimeshColliderDesc,
+  type BoosterSensorInfo,
+  type InstantiatedProp,
+} from "./PropInstanceManager";
+
+export type { BoosterSensorInfo, InstantiatedProp };
 
 export interface InstantiatedTile {
   tileData: PlacedTile;
@@ -29,19 +37,6 @@ export interface InstantiatedTile {
   boosterSensorCollider?: RAPIER.Collider;
 }
 
-export interface BoosterSensorInfo {
-  direction: THREE.Vector3;
-  impulse: number;
-  center: THREE.Vector3;
-}
-
-export interface InstantiatedProp {
-  propData: PlacedProp;
-  pieceTemplate: ParsedKitPiece;
-  group: THREE.Group;
-  colliders: RAPIER.Collider[];
-}
-
 export class CourseManager {
   private scene: THREE.Scene;
   private rapierWorld: RAPIER.World;
@@ -49,7 +44,7 @@ export class CourseManager {
   private assetLoader: AssetLoader;
 
   private tiles: Map<string, InstantiatedTile> = new Map();
-  private props: Map<string, InstantiatedProp> = new Map();
+  private propManager: PropInstanceManager;
   private unifiedFloorCollider: RAPIER.Collider | null = null;
   private terrainCollider: RAPIER.Collider | null = null;
   private goalSensorCollider: RAPIER.Collider | null = null;
@@ -76,6 +71,15 @@ export class CourseManager {
     this.rapierWorld = rapierWorld;
     this.rapier = rapier;
     this.assetLoader = assetLoader;
+    this.propManager = new PropInstanceManager({
+      scene,
+      rapierWorld,
+      rapier,
+      assetLoader,
+      boosterSensors: this.boosterSensors,
+      bumperColliderHandles: this.bumperColliderHandles,
+      onChanged: () => this.onHoleChanged?.(),
+    });
   }
 
   public loadHole(hole: HoleData): void {
@@ -316,28 +320,7 @@ export class CourseManager {
     geo: THREE.BufferGeometry,
     matrix: THREE.Matrix4
   ): RAPIER.ColliderDesc | null {
-    const pos = geo.attributes.position;
-    if (!pos) return null;
-
-    const verts = new Float32Array(pos.count * 3);
-    const tempVec = new THREE.Vector3();
-
-    for (let i = 0; i < pos.count; i++) {
-      tempVec.fromBufferAttribute(pos, i);
-      tempVec.applyMatrix4(matrix);
-      verts[i * 3] = tempVec.x;
-      verts[i * 3 + 1] = tempVec.y;
-      verts[i * 3 + 2] = tempVec.z;
-    }
-
-    const indices = geo.index
-      ? new Uint32Array(geo.index.array)
-      : new Uint32Array(Array.from({ length: pos.count }, (_, i) => i));
-
-    const collider = this.rapier.ColliderDesc.trimesh(verts, indices);
-    collider.setFriction(0.4);
-    collider.setRestitution(0.6); // Wood rail bounce
-    return collider;
+    return createStaticTrimeshColliderDesc(this.rapier, geo, matrix);
   }
 
   public rebuildWeldedFloorPhysics(): void {
@@ -752,112 +735,23 @@ export class CourseManager {
     position: [number, number, number],
     rotation: [number, number, number]
   ): boolean {
-    const existing = this.props.get(instanceId);
-    if (!existing) return false;
-
-    const updated: PlacedProp = {
-      ...existing.propData,
-      position: [...position] as [number, number, number],
-      rotation: [...rotation] as [number, number, number],
-      scale: [...existing.propData.scale] as [number, number, number],
-    };
-
-    this.removeProp(instanceId);
-    this.addProp(updated);
-    return true;
+    return this.propManager.updatePropTransform(instanceId, position, rotation);
   }
 
   public addProp(propData: PlacedProp): InstantiatedProp | null {
-    const template = this.assetLoader.getPiece(propData.propId);
-    if (!template) {
-      console.warn(`Prop template not found: ${propData.propId}`);
-      return null;
-    }
-
-    const group = template.visualTemplate.clone(true);
-    group.position.set(...propData.position);
-    group.rotation.set(
-      (propData.rotation[0] * Math.PI) / 180,
-      (propData.rotation[1] * Math.PI) / 180,
-      (propData.rotation[2] * Math.PI) / 180
-    );
-    group.scale.set(...propData.scale);
-    group.userData = { propInstanceId: propData.instanceId };
-    this.scene.add(group);
-    group.updateMatrixWorld(true);
-
-    const colliders: RAPIER.Collider[] = [];
-    const isBumper = Boolean(template.metadata?.tags?.includes("bumper"));
-    const isBooster = Boolean(template.metadata?.tags?.includes("booster"));
-    const colliderGeos: THREE.BufferGeometry[] = [
-      ...(template.ubxColliderGeometries || []),
-      ...(template.ubxFloorGeometry ? [template.ubxFloorGeometry] : []),
-    ];
-
-    for (const geo of colliderGeos) {
-      const desc = this.createStaticColliderFromGeo(geo, group.matrixWorld);
-      if (desc) {
-        if (isBumper) {
-          desc.setRestitution(1.15);
-          desc.setFriction(0.15);
-        }
-        const col = this.rapierWorld.createCollider(desc);
-        if (isBumper) {
-          this.bumperColliderHandles.add(col.handle);
-        }
-        colliders.push(col);
-      }
-    }
-
-    if (template.ubxSensorGeometry) {
-      const sensorDesc = this.createStaticColliderFromGeo(template.ubxSensorGeometry, group.matrixWorld);
-      if (sensorDesc) {
-        sensorDesc.setSensor(true).setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
-        const sensorCol = this.rapierWorld.createCollider(sensorDesc);
-        colliders.push(sensorCol);
-        if (isBooster) {
-          const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
-          this.boosterSensors.set(sensorCol.handle, {
-            direction: forwardDir,
-            impulse: 0.038,
-            center: group.position.clone(),
-          });
-        }
-      }
-    }
-
-    const instantiated: InstantiatedProp = {
-      propData,
-      pieceTemplate: template,
-      group,
-      colliders,
-    };
-    this.props.set(propData.instanceId, instantiated);
-    this.onHoleChanged?.();
-    return instantiated;
+    return this.propManager.addProp(propData);
   }
 
   public removeProp(instanceId: string): boolean {
-    const prop = this.props.get(instanceId);
-    if (!prop) return false;
-
-    this.scene.remove(prop.group);
-    for (const col of prop.colliders) {
-      this.boosterSensors.delete(col.handle);
-      this.bumperColliderHandles.delete(col.handle);
-      this.rapierWorld.removeCollider(col, false);
-    }
-    this.props.delete(instanceId);
-    this.onHoleChanged?.();
-    return true;
+    return this.propManager.removeProp(instanceId);
   }
 
   public getAllProps(): InstantiatedProp[] {
-    return Array.from(this.props.values());
+    return this.propManager.getAllProps();
   }
 
   public getProp(instanceId: string): InstantiatedProp | undefined {
-    return this.props.get(instanceId);
+    return this.propManager.getProp(instanceId);
   }
 
   public setShowBoundary(show: boolean): void {
@@ -899,12 +793,7 @@ export class CourseManager {
       connectedSockets: t.tileData.connectedSockets ? { ...t.tileData.connectedSockets } : undefined,
       attachedTo: t.tileData.attachedTo ? { ...t.tileData.attachedTo } : undefined,
     }));
-    const props: PlacedProp[] = Array.from(this.props.values()).map((p) => ({
-      ...p.propData,
-      position: [...p.propData.position] as [number, number, number],
-      rotation: [...p.propData.rotation] as [number, number, number],
-      scale: [...p.propData.scale] as [number, number, number],
-    }));
+    const props: PlacedProp[] = this.propManager.exportProps();
 
     const teeTile = tiles.find((t) => t.kitPieceId.includes("tee")) || tiles[0];
     const cupTile = tiles.find((t) => t.kitPieceId.includes("cup")) || tiles[tiles.length - 1];
@@ -931,13 +820,7 @@ export class CourseManager {
     }
     this.tiles.clear();
 
-    for (const prop of this.props.values()) {
-      this.scene.remove(prop.group);
-      for (const col of prop.colliders) {
-        this.rapierWorld.removeCollider(col, false);
-      }
-    }
-    this.props.clear();
+    this.propManager.clear();
     this.boosterSensors.clear();
     this.bumperColliderHandles.clear();
     this.splinePath = null;
