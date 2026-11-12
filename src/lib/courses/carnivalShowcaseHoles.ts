@@ -582,11 +582,11 @@ export const carnivalExpansionHoles: HoleData[] = [
         kitPieceId: "carnival_turn_60deg_rounded",
         walls: { left: true, right: true },
         attachedTo: { parentInstanceId: "h7_tee", parentSocketId: "LOC_Socket_Out" },
-        connectedSockets: { LOC_Socket_In: "h7_tee", LOC_Socket_Out: "h7_sand" },
+        connectedSockets: { LOC_Socket_In: "h7_tee", LOC_Socket_Out: "h7_straight" },
       },
       {
-        instanceId: "h7_sand",
-        kitPieceId: "hazard_sand_trap_6x6",
+        instanceId: "h7_straight",
+        kitPieceId: "carnival_straight_6m",
         walls: { left: true, right: true },
         attachedTo: { parentInstanceId: "h7_t1", parentSocketId: "LOC_Socket_Out" },
         connectedSockets: { LOC_Socket_In: "h7_t1", LOC_Socket_Out: "h7_t2" },
@@ -596,11 +596,11 @@ export const carnivalExpansionHoles: HoleData[] = [
         kitPieceId: "carnival_turn_60deg_rounded",
         walls: { left: true, right: true },
         attachedTo: {
-          parentInstanceId: "h7_sand",
+          parentInstanceId: "h7_straight",
           parentSocketId: "LOC_Socket_Out",
           childSocketId: "LOC_Socket_Out",
         },
-        connectedSockets: { LOC_Socket_Out: "h7_sand", LOC_Socket_In: "h7_bridge" },
+        connectedSockets: { LOC_Socket_Out: "h7_straight", LOC_Socket_In: "h7_bridge" },
       },
       {
         instanceId: "h7_bridge",
