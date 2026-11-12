@@ -64,8 +64,7 @@ describe("Home Menu Cartoon Arcade Components", () => {
       isMuted: false,
     });
     expect(guestMenuRes.html).toContain("PLAY NOW");
-    expect(guestMenuRes.html).toContain("COURSES &amp; TOURS");
-    expect(guestMenuRes.html).not.toContain("📚");
+    expect(guestMenuRes.html).not.toContain("COURSES &amp; TOURS");
     expect(guestMenuRes.html).toContain("HOW TO PLAY");
     expect(guestMenuRes.html).not.toContain("TRACK BUILDER");
 

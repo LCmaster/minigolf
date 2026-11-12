@@ -59,17 +59,6 @@
         <span class="text-2xl text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]">▶</span>
       </a>
 
-      <!-- Courses & Tours Hub -->
-      <a
-        href="/courses"
-        class="group relative w-full h-14 rounded-full bg-gradient-to-b from-[#7dd3fc] via-[#0ea5e9] to-[#0369a1] border-[3px] border-white shadow-[0_5px_0_#0c4a6e,0_10px_20px_rgba(0,0,0,0.4)] hover:brightness-105 hover:scale-[1.03] active:translate-y-1 active:shadow-[0_2px_0_#0c4a6e] transition-all flex items-center justify-center gap-2.5 overflow-hidden"
-      >
-        <span class="absolute inset-x-4 top-1 h-3.5 rounded-full bg-white/30 pointer-events-none"></span>
-        <span class="text-lg md:text-xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.55)]">
-          COURSES &amp; TOURS
-        </span>
-      </a>
-
       <!-- Track Builder (Logged-in users only) -->
       {#if user}
         <a
