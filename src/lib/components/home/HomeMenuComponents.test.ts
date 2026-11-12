@@ -3,6 +3,7 @@ import MiniGolfManiaLogo from "./MiniGolfManiaLogo.svelte";
 import ProfileCornerCard from "./ProfileCornerCard.svelte";
 import HomeOverlay from "./HomeOverlay.svelte";
 import CourseSelectorModal from "./CourseSelectorModal.svelte";
+import HowToPlayCard from "./HowToPlayCard.svelte";
 import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
 
 describe("Home Menu Cartoon Arcade Components", () => {
@@ -98,6 +99,19 @@ describe("Home Menu Cartoon Arcade Components", () => {
       courses: [carnivalParkCourse],
     });
     expect(closedRes.html).not.toContain("SELECT COURSE");
+  });
+
+  it("renders HowToPlayCard in the cartoon arcade modal frame with Rules, Controls, and Tips", () => {
+    const res = (HowToPlayCard as any).render({ isOpen: true });
+    expect(res.html).toContain("HOW TO PLAY");
+    expect(res.html).toContain("Rules");
+    expect(res.html).toContain("Controls");
+    expect(res.html).toContain("Tips");
+    expect(res.html).toContain('aria-label="Close How to Play"');
+    expect(res.html).toContain("/courses/carnival-park-card.png");
+
+    const closed = (HowToPlayCard as any).render({ isOpen: false });
+    expect(closed.html).not.toContain("HOW TO PLAY");
   });
 });
 
