@@ -15,7 +15,7 @@ import {
   getSampleAtArcLength,
   projectPointOntoSpline,
   sampleSplineChain,
-} from "./SplineMath";
+} from "./PolylineMath";
 import { resolveOrderedTileChain } from "./SplineTrackSync";
 import {
   buildThemeVocabulary,

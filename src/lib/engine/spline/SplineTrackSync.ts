@@ -12,7 +12,7 @@ import type {
   SplinePathData,
   SplineWaypoint,
 } from "../types/CourseSchema";
-import { ELEVATION_STEP_METERS, cloneSplinePath } from "./SplineMath";
+import { ELEVATION_STEP_METERS, cloneSplinePath } from "./PolylineMath";
 import { DEFAULT_HANDLE_LEN, isHeroOrHazardPiece } from "./KitVocabulary";
 
 export interface ResolvedTileTransform {

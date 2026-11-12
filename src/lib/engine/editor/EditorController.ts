@@ -26,7 +26,7 @@ import {
   snapBevelRadiusToGrid,
   snapCoordinateToGrid,
   type GridSnapSize,
-} from "../spline/SplineMath";
+} from "../spline/PolylineMath";
 import {
   deriveSplineFromTiles,
   resolveOrderedTileChain,

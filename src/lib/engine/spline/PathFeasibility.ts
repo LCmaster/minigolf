@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { SplineWaypoint } from "../types/CourseSchema";
-import { getElevationStep } from "./SplineMath";
+import { getElevationStep } from "./PolylineMath";
 import type { KitCandidatePiece } from "./KitVocabulary";
 
 /** Maximum straight-segment perpendicular / position error (in meters) before marking unreachable. */

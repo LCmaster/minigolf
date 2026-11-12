@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { SplineWaypoint } from "../types/CourseSchema";
 import type { GhostSegmentPreview } from "./DiscreteKitFitter";
-import { getCornerBevelGeometry, sampleSplineChain, type GridSnapSize } from "./SplineMath";
+import { getCornerBevelGeometry, sampleSplineChain, type GridSnapSize } from "./PolylineMath";
 
 const OVERLAY_Y_OFFSET = 0.68;
 
