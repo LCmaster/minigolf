@@ -59,7 +59,11 @@ export class BallController {
     this.createPhysicsBody(new THREE.Vector3(0, 0.2, 0));
   }
 
-  public createPhysicsBody(spawnPos: THREE.Vector3): void {
+  public createPhysicsBody(
+    spawnPos: THREE.Vector3,
+    options: { resetStrokes?: boolean } = {}
+  ): void {
+    const { resetStrokes = true } = options;
     if (this.rigidBody) {
       this.rapierWorld.removeRigidBody(this.rigidBody);
     }
@@ -87,6 +91,9 @@ export class BallController {
     this.ghostSphereMesh.scale.set(1, 1, 1);
     this.ghostSphereMesh.visible = this.mesh.visible;
     this.lastSafePosition.copy(spawnPos);
+    if (resetStrokes) {
+      this.strokes = 0;
+    }
     this.state = "aiming";
   }
 
@@ -179,7 +186,7 @@ export class BallController {
   }
 
   public respawn(): void {
-    this.createPhysicsBody(this.lastSafePosition);
+    this.createPhysicsBody(this.lastSafePosition, { resetStrokes: false });
   }
 
   public getPosition(): THREE.Vector3 {

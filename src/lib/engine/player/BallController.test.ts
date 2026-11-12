@@ -178,5 +178,24 @@ describe("BallController Unit Tests", () => {
 
     ball.dispose();
   });
+
+  it("resets stroke count to 0 when spawning physics body for a new hole, while preserving strokes on OOB respawn", () => {
+    const ball = new BallController(scene, world, RAPIER);
+    ball.shoot(new THREE.Vector3(0, 0, -1.0));
+    expect(ball.strokes).toBe(1);
+
+    // Out-of-bounds respawn must preserve the hole's stroke count
+    ball.respawn();
+    expect(ball.strokes).toBe(1);
+
+    // Spawning fresh body for a new hole must reset strokes back to 0
+    ball.createPhysicsBody(new THREE.Vector3(0, 0.2, -10));
+    expect(ball.strokes).toBe(0);
+
+    ball.shoot(new THREE.Vector3(0, 0, -1.0));
+    expect(ball.strokes).toBe(1);
+
+    ball.dispose();
+  });
 });
 

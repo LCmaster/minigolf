@@ -89,6 +89,7 @@
     currentHoleIndex = index;
     currentHole = activeCourse.holes[index];
     strokes = 0;
+    if (engine.ballController) engine.ballController.strokes = 0;
     isCupSunk = false;
 
     engine.courseManager.loadHole(currentHole);
