@@ -68,7 +68,6 @@
         <span class="text-lg md:text-xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.55)]">
           COURSES &amp; TOURS
         </span>
-        <span class="text-xl">📚</span>
       </a>
 
       <!-- Track Builder (Logged-in users only) -->
@@ -81,7 +80,6 @@
           <span class="text-lg md:text-xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.55)]">
             TRACK BUILDER
           </span>
-          <span class="text-xl">🛠️</span>
         </a>
       {/if}
 

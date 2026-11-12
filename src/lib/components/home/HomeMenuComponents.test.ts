@@ -21,6 +21,7 @@ describe("Home Menu Cartoon Arcade Components", () => {
       isOpen: false,
     });
     expect(collapsedGuest.html).toContain('aria-label="Toggle Profile Menu"');
+    expect(collapsedGuest.html).not.toContain('aria-label="How to Play"');
     expect(collapsedGuest.html).not.toContain("PROFILES");
 
     const openGuest = (ProfileCornerCard as any).render({
@@ -64,6 +65,7 @@ describe("Home Menu Cartoon Arcade Components", () => {
     });
     expect(guestMenuRes.html).toContain("PLAY NOW");
     expect(guestMenuRes.html).toContain("COURSES &amp; TOURS");
+    expect(guestMenuRes.html).not.toContain("📚");
     expect(guestMenuRes.html).toContain("HOW TO PLAY");
     expect(guestMenuRes.html).not.toContain("TRACK BUILDER");
 
@@ -74,6 +76,7 @@ describe("Home Menu Cartoon Arcade Components", () => {
       isMuted: false,
     });
     expect(authedMenuRes.html).toContain("TRACK BUILDER");
+    expect(authedMenuRes.html).not.toContain("🛠️");
     expect(authedMenuRes.html).toContain("/editor");
   });
 });

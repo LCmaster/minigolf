@@ -38,15 +38,6 @@
     </button>
 
     <button
-      on:click={() => dispatch("openInfo")}
-      title="How to Play"
-      aria-label="How to Play"
-      class="w-11 h-11 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 border-2 border-white shadow-[0_4px_0_#78350f,0_6px_12px_rgba(0,0,0,0.35)] hover:brightness-110 active:translate-y-0.5 flex items-center justify-center text-lg font-black text-amber-950 transition-all cursor-pointer"
-    >
-      i
-    </button>
-
-    <button
       on:click={() => (isOpen = !isOpen)}
       title={user ? user.displayName || user.email || "Profile" : "Sign In / Profile"}
       aria-label="Toggle Profile Menu"
