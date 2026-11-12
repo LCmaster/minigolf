@@ -113,14 +113,29 @@ describe("SlingshotInput Unit Tests", () => {
     camera.lookAt(0, 0.2, 0);
     camera.updateMatrixWorld();
 
-    const input = new SlingshotInput(canvasMock, camera, scene, ballMock);
+    const listeners = new Map<string, (ev: any) => void>();
+    const eventTarget = {
+      addEventListener: vi.fn((type: string, cb: (ev: any) => void) => {
+        listeners.set(type, cb);
+      }),
+      removeEventListener: vi.fn((type: string) => {
+        listeners.delete(type);
+      }),
+    };
+
+    const input = new SlingshotInput(canvasMock, camera, scene, ballMock, undefined, {
+      eventTarget,
+    });
     const pointerdown = canvasMock.addEventListener.mock.calls.find(
       (c: any[]) => c[0] === "pointerdown"
     )[1];
 
+    expect(eventTarget.addEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function));
+    expect(eventTarget.addEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function));
+
     // Full pullback (>85% power) and tick aim visual at a timestamp with non-zero jitter
     pointerdown({ button: 0, clientX: 400, clientY: 300 });
-    (input as any).handlePointerMove({ clientX: 400, clientY: 590 });
+    listeners.get("pointermove")!({ clientX: 400, clientY: 590 });
     input.updateAimVisual(0.04); // sin(0.04 * 36) ≈ +0.99
 
     const expectedArrowDir = new THREE.Vector3(0, 0, -1)
@@ -128,7 +143,7 @@ describe("SlingshotInput Unit Tests", () => {
       .normalize();
     expect(Math.abs(expectedArrowDir.x)).toBeGreaterThan(0.03); // Visible jitter offset
 
-    (input as any).handlePointerUp();
+    listeners.get("pointerup")!({});
 
     expect(ballMock.shoot).toHaveBeenCalledTimes(1);
     const maxImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
@@ -142,8 +157,8 @@ describe("SlingshotInput Unit Tests", () => {
     // Gentle short pullback produces very low impulse for precision close putts without jitter
     ballMock.shoot.mockClear();
     pointerdown({ button: 0, clientX: 400, clientY: 300 });
-    (input as any).handlePointerMove({ clientX: 400, clientY: 330 });
-    (input as any).handlePointerUp();
+    listeners.get("pointermove")!({ clientX: 400, clientY: 330 });
+    listeners.get("pointerup")!({});
 
     expect(ballMock.shoot).toHaveBeenCalledTimes(1);
     const gentleImpulse = ballMock.shoot.mock.calls[0][0] as THREE.Vector3;
@@ -151,6 +166,8 @@ describe("SlingshotInput Unit Tests", () => {
     expect(gentleImpulse.length()).toBeLessThan(0.025);
 
     input.dispose();
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function));
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function));
   });
 });
 

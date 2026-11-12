@@ -33,11 +33,21 @@ export function computeAimJitterAngle(rawPower: number, timeSec: number): number
   return Math.sin(timeSec * 36) * HIGH_POWER_JITTER_MAX_RAD * factor;
 }
 
+export interface PointerEventTarget {
+  addEventListener(type: string, listener: (ev: any) => void): void;
+  removeEventListener(type: string, listener: (ev: any) => void): void;
+}
+
+export interface SlingshotInputOptions {
+  eventTarget?: PointerEventTarget;
+}
+
 export class SlingshotInput {
   private canvas: HTMLCanvasElement;
   private camera: THREE.Camera;
   private ball: BallController;
   private cameraController?: CameraController;
+  private eventTarget: PointerEventTarget | null;
   public arrow: AimArrowMesh;
 
   private isDragging: boolean = false;
@@ -64,12 +74,14 @@ export class SlingshotInput {
     camera: THREE.Camera,
     scene: THREE.Scene,
     ball: BallController,
-    cameraController?: CameraController
+    cameraController?: CameraController,
+    options?: SlingshotInputOptions
   ) {
     this.canvas = canvas;
     this.camera = camera;
     this.ball = ball;
     this.cameraController = cameraController;
+    this.eventTarget = options?.eventTarget ?? (typeof window !== "undefined" ? window : null);
     this.arrow = new AimArrowMesh();
     scene.add(this.arrow.group);
 
@@ -81,9 +93,9 @@ export class SlingshotInput {
 
   private attachEventListeners(): void {
     this.canvas.addEventListener("pointerdown", this.handlePointerDown);
-    if (typeof window !== "undefined") {
-      window.addEventListener("pointermove", this.handlePointerMove);
-      window.addEventListener("pointerup", this.handlePointerUp);
+    if (this.eventTarget) {
+      this.eventTarget.addEventListener("pointermove", this.handlePointerMove);
+      this.eventTarget.addEventListener("pointerup", this.handlePointerUp);
     }
   }
 
@@ -275,9 +287,9 @@ export class SlingshotInput {
 
   public dispose(): void {
     this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
-    if (typeof window !== "undefined") {
-      window.removeEventListener("pointermove", this.handlePointerMove);
-      window.removeEventListener("pointerup", this.handlePointerUp);
+    if (this.eventTarget) {
+      this.eventTarget.removeEventListener("pointermove", this.handlePointerMove);
+      this.eventTarget.removeEventListener("pointerup", this.handlePointerUp);
     }
     this.arrow.hide();
   }
