@@ -3,6 +3,7 @@
   import { GameEngine } from "$lib/engine/GameEngine";
   import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
   import { loadCustomCourses } from "$lib/engine/course/CourseStorage";
+  import { resolvePlayStartHoleIndex } from "$lib/components/courses/CourseHubHelpers";
 
   let canvas;
   let engine;
@@ -65,7 +66,8 @@
       scoreCard = scoreCard;
     });
 
-    loadHole(0);
+    const startIdx = params ? resolvePlayStartHoleIndex(params, activeCourse) : 0;
+    loadHole(startIdx);
     engine.start();
     isReady = true;
   });

@@ -5,7 +5,8 @@
   import { HoleGenerator } from "$lib/engine/wfc/HoleGenerator";
   import { autoDecorateHole } from "$lib/engine/wfc/AutoDecorate";
   import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
-  import { saveCustomCourse } from "$lib/engine/course/CourseStorage";
+  import { loadCustomCourses, saveHoleToCourse } from "$lib/engine/course/CourseStorage";
+  import { resolveEditorLoadTarget } from "$lib/components/courses/CourseHubHelpers";
   import RadialSocketMenu from "$lib/components/editor/RadialSocketMenu.svelte";
   import TileActionMenu from "$lib/components/editor/TileActionMenu.svelte";
   import PropPalette from "$lib/components/editor/PropPalette.svelte";
@@ -28,6 +29,12 @@
   let activeTheme = "carnival_park";
   let showBoundary = true;
   let savedCourseId = null;
+  let sourceCourseId = null;
+  let sourceHoleIndex = 0;
+  let editingIsBuiltIn = false;
+  let editingHolePar = 3;
+  let editingHoleName = "";
+  let editingCourseName = "";
   let saveFeedback = "";
   let isEraseMode = false;
   let isTrackPathMode = false;
@@ -40,6 +47,10 @@
   let activeTileMenu = null; // { x, y, tileInfo }
   let showWfcModal = false;
   let selectedPropId = null;
+
+  $: editingLabel = sourceCourseId
+    ? `${editingIsBuiltIn ? "Remix: " : ""}${editingHoleName || editingCourseName}`
+    : "";
 
   $: if (editorController) {
     editorController.setTheme(activeTheme);
@@ -69,16 +80,40 @@
 
     holeGenerator = new HoleGenerator(engine.assetLoader);
 
-    // Initial default starting Carnival hole
-    const initialHole = holeGenerator.generateHole({
-      par: 3,
-      style: "winding",
-      includeObstacles: true,
-      theme: activeTheme,
-    });
+    // Honor deep links (`/editor?courseId=...&hole=N`), otherwise generate fresh starter Carnival hole
+    const params =
+      typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const target = params
+      ? resolveEditorLoadTarget(params, loadCustomCourses(), [carnivalParkCourse])
+      : null;
+
+    let initialHole;
+    if (target) {
+      activeTheme = target.theme;
+      sourceCourseId = target.sourceCourseId;
+      sourceHoleIndex = target.holeIndex;
+      editingIsBuiltIn = target.isBuiltIn;
+      editingCourseName = target.isBuiltIn
+        ? `${target.hole.name || `Hole ${target.holeIndex + 1}`} Remix`
+        : target.courseName;
+      editingHoleName = target.hole.name || `Hole ${target.hole.holeNumber}`;
+      editingHolePar = target.hole.par || 3;
+      savedCourseId = target.isBuiltIn ? null : target.sourceCourseId;
+      initialHole = target.hole;
+    } else {
+      initialHole = holeGenerator.generateHole({
+        par: 3,
+        style: "winding",
+        includeObstacles: true,
+        theme: activeTheme,
+      });
+      editingHolePar = initialHole.par || 3;
+    }
+
     engine.courseManager.loadHole(initialHole);
     showBoundary = initialHole.showBoundary ?? true;
     editorController.refreshOpenSockets();
+    editorController.syncSplineFromCourse();
 
     // Start in true free-roam Editor Mode (no ball, free camera)
     engine.setEditorMode(true);
@@ -185,27 +220,40 @@
   }
 
   function handleWfcGenerate(ev) {
+    if (!confirmDiscardUnsaved()) return;
     if (ev.detail.theme) activeTheme = ev.detail.theme;
+    sourceCourseId = null;
+    sourceHoleIndex = 0;
+    editingIsBuiltIn = false;
+    editingCourseName = "";
+    editingHoleName = "";
     const holeData = holeGenerator.generateHole(ev.detail);
+    editingHolePar = holeData.par || 3;
     resetHoleInEditor(holeData);
   }
 
-  function handleLoadSunnyCreek() {
-    if (!engine || !editorController) return;
-    activeTheme = "carnival_park";
-    const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[0]));
-    resetHoleInEditor(hole);
+  function confirmDiscardUnsaved() {
+    if (!editorController?.history?.canUndo()) return true;
+    return typeof window === "undefined"
+      ? true
+      : window.confirm("Discard unsaved track edits on the current hole?");
   }
 
-  function handleLoadBigTop() {
-    if (!engine || !editorController) return;
-    activeTheme = "carnival_park";
-    const hole = JSON.parse(JSON.stringify(carnivalParkCourse.holes[1]));
-    resetHoleInEditor(hole);
+  function handleNewHole() {
+    if (!engine || !editorController || !confirmDiscardUnsaved()) return;
+    sourceCourseId = null;
+    sourceHoleIndex = 0;
+    editingIsBuiltIn = false;
+    editingCourseName = "";
+    editingHoleName = "";
+    editingHolePar = 2;
+    savedCourseId = null;
+    handleClearToTee(true);
   }
 
-  function handleClearToTee() {
+  function handleClearToTee(skipConfirm = false) {
     if (!engine || !editorController) return;
+    if (!skipConfirm && !confirmDiscardUnsaved()) return;
     const teePiece = activeTheme === "carnival_park" ? "carnival_tee_6x6" : "tee_box_6x6";
     const teeId = `tile_tee_${Date.now()}`;
     resetHoleInEditor({
@@ -297,22 +345,34 @@
     activeSocketMenu = null;
   }
 
-  function handleSaveCourse() {
+  function handleSaveCourse(saveAsNew = false) {
     if (!engine) return;
-    const hole = engine.courseManager.exportHoleData(3, 1);
-    const id = savedCourseId || `custom_${Date.now()}`;
-    savedCourseId = id;
-    saveCustomCourse({
-      id,
-      name: activeTheme === "carnival_park" ? "Custom Carnival Course" : "Custom Country Club Course",
+    const hole = engine.courseManager.exportHoleData(editingHolePar, sourceHoleIndex + 1);
+    if (editingHoleName && !saveAsNew) {
+      hole.name = editingHoleName;
+    }
+    const defaultName =
+      editingCourseName ||
+      (activeTheme === "carnival_park" ? "Custom Carnival Hole" : "Custom Country Club Hole");
+
+    const result = saveHoleToCourse({
+      sourceCourseId: sourceCourseId || savedCourseId,
+      sourceHoleIndex,
+      holeData: hole,
       theme: activeTheme,
-      authorId: "local_player",
-      authorName: "Editor Creator",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      holes: [hole],
+      courseName: saveAsNew ? `${defaultName} Copy` : defaultName,
+      saveAsNew,
     });
-    saveFeedback = "Saved!";
+
+    savedCourseId = result.course.id;
+    sourceCourseId = result.course.id;
+    sourceHoleIndex = result.holeIndex;
+    editingIsBuiltIn = false;
+    editingCourseName = result.course.name;
+    editingHoleName = result.course.holes[result.holeIndex]?.name || result.course.name;
+    editorController?.history.clear();
+
+    saveFeedback = result.savedAsCopy ? (saveAsNew ? "Saved Copy!" : "Saved Remix!") : "Saved!";
     setTimeout(() => (saveFeedback = ""), 2500);
   }
 
@@ -340,20 +400,22 @@
     {isEraseMode}
     {saveFeedback}
     {savedCourseId}
+    {editingLabel}
+    canSaveCopy={Boolean(sourceCourseId && !editingIsBuiltIn)}
     on:setTheme={(e) => (activeTheme = e.detail)}
     on:openWfc={() => (showWfcModal = true)}
-    on:loadSunnyCreek={handleLoadSunnyCreek}
-    on:loadBigTop={handleLoadBigTop}
+    on:newHole={handleNewHole}
     on:autoDecorate={handleAutoDecorate}
     on:toggleBoundary={toggleBoundary}
     on:frameCamera={() => engine?.frameCameraOnCourse()}
     on:toggleTrackPath={toggleTrackPathMode}
     on:toggleErase={toggleEraseMode}
-    on:clearToTee={handleClearToTee}
+    on:clearToTee={() => handleClearToTee(false)}
     on:undo={handleUndo}
     on:redo={handleRedo}
     on:togglePlaytest={togglePlaytestMode}
-    on:saveCourse={handleSaveCourse}
+    on:saveCourse={() => handleSaveCourse(false)}
+    on:saveAsCopy={() => handleSaveCourse(true)}
   />
 
   <!-- Bottom-Left Prop Palette (Editor Mode only) -->
@@ -399,7 +461,7 @@
   <!-- Playtest HUD & Sink Modal -->
   {#if isPlaytestMode}
     <PlaytestOverlay
-      par={3}
+      par={editingHolePar}
       {strokes}
       {isCupSunk}
       on:respawn={() => engine.ballController.respawn()}

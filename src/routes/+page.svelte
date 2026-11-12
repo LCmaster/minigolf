@@ -54,6 +54,13 @@
       </button>
 
       <button
+        on:click={() => goto("/courses")}
+        class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-rose-400 hover:brightness-105 text-slate-950 font-black tracking-wide shadow-lg active:scale-95 transition-all"
+      >
+        📚 COURSES & TOURS
+      </button>
+
+      <button
         on:click={() => goto("/editor")}
         class="w-full py-3.5 flex justify-center items-center gap-2 rounded-full font-black text-lg tracking-wider bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 border-2 border-white shadow-lg text-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
       >

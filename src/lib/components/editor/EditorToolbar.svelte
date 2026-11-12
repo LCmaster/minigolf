@@ -10,6 +10,8 @@
   export let isEraseMode = false;
   export let saveFeedback = "";
   export let savedCourseId = "";
+  export let editingLabel = "";
+  export let canSaveCopy = false;
 
   const dispatch = createEventDispatcher();
 </script>
@@ -26,6 +28,12 @@
     </div>
     <span class="text-xs text-gray-500 font-mono">|</span>
     <span class="text-xs font-mono text-emerald-400 font-bold">{currentFps} FPS</span>
+    {#if editingLabel}
+      <span class="text-xs text-gray-500 font-mono">|</span>
+      <span class="text-xs font-mono text-amber-300 font-bold truncate max-w-44" title={editingLabel}>
+        {editingLabel}
+      </span>
+    {/if}
   </div>
 
   <!-- Center: Primary Action Toolbar -->
@@ -55,20 +63,20 @@
         <span>Auto-Gen</span>
       </button>
 
-      <button
-        on:click={() => dispatch("loadSunnyCreek")}
+      <a
+        href="/courses"
         class="px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono transition-all"
-        title="Load Sunny Creek & Midway Bend showcase hole"
+        title="Browse Official Tours & My Holes to edit or bundle"
       >
-        🌉 Sunny Creek
-      </button>
+        📚 Courses
+      </a>
 
       <button
-        on:click={() => dispatch("loadBigTop")}
+        on:click={() => dispatch("newHole")}
         class="px-2.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/30 text-rose-300 text-xs font-bold font-mono transition-all"
-        title="Load Big Top Windmill showcase hole"
+        title="Start a brand-new blank hole"
       >
-        🎡 Big Top
+        ✨ New Hole
       </button>
 
       <button
@@ -152,6 +160,15 @@
       >
         {saveFeedback || '💾 Save'}
       </button>
+      {#if canSaveCopy}
+        <button
+          on:click={() => dispatch("saveAsCopy")}
+          class="px-2.5 py-2 rounded-xl bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs font-bold font-mono transition-all"
+          title="Save a separate custom copy instead of updating this hole in-place"
+        >
+          📄 Save Copy
+        </button>
+      {/if}
       {#if savedCourseId}
         <a
           href="/play?course={savedCourseId}"

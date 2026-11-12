@@ -17,9 +17,13 @@ describe("Editor HUD Svelte Components", () => {
       savedCourseId: "custom_1",
     });
     expect(editRes.html).toContain("Track Runner Editor");
+    expect(editRes.html).toContain("Courses");
+    expect(editRes.html).toContain("New Hole");
     expect(editRes.html).toContain("Auto-Gen");
     expect(editRes.html).toContain("Play Saved");
     expect(editRes.html).toContain("Test Putt");
+    expect(editRes.html).not.toContain("Sunny Creek");
+    expect(editRes.html).not.toContain("Big Top");
 
     const playRes = (EditorToolbar as any).render({
       isReady: true,
