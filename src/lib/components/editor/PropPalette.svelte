@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { getFreeformPropCatalog, getPiecePropRole } from "$lib/engine/types/KitTypes";
+  import { getFreeformPropCatalog, getPiecePropRole, groupFreeformProps } from "$lib/engine/types/KitTypes";
 
   export let selectedPropId = null;
   export let theme = "carnival_park";
@@ -8,7 +8,7 @@
 
   const dispatch = createEventDispatcher();
 
-  let roleFilter = "all"; // "all" | "playable" | "decorative"
+  let roleFilter = "all"; // "all" | "playable" | "decor" | "terrain"
 
   const PROP_ICONS = {
     prop_carnival_booster_pad: "🚀",
@@ -57,11 +57,14 @@
   const fallbackCarnivalProps = [
     { id: "prop_carnival_booster_pad", name: "Booster Pad", propRole: "playable" },
     { id: "prop_carnival_wedge_bumper", name: "Wedge Bumper", propRole: "playable" },
+    { id: "prop_bumper_star_pink", name: "Star Bumper", propRole: "playable" },
     { id: "prop_bumper_peg_yellow", name: "Yellow Bumper", propRole: "playable" },
     { id: "prop_bumper_peg_blue", name: "Blue Bumper", propRole: "playable" },
     { id: "prop_bumper_peg_red", name: "Red Bumper", propRole: "playable" },
     { id: "prop_carnival_arch_6m", name: "Carnival Arch", propRole: "decorative" },
     { id: "prop_bigtop_gate_6m", name: "Big Top Gate", propRole: "decorative" },
+    { id: "prop_carnival_hoop_6m", name: "Showtime Hoop", propRole: "decorative" },
+    { id: "prop_carnival_tent_pavilion", name: "Carousel Tent", propRole: "decorative" },
     { id: "prop_lantern_bunting", name: "Lantern Bunting", propRole: "decorative" },
     { id: "terrain_hill_knoll_6x6", name: "Hill Knoll", propRole: "decorative" },
     { id: "terrain_pond_patch_6x6", name: "Pond Patch", propRole: "decorative" },
@@ -104,13 +107,13 @@
       ? fallbackCarnivalProps
       : fallbackClassicProps;
 
-  $: playableCount = baseCatalog.filter((p) => getPiecePropRole(p) === "playable").length;
-  $: decorativeCount = baseCatalog.filter((p) => getPiecePropRole(p) === "decorative").length;
+  $: grouped = groupFreeformProps(baseCatalog);
 
-  $: visibleProps =
-    roleFilter === "all"
-      ? baseCatalog
-      : baseCatalog.filter((p) => getPiecePropRole(p) === roleFilter);
+  $: sections = [
+    { key: "playable", title: "Playable Physics", items: grouped.playable },
+    { key: "decor", title: "Decor & Structures", items: grouped.decor },
+    { key: "terrain", title: "Terrain, Rocks & Nature", items: grouped.terrain },
+  ].filter((section) => (roleFilter === "all" || roleFilter === section.key) && section.items.length > 0);
 
   function selectProp(id) {
     if (selectedPropId === id) {
@@ -131,50 +134,65 @@
   </div>
 
   <!-- Segmented Filter Tabs -->
-  <div class="grid grid-cols-3 gap-1 bg-black/30 p-1 rounded-xl border border-white/10 text-[10px] font-bold">
+  <div class="grid grid-cols-4 gap-1 bg-black/30 p-1 rounded-xl border border-white/10 text-[10px] font-bold">
     <button
       on:click={() => (roleFilter = "all")}
-      class="py-1 px-1.5 rounded-lg transition-all {roleFilter === 'all' ? 'bg-white/15 text-white shadow' : 'text-gray-400 hover:text-gray-200'}"
+      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'all' ? 'bg-white/15 text-white shadow' : 'text-gray-400 hover:text-gray-200'}"
     >
       All ({baseCatalog.length})
     </button>
     <button
       on:click={() => (roleFilter = "playable")}
-      class="py-1 px-1.5 rounded-lg transition-all {roleFilter === 'playable' ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40 shadow' : 'text-gray-400 hover:text-amber-200'}"
+      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'playable' ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40 shadow' : 'text-gray-400 hover:text-amber-200'}"
     >
-      ⚡ Play ({playableCount})
+      ⚡ ({grouped.playable.length})
     </button>
     <button
-      on:click={() => (roleFilter = "decorative")}
-      class="py-1 px-1.5 rounded-lg transition-all {roleFilter === 'decorative' ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 shadow' : 'text-gray-400 hover:text-emerald-200'}"
+      on:click={() => (roleFilter = "decor")}
+      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'decor' ? 'bg-sky-500/25 text-sky-300 border border-sky-400/40 shadow' : 'text-gray-400 hover:text-sky-200'}"
     >
-      🌿 Decor ({decorativeCount})
+      🎪 ({grouped.decor.length})
+    </button>
+    <button
+      on:click={() => (roleFilter = "terrain")}
+      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'terrain' ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 shadow' : 'text-gray-400 hover:text-emerald-200'}"
+    >
+      🪨 ({grouped.terrain.length})
     </button>
   </div>
 
-  <div class="grid grid-cols-3 gap-1.5 max-h-52 overflow-y-auto pr-1">
-    {#each visibleProps as p (p.id)}
-      {@const role = getPiecePropRole(p)}
-      {@const isPlayable = role === "playable"}
-      <button
-        on:click={() => selectProp(p.id)}
-        title="{p.name} ({isPlayable ? 'Playable physics prop' : 'Decorative prop'})"
-        class="relative flex flex-col items-center justify-center p-2 rounded-xl text-center border transition-all text-[11px] {selectedPropId === p.id
-          ? isPlayable
-            ? 'bg-amber-500/25 border-amber-400 text-amber-200 scale-105 shadow-lg'
-            : 'bg-emerald-500/25 border-emerald-400 text-emerald-200 scale-105 shadow-lg'
-          : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-300'}"
-      >
-        <span
-          class="absolute top-1 right-1 text-[9px] leading-none px-1 py-0.5 rounded {isPlayable
-            ? 'bg-amber-500/20 text-amber-300'
-            : 'bg-emerald-500/20 text-emerald-300'}"
-        >
-          {isPlayable ? "⚡" : "🌿"}
-        </span>
-        <span class="text-xl mb-1 mt-1">{PROP_ICONS[p.id] ?? (isPlayable ? "⚡" : "🌿")}</span>
-        <span class="truncate w-full font-bold">{p.name}</span>
-      </button>
+  <div class="max-h-60 overflow-y-auto pr-1 space-y-3">
+    {#each sections as section (section.key)}
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 px-0.5">
+          {section.title} ({section.items.length})
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          {#each section.items as p (p.id)}
+            {@const role = getPiecePropRole(p)}
+            {@const isPlayable = role === "playable"}
+            <button
+              on:click={() => selectProp(p.id)}
+              title="{p.name} ({isPlayable ? 'Playable physics prop' : 'Decorative prop'})"
+              class="relative flex flex-col items-center justify-center p-2 rounded-xl text-center border transition-all text-[11px] {selectedPropId === p.id
+                ? isPlayable
+                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 scale-105 shadow-lg'
+                  : 'bg-emerald-500/25 border-emerald-400 text-emerald-200 scale-105 shadow-lg'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-300'}"
+            >
+              <span
+                class="absolute top-1 right-1 text-[9px] leading-none px-1 py-0.5 rounded {isPlayable
+                  ? 'bg-amber-500/20 text-amber-300'
+                  : 'bg-emerald-500/20 text-emerald-300'}"
+              >
+                {isPlayable ? "⚡" : section.key === "decor" ? "🎪" : "🌿"}
+              </span>
+              <span class="text-xl mb-1 mt-1">{PROP_ICONS[p.id] ?? (isPlayable ? "⚡" : "🌿")}</span>
+              <span class="truncate w-full font-bold">{p.name}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
     {/each}
   </div>
 </div>

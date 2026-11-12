@@ -113,6 +113,51 @@ export function getFreeformPropCatalog(
   });
 }
 
+export interface FreeformPropGroups<T extends Partial<KitPieceMetadata> = KitPieceMetadata> {
+  playable: T[];
+  decor: T[];
+  terrain: T[];
+}
+
+const TERRAIN_NATURE_IDS = new Set([
+  "prop_boulder_faceted",
+  "prop_rock_mossy",
+  "prop_tree_puffy",
+  "prop_tree_oak",
+  "prop_toadstool_pair",
+  "prop_grass_tuft",
+  "prop_wildflower_patch",
+]);
+
+/**
+ * Splits a freeform prop catalog into three UI-friendly buckets:
+ * `playable` (physics bumpers/boosters), `decor` (arches, tents, fences, lanterns),
+ * and `terrain` (hill knolls, lagoons, rocks, trees, flora).
+ */
+export function groupFreeformProps<T extends Partial<KitPieceMetadata>>(
+  pieces: T[]
+): FreeformPropGroups<T> {
+  const groups: FreeformPropGroups<T> = { playable: [], decor: [], terrain: [] };
+  for (const piece of pieces) {
+    if (getPiecePropRole(piece) === "playable") {
+      groups.playable.push(piece);
+      continue;
+    }
+    const id = piece.id ?? "";
+    const isTerrainOrNature =
+      piece.category === "terrain" ||
+      id.startsWith("terrain_") ||
+      id.startsWith("prop_rock_") ||
+      TERRAIN_NATURE_IDS.has(id);
+    if (isTerrainOrNature) {
+      groups.terrain.push(piece);
+    } else {
+      groups.decor.push(piece);
+    }
+  }
+  return groups;
+}
+
 export interface KitManifest {
   version: string;
   theme: string;

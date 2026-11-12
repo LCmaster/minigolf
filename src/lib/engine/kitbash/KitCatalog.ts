@@ -35,6 +35,7 @@ const CLASSIC_SWAP_TRACK_OPTIONS: KitMenuOption[] = [
   { id: "turn_30deg_rounded", label: "Turn 30°", icon: "↪️", isTurn: true },
   { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️", isTurn: true },
   { id: "turn_60deg_rounded", label: "Turn 60°", icon: "↗️", isTurn: true },
+  { id: "turn_75deg_rounded", label: "Turn 75°", icon: "⤴️", isTurn: true },
   { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️", isTurn: true },
   { id: "turn_banked_90deg_6x6", label: "Banked 90°", icon: "🎢", isTurn: true },
 ];
@@ -44,6 +45,8 @@ const CARNIVAL_SNAP_OPTIONS: KitMenuOption[] = [
   { id: "carnival_turn_15deg_rounded", label: "Carnival Turn 15°", icon: "↗️" },
   { id: "carnival_turn_30deg_rounded", label: "Carnival Turn 30°", icon: "↗️" },
   { id: "carnival_turn_45deg_rounded", label: "Carnival Turn 45°", icon: "↗️" },
+  { id: "carnival_turn_60deg_rounded", label: "Carnival Turn 60°", icon: "↗️" },
+  { id: "carnival_turn_75deg_rounded", label: "Carnival Turn 75°", icon: "⤴️" },
   { id: "carnival_turn_90deg_rounded", label: "Carnival Turn 90°", icon: "⤵️" },
   { id: "carnival_ramp_up_15deg_6x6", label: "Carnival Ramp Up", icon: "📈" },
   { id: "carnival_ramp_down_15deg_6x6", label: "Carnival Ramp Down", icon: "📉" },
@@ -56,7 +59,10 @@ const CARNIVAL_SNAP_OPTIONS: KitMenuOption[] = [
 
 const CLASSIC_SNAP_OPTIONS: KitMenuOption[] = [
   { id: "straight_6m", label: "Straight (6m)", icon: "➡️" },
+  { id: "turn_30deg_rounded", label: "Turn 30°", icon: "↪️" },
   { id: "turn_45deg_rounded", label: "Turn 45°", icon: "↗️" },
+  { id: "turn_60deg_rounded", label: "Turn 60°", icon: "↗️" },
+  { id: "turn_75deg_rounded", label: "Turn 75°", icon: "⤴️" },
   { id: "turn_90deg_rounded", label: "Turn 90°", icon: "⤵️" },
   { id: "turn_banked_90deg_6x6", label: "Banked 90°", icon: "🎢" },
   { id: "ramp_up_15deg_6x6", label: "Ramp Up (1.5m)", icon: "📈" },

@@ -1,4 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it, expect } from "vitest";
+import { carnivalParkCourse } from "../../courses/carnivalParkCourse";
+import { getFreeformPropCatalog, groupFreeformProps, type KitManifest } from "../types/KitTypes";
 import {
   getCupVariantOptions,
   getHazardOptions,
@@ -38,6 +42,56 @@ describe("KitCatalog", () => {
 
     expect(getCupVariantOptions("carnival_park")).toHaveLength(1);
     expect(getCupVariantOptions("country_club")).toHaveLength(2);
+  });
+
+  it("includes 60deg/75deg snap turns and covers every track piece & prop used in Holes 1-9", () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(path.resolve("static/models/kit/manifest.json"), "utf-8")
+    ) as KitManifest;
+
+    const carnivalSnapIds = new Set(getTrackSnapOptions("carnival_park").map((o) => o.id));
+    const classicSnapIds = new Set(getTrackSnapOptions("country_club").map((o) => o.id));
+    const carnivalSwapIds = new Set(getTrackSwapOptions("carnival_park").map((o) => o.id));
+    const hazardIds = new Set(getHazardOptions().map((o) => o.id));
+    const cupIds = new Set(getCupVariantOptions("carnival_park").map((o) => o.id));
+
+    expect(carnivalSnapIds.has("carnival_turn_60deg_rounded")).toBe(true);
+    expect(carnivalSnapIds.has("carnival_turn_75deg_rounded")).toBe(true);
+    expect(classicSnapIds.has("turn_60deg_rounded")).toBe(true);
+
+    const catalogProps = getFreeformPropCatalog(manifest, "carnival_park");
+    const catalogPropIds = new Set(catalogProps.map((p) => p.id));
+
+    for (const hole of carnivalParkCourse.holes) {
+      for (const tile of hole.tiles) {
+        if (tile.kitPieceId === "carnival_tee_6x6" || tile.kitPieceId === "tee_box_6x6") continue;
+        expect(
+          carnivalSnapIds.has(tile.kitPieceId) || hazardIds.has(tile.kitPieceId),
+          `Missing snap/hazard option for ${tile.kitPieceId} in Hole ${hole.holeNumber}`
+        ).toBe(true);
+        if (!cupIds.has(tile.kitPieceId)) {
+          expect(
+            carnivalSwapIds.has(tile.kitPieceId) || hazardIds.has(tile.kitPieceId),
+            `Missing swap/hazard option for ${tile.kitPieceId} in Hole ${hole.holeNumber}`
+          ).toBe(true);
+        }
+      }
+
+      for (const prop of hole.props) {
+        expect(
+          catalogPropIds.has(prop.propId),
+          `Missing freeform prop ${prop.propId} in Hole ${hole.holeNumber}`
+        ).toBe(true);
+      }
+    }
+
+    const grouped = groupFreeformProps(catalogProps);
+    expect(grouped.playable.length).toBeGreaterThan(0);
+    expect(grouped.decor.length).toBeGreaterThan(0);
+    expect(grouped.terrain.length).toBeGreaterThan(0);
+    expect(grouped.playable.some((p) => p.id === "prop_bumper_star_pink")).toBe(true);
+    expect(grouped.decor.some((p) => p.id === "prop_carnival_tent_pavilion")).toBe(true);
+    expect(grouped.terrain.some((p) => p.category === "terrain" || p.id.startsWith("prop_rock_"))).toBe(true);
   });
 });
 
