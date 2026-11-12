@@ -744,11 +744,9 @@ export class EditorController {
       this.socketGizmoGroup.remove(this.socketGizmoGroup.children[0]);
     }
 
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    if (!tilesMap) return;
-
-    for (const [instanceId, instantiated] of tilesMap.entries()) {
+    const tiles = this.courseManager.getAllTiles?.() ?? [];
+    for (const instantiated of tiles) {
+      const instanceId = instantiated.tileData.instanceId;
       const tileData: PlacedTile = instantiated.tileData;
       const template = instantiated.pieceTemplate;
       const group = instantiated.group;
@@ -787,11 +785,9 @@ export class EditorController {
       this.gapGizmoGroup.remove(child);
     }
 
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    if (!tilesMap) return;
-
-    for (const [instanceId, instantiated] of tilesMap.entries()) {
+    const tiles = this.courseManager.getAllTiles?.() ?? [];
+    for (const instantiated of tiles) {
+      const instanceId = instantiated.tileData.instanceId;
       const tileData: PlacedTile = instantiated.tileData;
       if (!tileData.isGap) continue;
 
@@ -862,9 +858,8 @@ export class EditorController {
     const y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const tileGroups = tilesMap ? Array.from(tilesMap.values()).map((t) => t.group) : [];
+    const tiles = this.courseManager.getAllTiles?.() ?? [];
+    const tileGroups = tiles.map((t) => t.group);
     const hits = this.raycaster.intersectObjects(tileGroups, true);
     if (hits.length > 0) {
       return hits[0].point.clone();
@@ -890,9 +885,8 @@ export class EditorController {
   }
 
   private findHitTileId(): string | null {
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const targets: THREE.Object3D[] = tilesMap ? Array.from(tilesMap.values()).map((t) => t.group) : [];
+    const tiles = this.courseManager.getAllTiles?.() ?? [];
+    const targets: THREE.Object3D[] = tiles.map((t) => t.group);
     if (this.gapGizmoGroup.visible && this.gapGizmoGroup.children.length > 0) {
       targets.push(...this.gapGizmoGroup.children);
     }
@@ -907,9 +901,7 @@ export class EditorController {
   }
 
   public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const instantiated = tilesMap?.get(tileInstanceId);
+    const instantiated = this.courseManager.getTile?.(tileInstanceId);
     if (!instantiated) return null;
 
     const tileData: PlacedTile = instantiated.tileData;
@@ -918,14 +910,18 @@ export class EditorController {
     const isCup = idLower.includes("cup");
 
     let hasDownstream = false;
-    const allTiles: PlacedTile[] = Array.from(tilesMap.values()).map((t) => t.tileData);
+    const tiles = this.courseManager.getAllTiles?.() ?? [];
+    const allTiles: PlacedTile[] = tiles.map((t) => t.tileData);
     const chain = resolveOrderedTileChain(allTiles, this.assetLoader);
     const chainIdx = chain.findIndex((c) => c.tile.instanceId === tileInstanceId);
     if (chainIdx >= 0 && chainIdx < chain.length - 1) {
       hasDownstream = true;
     } else {
-      for (const [otherId, otherTile] of tilesMap.entries()) {
-        if (otherId !== tileInstanceId && otherTile.tileData.attachedTo?.parentInstanceId === tileInstanceId) {
+      for (const otherTile of tiles) {
+        if (
+          otherTile.tileData.instanceId !== tileInstanceId &&
+          otherTile.tileData.attachedTo?.parentInstanceId === tileInstanceId
+        ) {
           hasDownstream = true;
           break;
         }
@@ -937,7 +933,7 @@ export class EditorController {
       kitPieceId: tileData.kitPieceId,
       name:
         instantiated.pieceTemplate?.metadata?.name ||
-        instantiated.pieceTemplate?.name ||
+        (instantiated.pieceTemplate as any)?.name ||
         tileData.kitPieceId,
       walls: { ...tileData.walls },
       hasDynamicWalls: instantiated.pieceTemplate?.metadata?.hasDynamicWalls ?? true,
@@ -1324,13 +1320,12 @@ export class EditorController {
   }
 
   public deleteTile(tileInstanceId: string): boolean {
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    if (!tilesMap || tilesMap.size <= 1) return false; // Keep at least root tee tile
+    const allTiles = this.courseManager.getAllTiles?.() ?? [];
+    if (allTiles.length <= 1) return false; // Keep at least root tee tile
 
-    const existing = tilesMap.get(tileInstanceId);
+    const existing = this.courseManager.getTile?.(tileInstanceId);
     if (!existing) return false;
-    if (existing.tileData.kitPieceId.includes("tee") && Array.from(tilesMap.keys())[0] === tileInstanceId) {
+    if (existing.tileData.kitPieceId.includes("tee") && allTiles[0]?.tileData.instanceId === tileInstanceId) {
       return false; // Protect starting tee box
     }
 
@@ -1342,16 +1337,7 @@ export class EditorController {
     };
 
     // Capture incoming socket links from other tiles pointing to this tile so Undo restores them
-    const incomingLinks: Array<{ tileId: string; socketId: string }> = [];
-    for (const [otherId, otherTile] of tilesMap.entries()) {
-      const conns = otherTile.tileData.connectedSockets;
-      if (!conns) continue;
-      for (const [sockId, targetId] of Object.entries(conns)) {
-        if (targetId === tileInstanceId) {
-          incomingLinks.push({ tileId: otherId, socketId: sockId });
-        }
-      }
-    }
+    const incomingLinks = this.courseManager.findIncomingSocketLinks?.(tileInstanceId) ?? [];
 
     const prevSpline = this.courseManager.getSplinePath?.() || null;
 
@@ -1379,11 +1365,7 @@ export class EditorController {
         };
         this.courseManager.addTile(restored, true);
         for (const link of incomingLinks) {
-          const parent = tilesMap.get(link.tileId);
-          if (parent) {
-            parent.tileData.connectedSockets = parent.tileData.connectedSockets || {};
-            parent.tileData.connectedSockets[link.socketId] = tileInstanceId;
-          }
+          this.courseManager.connectTileSocket?.(link.tileId, link.socketId, tileInstanceId);
         }
         this.courseManager.setSplinePath?.(prevSpline);
         this.activeSpline = prevSpline;
@@ -1397,9 +1379,7 @@ export class EditorController {
   }
 
   public toggleTileWall(tileInstanceId: string, side: "left" | "right"): boolean {
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const existing = tilesMap?.get(tileInstanceId);
+    const existing = this.courseManager.getTile?.(tileInstanceId);
     if (!existing || existing.tileData.isGap) return false;
 
     const cmd: EditorCommand = {
@@ -1417,9 +1397,7 @@ export class EditorController {
   }
 
   public toggleTileGap(tileInstanceId: string): boolean {
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const existing = tilesMap?.get(tileInstanceId);
+    const existing = this.courseManager.getTile?.(tileInstanceId);
     if (!existing) return false;
 
     const idLower = existing.tileData.kitPieceId.toLowerCase();
@@ -1507,9 +1485,7 @@ export class EditorController {
     const inSocket = template.sockets.find((s) => s.id === "LOC_Socket_In") || template.sockets[0];
     if (!inSocket) return;
 
-    // @ts-ignore
-    const tilesMap = this.courseManager["tiles"] as Map<string, any>;
-    const parentTile = tilesMap?.get(targetSocket.tileInstanceId);
+    const parentTile = this.courseManager.getTile?.(targetSocket.tileInstanceId);
 
     let newPos: THREE.Vector3;
     let rotationY: number;
@@ -1573,12 +1549,11 @@ export class EditorController {
       name: `Add ${pieceLabel}`,
       execute: () => {
         this.courseManager.addTile(newTileData, true);
-        // @ts-ignore
-        const targetTile = this.courseManager["tiles"].get(targetSocket.tileInstanceId);
-        if (targetTile) {
-          targetTile.tileData.connectedSockets = targetTile.tileData.connectedSockets || {};
-          targetTile.tileData.connectedSockets[targetSocket.socketId] = newInstanceId;
-        }
+        this.courseManager.connectTileSocket?.(
+          targetSocket.tileInstanceId,
+          targetSocket.socketId,
+          newInstanceId
+        );
         const synced = syncSplineAfterSocketChange(
           prevSpline,
           this.courseManager.exportHoleData?.().tiles || [],
@@ -1589,11 +1564,7 @@ export class EditorController {
         this.refreshOpenSockets();
       },
       undo: () => {
-        // @ts-ignore
-        const targetTile = this.courseManager["tiles"].get(targetSocket.tileInstanceId);
-        if (targetTile && targetTile.tileData.connectedSockets) {
-          delete targetTile.tileData.connectedSockets[targetSocket.socketId];
-        }
+        this.courseManager.disconnectTileSocket?.(targetSocket.tileInstanceId, targetSocket.socketId);
         this.courseManager.removeTile(newInstanceId);
         this.courseManager.setSplinePath?.(prevSpline);
         this.activeSpline = prevSpline;

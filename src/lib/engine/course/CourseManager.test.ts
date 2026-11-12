@@ -233,5 +233,58 @@ describe("CourseManager Dynamic Socket Snapping (TDD)", () => {
 
     cm.clear();
   });
+
+  it("exposes typed socket graph helpers connectTileSocket, disconnectTileSocket, and findIncomingSocketLinks", async () => {
+    const RAPIER = await import("@dimforge/rapier3d-compat");
+    await RAPIER.init();
+
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+
+    const makeStraight = (id: string) => ({
+      metadata: { id, dimensions: [6, 0.6, 6], hasDynamicWalls: false },
+      visualTemplate: new THREE.Group(),
+      sockets: [
+        { id: "LOC_Socket_In", position: [0, 0, 3], normal: [0, 0, 1], type: "track_arcade_6m", elevation: 0 },
+        { id: "LOC_Socket_Out", position: [0, 0, -3], normal: [0, 0, -1], type: "track_arcade_6m", elevation: 0 },
+      ],
+      locators: new Map(),
+    });
+
+    const mockLoader: any = {
+      getPiece: (id: string) => makeStraight(id),
+    };
+
+    const { CourseManager } = await import("./CourseManager");
+    const cm = new CourseManager(scene, world, RAPIER, mockLoader);
+
+    cm.addTile({
+      instanceId: "tile_a",
+      kitPieceId: "tee_box_6x6",
+      position: [0, 0, 0],
+      rotationY: 0,
+      walls: { left: true, right: true },
+    });
+    cm.addTile({
+      instanceId: "tile_b",
+      kitPieceId: "straight_6m",
+      position: [0, 0, -6],
+      rotationY: 0,
+      walls: { left: true, right: true },
+    });
+
+    expect(cm.connectTileSocket("missing", "LOC_Socket_Out", "tile_b")).toBe(false);
+    expect(cm.connectTileSocket("tile_a", "LOC_Socket_Out", "tile_b")).toBe(true);
+    expect(cm.getTile("tile_a")?.tileData.connectedSockets?.["LOC_Socket_Out"]).toBe("tile_b");
+    expect(cm.findIncomingSocketLinks("tile_b")).toEqual([
+      { tileId: "tile_a", socketId: "LOC_Socket_Out" },
+    ]);
+
+    expect(cm.disconnectTileSocket("tile_a", "LOC_Socket_Out")).toBe(true);
+    expect(cm.findIncomingSocketLinks("tile_b")).toEqual([]);
+    expect(cm.disconnectTileSocket("tile_a", "LOC_Socket_Out")).toBe(false);
+
+    cm.clear();
+  });
 });
 

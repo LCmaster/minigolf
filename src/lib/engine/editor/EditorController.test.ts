@@ -33,6 +33,32 @@ describe("EditorController Unit Tests", () => {
         });
       }),
       removeTile: vi.fn((id: string) => tilesMap.delete(id)),
+      getAllTiles: vi.fn(() => Array.from(tilesMap.values())),
+      getTile: vi.fn((id: string) => tilesMap.get(id)),
+      connectTileSocket: vi.fn((tileId: string, sockId: string, targetId: string) => {
+        const t = tilesMap.get(tileId);
+        if (!t) return false;
+        t.tileData.connectedSockets = t.tileData.connectedSockets || {};
+        t.tileData.connectedSockets[sockId] = targetId;
+        return true;
+      }),
+      disconnectTileSocket: vi.fn((tileId: string, sockId: string) => {
+        const t = tilesMap.get(tileId);
+        if (!t?.tileData.connectedSockets || !(sockId in t.tileData.connectedSockets)) return false;
+        delete t.tileData.connectedSockets[sockId];
+        return true;
+      }),
+      findIncomingSocketLinks: vi.fn((tileId: string) => {
+        const links: Array<{ tileId: string; socketId: string }> = [];
+        for (const [otherId, otherTile] of tilesMap.entries()) {
+          const conns = otherTile.tileData.connectedSockets;
+          if (!conns) continue;
+          for (const [sockId, target] of Object.entries(conns)) {
+            if (target === tileId) links.push({ tileId: otherId, socketId: sockId });
+          }
+        }
+        return links;
+      }),
       addProp: vi.fn((propData: any) => {
         const inst = { propData, group: new THREE.Group(), colliders: [] };
         propsMap.set(propData.instanceId, inst);

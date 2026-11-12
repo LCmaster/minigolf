@@ -9,6 +9,7 @@ import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
+import { walkOrderedTileChain } from "../spline/SplineTrackSync";
 import {
   CUP_DEPTH,
   createCupVisualGroup,
@@ -450,6 +451,40 @@ export class CourseManager {
     return this.tiles.get(instanceId);
   }
 
+  /** Connects `socketId` on `tileInstanceId` to `targetTileId`. */
+  public connectTileSocket(tileInstanceId: string, socketId: string, targetTileId: string): boolean {
+    const tile = this.tiles.get(tileInstanceId);
+    if (!tile) return false;
+    tile.tileData.connectedSockets = tile.tileData.connectedSockets || {};
+    tile.tileData.connectedSockets[socketId] = targetTileId;
+    return true;
+  }
+
+  /** Disconnects `socketId` on `tileInstanceId` if currently connected. */
+  public disconnectTileSocket(tileInstanceId: string, socketId: string): boolean {
+    const tile = this.tiles.get(tileInstanceId);
+    if (!tile?.tileData.connectedSockets || !(socketId in tile.tileData.connectedSockets)) {
+      return false;
+    }
+    delete tile.tileData.connectedSockets[socketId];
+    return true;
+  }
+
+  /** Returns all other tiles holding an outgoing socket link pointing at `tileInstanceId`. */
+  public findIncomingSocketLinks(tileInstanceId: string): Array<{ tileId: string; socketId: string }> {
+    const links: Array<{ tileId: string; socketId: string }> = [];
+    for (const [otherId, otherTile] of this.tiles.entries()) {
+      const conns = otherTile.tileData.connectedSockets;
+      if (!conns) continue;
+      for (const [sockId, targetId] of Object.entries(conns)) {
+        if (targetId === tileInstanceId) {
+          links.push({ tileId: otherId, socketId: sockId });
+        }
+      }
+    }
+    return links;
+  }
+
   public removeTile(instanceId: string): boolean {
     const tile = this.tiles.get(instanceId);
     if (!tile) return false;
@@ -538,44 +573,12 @@ export class CourseManager {
     }
 
     const hole = this.exportHoleData();
-    const byId = new Map<string, PlacedTile>();
-    for (const t of hole.tiles) byId.set(t.instanceId, t);
+    const { connectedChain, byId, visited } = walkOrderedTileChain(hole.tiles);
 
     const target = byId.get(instanceId);
     if (!target) return false;
 
-    // Build ordered tile chain from Tee so parent/child directions are unambiguous even without `attachedTo`
-    const orderedIds: string[] = [];
-    const visited = new Set<string>();
-    const root = hole.tiles.find((t) => t.kitPieceId.toLowerCase().includes("tee")) || hole.tiles[0];
-    let cur: PlacedTile | undefined = root;
-    while (cur && !visited.has(cur.instanceId)) {
-      visited.add(cur.instanceId);
-      orderedIds.push(cur.instanceId);
-      let nextTile: PlacedTile | undefined;
-      if (cur.connectedSockets) {
-        const outId = cur.connectedSockets["LOC_Socket_Out"];
-        const inId = cur.connectedSockets["LOC_Socket_In"];
-        if (outId && !visited.has(outId) && byId.has(outId)) {
-          nextTile = byId.get(outId);
-        } else if (inId && !visited.has(inId) && byId.has(inId)) {
-          nextTile = byId.get(inId);
-        } else {
-          for (const candidateId of Object.values(cur.connectedSockets)) {
-            if (candidateId && !visited.has(candidateId) && byId.has(candidateId)) {
-              nextTile = byId.get(candidateId);
-              break;
-            }
-          }
-        }
-      }
-      if (!nextTile) {
-        nextTile = hole.tiles.find(
-          (t) => !visited.has(t.instanceId) && t.attachedTo?.parentInstanceId === cur!.instanceId
-        );
-      }
-      cur = nextTile;
-    }
+    const orderedIds = connectedChain.map((t) => t.instanceId);
 
     const targetOrderIdx = orderedIds.indexOf(instanceId);
     const parentId =

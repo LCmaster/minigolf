@@ -51,26 +51,29 @@ function normalizeAngleDeltaDeg(a: number, b: number): number {
 }
 
 /**
- * Walks tiles along connected socket chains starting from Tee (or first tile),
- * resolving exact world matrices via SocketSolver when `attachedTo` is present.
+ * Traverses a tile list along connected sockets starting from the Tee tile (or first tile),
+ * returning both the contiguous forward chain and the full ordered list (including leftovers).
  */
-export function resolveOrderedTileChain(
-  tiles: PlacedTile[],
-  assetLoader: AssetLoader
-): ResolvedTileTransform[] {
-  if (tiles.length === 0) return [];
-
+export function walkOrderedTileChain(tiles: PlacedTile[]): {
+  connectedChain: PlacedTile[];
+  orderedTiles: PlacedTile[];
+  byId: Map<string, PlacedTile>;
+  visited: Set<string>;
+} {
   const byId = new Map<string, PlacedTile>();
   for (const t of tiles) byId.set(t.instanceId, t);
 
-  const root = tiles.find((t) => t.kitPieceId.includes("tee")) || tiles[0];
   const visited = new Set<string>();
-  const orderedTiles: PlacedTile[] = [];
+  const connectedChain: PlacedTile[] = [];
+  if (tiles.length === 0) {
+    return { connectedChain, orderedTiles: [], byId, visited };
+  }
 
+  const root = tiles.find((t) => t.kitPieceId.toLowerCase().includes("tee")) || tiles[0];
   let cursor: PlacedTile | undefined = root;
   while (cursor && !visited.has(cursor.instanceId)) {
     visited.add(cursor.instanceId);
-    orderedTiles.push(cursor);
+    connectedChain.push(cursor);
 
     let nextTile: PlacedTile | undefined;
     if (cursor.connectedSockets) {
@@ -100,12 +103,26 @@ export function resolveOrderedTileChain(
     cursor = nextTile;
   }
 
-  // Append any disconnected leftovers
+  const orderedTiles = [...connectedChain];
   for (const t of tiles) {
     if (!visited.has(t.instanceId)) {
       orderedTiles.push(t);
     }
   }
+
+  return { connectedChain, orderedTiles, byId, visited };
+}
+
+/**
+ * Walks tiles along connected socket chains starting from Tee (or first tile),
+ * resolving exact world matrices via SocketSolver when `attachedTo` is present.
+ */
+export function resolveOrderedTileChain(
+  tiles: PlacedTile[],
+  assetLoader: AssetLoader
+): ResolvedTileTransform[] {
+  if (tiles.length === 0) return [];
+  const { orderedTiles } = walkOrderedTileChain(tiles);
 
   const resolvedMap = new Map<string, ResolvedTileTransform>();
   const results: ResolvedTileTransform[] = [];
@@ -397,3 +414,4 @@ export function syncSplineAfterSocketChange(
 
   return updated;
 }
+
