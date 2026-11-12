@@ -13,8 +13,14 @@
   $: safeCourses = courses?.length ? courses : [carnivalParkCourse];
   $: clampedIndex = Math.max(0, Math.min(selectedIndex, safeCourses.length - 1));
   $: activeCourse = safeCourses[clampedIndex];
-  $: prevCourse = safeCourses.length > 1 ? safeCourses[(clampedIndex - 1 + safeCourses.length) % safeCourses.length] : null;
-  $: nextCourse = safeCourses.length > 1 ? safeCourses[(clampedIndex + 1) % safeCourses.length] : null;
+  $: prevCourse =
+    safeCourses.length > 1
+      ? safeCourses[(clampedIndex - 1 + safeCourses.length) % safeCourses.length]
+      : null;
+  $: nextCourse =
+    safeCourses.length > 1
+      ? safeCourses[(clampedIndex + 1) % safeCourses.length]
+      : null;
 
   function stepCourse(delta) {
     if (safeCourses.length <= 1) return;
@@ -50,135 +56,198 @@
     aria-modal="true"
     aria-label="Select Course"
   >
-    <!-- Rainbow-Bordered Wooden Arcade Modal -->
-    <div class="relative w-full max-w-3xl rounded-[2.2rem] p-[5px] bg-gradient-to-r from-amber-300 via-sky-400 to-fuchsia-400 shadow-[0_24px_60px_rgba(0,0,0,0.65)]">
-      <div class="relative rounded-[1.95rem] bg-gradient-to-b from-[#6b3f1d] via-[#4a2810] to-[#361b08] border-2 border-amber-200/40 px-5 pt-10 pb-6 md:px-10">
-        <!-- Floating Cartoon Title + Back Button -->
-        <div class="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center gap-3 whitespace-nowrap">
-          <h2 class="select-card-title text-3xl md:text-4xl font-black tracking-wider uppercase text-white">
-            SELECT COURSE
-          </h2>
-          <button
-            on:click={closeModal}
-            aria-label="Back to Menu"
-            title="Back to Menu"
-            class="w-11 h-11 rounded-full bg-gradient-to-b from-amber-400 to-orange-600 border-[3px] border-white shadow-[0_4px_0_#7c2d12,0_6px_14px_rgba(0,0,0,0.45)] hover:brightness-110 active:translate-y-0.5 flex items-center justify-center text-xl font-black text-white transition-all cursor-pointer"
-          >
-            ←
-          </button>
-        </div>
+    <!-- Cartoon Dark Outer Rim + Rainbow Beveled Frame -->
+    <div class="relative w-full max-w-3xl rounded-[2.4rem] p-[4px] bg-[#2a1205] shadow-[0_24px_60px_rgba(0,0,0,0.7)]">
+      <div class="rounded-[2.2rem] p-[7px] bg-gradient-to-r from-amber-300 via-pink-400 via-50% to-sky-400">
+        <div class="relative rounded-[1.85rem] border-[3px] border-[#3b1c08] overflow-hidden px-5 pt-11 pb-6 md:px-10 bg-gradient-to-b from-sky-300 via-sky-200 to-[#7c431b]">
+          <!-- Subtle Scenic Sky Clouds & Wooden Deck Floor inside Modal -->
+          <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-[#8b4c20] to-[#592c0d] border-t-4 border-[#a15c2b] pointer-events-none"></div>
+          <div class="absolute top-6 left-10 w-24 h-8 bg-white/60 rounded-full blur-[1px] pointer-events-none"></div>
+          <div class="absolute top-10 right-14 w-32 h-9 bg-white/55 rounded-full blur-[1px] pointer-events-none"></div>
 
-        <!-- Carousel Stage -->
-        <div class="relative flex items-center justify-center gap-3 md:gap-5 pt-2">
-          <!-- Left Arrow -->
-          <button
-            on:click={() => stepCourse(-1)}
-            disabled={safeCourses.length <= 1}
-            aria-label="Previous Course"
-            class="shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-pink-400 via-rose-500 to-amber-500 border-[3px] border-white shadow-[0_4px_0_#881337,0_6px_14px_rgba(0,0,0,0.45)] hover:brightness-110 active:translate-y-0.5 disabled:opacity-40 disabled:cursor-default flex items-center justify-center text-2xl font-black text-white transition-all cursor-pointer"
-          >
-            ◀
-          </button>
-
-          <!-- 3-Slot Carousel Display -->
-          <div class="flex items-center justify-center gap-4 w-full">
-            <!-- Left Flanking Preview (shown when multiple official tours exist) -->
-            {#if prevCourse}
-              <button
-                on:click={() => stepCourse(-1)}
-                class="hidden md:flex flex-col w-44 rounded-2xl bg-slate-900/80 border-2 border-white/25 p-2.5 opacity-60 hover:opacity-85 transition-all scale-90 cursor-pointer"
+          <!-- Floating Cartoon SVG "SELECT COURSE" Header + Back Button -->
+          <div class="relative -mt-16 mb-3 flex items-center justify-center gap-2">
+            <svg
+              viewBox="0 0 540 88"
+              class="w-72 md:w-[400px] h-auto drop-shadow-[0_6px_8px_rgba(0,0,0,0.45)] overflow-visible"
+              role="heading"
+              aria-level="2"
+            >
+              <defs>
+                <linearGradient id="selectTitleGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="55%" stop-color="#fef08a" />
+                  <stop offset="100%" stop-color="#fb923c" />
+                </linearGradient>
+              </defs>
+              <text
+                x="270"
+                y="66"
+                text-anchor="middle"
+                font-family="'Fredoka', 'Baloo 2', 'Comic Sans MS', system-ui, sans-serif"
+                font-weight="900"
+                font-size="54"
+                letter-spacing="2"
+                fill="url(#selectTitleGrad)"
+                stroke="#431407"
+                stroke-width="14"
+                stroke-linejoin="round"
+                style="paint-order: stroke fill;"
               >
-                <img
-                  src={getCardArtwork(prevCourse)}
-                  alt={prevCourse.name}
-                  class="w-full h-28 object-cover rounded-xl mb-2"
-                />
-                <div class="text-xs font-black uppercase text-white truncate">{prevCourse.name}</div>
-              </button>
-            {/if}
+                SELECT COURSE
+              </text>
+            </svg>
 
-            <!-- Center Highlighted Active Official Tour Card -->
-            <div class="w-full max-w-[330px] rounded-3xl p-1 bg-gradient-to-b from-yellow-200 via-amber-400 to-orange-500 shadow-[0_10px_30px_rgba(251,191,36,0.35),0_8px_0_#78350f]">
-              <div class="rounded-[1.35rem] bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 p-3 flex flex-col items-center gap-3">
-                <div class="relative w-full aspect-[16/10] rounded-2xl overflow-hidden border-[3px] border-white shadow-inner bg-sky-300">
+            <button
+              on:click={closeModal}
+              aria-label="Back to Menu"
+              title="Back to Menu"
+              class="shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_4px_0_#431407,0_6px_14px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-105 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none">
+                <path
+                  d="M15 5L7 12L15 19"
+                  stroke="#ffffff"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M8 12H19"
+                  stroke="#ffffff"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Carousel Stage -->
+          <div class="relative z-10 flex items-center justify-center gap-3 md:gap-6 pt-1">
+            <!-- Left Cartoon Arrow Button -->
+            <button
+              on:click={() => stepCourse(-1)}
+              aria-label="Previous Course"
+              class="shrink-0 w-14 h-14 rounded-full bg-gradient-to-b from-pink-300 via-rose-500 to-amber-500 border-[3px] border-white ring-2 ring-[#431407] shadow-[0_5px_0_#881337,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" class="w-7 h-7 -ml-0.5" fill="none">
+                <path
+                  d="M16 4L6 12L16 20V4Z"
+                  fill="#ffffff"
+                  stroke="#881337"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+
+            <!-- 3-Slot Carousel Display -->
+            <div class="flex items-center justify-center gap-4 w-full">
+              {#if prevCourse}
+                <button
+                  on:click={() => stepCourse(-1)}
+                  class="hidden md:flex flex-col w-44 rounded-2xl bg-slate-900/85 border-[3px] border-[#2a1205] p-2.5 opacity-75 hover:opacity-95 transition-all scale-90 cursor-pointer shadow-xl"
+                >
                   <img
-                    src={getCardArtwork(activeCourse)}
-                    alt={activeCourse.name}
-                    class="w-full h-full object-cover"
+                    src={getCardArtwork(prevCourse)}
+                    alt={prevCourse.name}
+                    class="w-full h-28 object-cover rounded-xl mb-2 border border-white/30"
                   />
-                  <div class="absolute top-2 left-2 flex items-center gap-1.5">
-                    <span class="px-2.5 py-0.5 rounded-full bg-slate-950/75 border border-white/40 text-[10px] font-black tracking-wider text-amber-300 uppercase">
-                      {activeCourse.holes.length} HOLES
-                    </span>
-                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-600/90 border border-white/40 text-[10px] font-black tracking-wider text-white uppercase">
-                      PAR {computeTotalPar(activeCourse.holes)}
-                    </span>
+                  <div class="text-xs font-black uppercase text-white truncate">{prevCourse.name}</div>
+                </button>
+              {/if}
+
+              <!-- Center Highlighted Active Official Tour Card -->
+              <div class="w-full max-w-[340px] rounded-[1.8rem] p-[3px] bg-[#431407] shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+                <div class="rounded-[1.6rem] p-[4px] bg-gradient-to-b from-yellow-100 via-amber-300 to-orange-500">
+                  <div class="rounded-[1.35rem] bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 p-3 flex flex-col items-center gap-3">
+                    <div class="relative w-full aspect-[16/10] rounded-2xl overflow-hidden border-[3px] border-white shadow-inner bg-sky-300">
+                      <img
+                        src={getCardArtwork(activeCourse)}
+                        alt={activeCourse.name}
+                        class="w-full h-full object-cover"
+                      />
+                      <div class="absolute top-2 left-2 flex items-center gap-1.5">
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-950/80 border border-white/60 text-[10px] font-black tracking-wider text-amber-300 uppercase shadow">
+                          {activeCourse.holes.length} HOLES
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-600/95 border border-white/60 text-[10px] font-black tracking-wider text-white uppercase shadow">
+                          PAR {computeTotalPar(activeCourse.holes)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 class="card-course-title text-center text-xl font-black uppercase tracking-wide text-white leading-tight px-1">
+                      {activeCourse.name}
+                    </h3>
+
+                    <a
+                      href="/play?course={activeCourse.id}"
+                      class="group relative w-48 h-12 rounded-full bg-gradient-to-b from-[#bef264] via-[#65a30d] to-[#365314] border-[3px] border-white ring-2 ring-[#1a2e05] shadow-[0_5px_0_#1a2e05,0_8px_16px_rgba(0,0,0,0.4)] hover:brightness-105 hover:scale-[1.04] active:translate-y-0.5 transition-all flex items-center justify-center overflow-hidden"
+                    >
+                      <span class="absolute inset-x-3 top-1 h-3 rounded-full bg-white/35 pointer-events-none"></span>
+                      <span class="text-xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.65)]">
+                        PLAY
+                      </span>
+                    </a>
                   </div>
                 </div>
-
-                <h3 class="text-center text-lg md:text-xl font-black uppercase tracking-wide text-white drop-shadow-[0_2px_2px_rgba(67,20,7,0.9)] leading-tight px-1">
-                  {activeCourse.name}
-                </h3>
-
-                <a
-                  href="/play?course={activeCourse.id}"
-                  class="group relative w-48 h-12 rounded-full bg-gradient-to-b from-[#a3e635] via-[#65a30d] to-[#3f6212] border-[3px] border-white shadow-[0_5px_0_#1a2e05,0_8px_16px_rgba(0,0,0,0.35)] hover:brightness-105 hover:scale-[1.03] active:translate-y-0.5 transition-all flex items-center justify-center overflow-hidden"
-                >
-                  <span class="absolute inset-x-3 top-1 h-3 rounded-full bg-white/30 pointer-events-none"></span>
-                  <span class="text-xl font-black tracking-wider text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]">
-                    PLAY
-                  </span>
-                </a>
               </div>
+
+              {#if nextCourse}
+                <button
+                  on:click={() => stepCourse(1)}
+                  class="hidden md:flex flex-col w-44 rounded-2xl bg-slate-900/85 border-[3px] border-[#2a1205] p-2.5 opacity-75 hover:opacity-95 transition-all scale-90 cursor-pointer shadow-xl"
+                >
+                  <img
+                    src={getCardArtwork(nextCourse)}
+                    alt={nextCourse.name}
+                    class="w-full h-28 object-cover rounded-xl mb-2 border border-white/30"
+                  />
+                  <div class="text-xs font-black uppercase text-white truncate">{nextCourse.name}</div>
+                </button>
+              {/if}
             </div>
 
-            <!-- Right Flanking Preview (shown when multiple official tours exist) -->
-            {#if nextCourse}
-              <button
-                on:click={() => stepCourse(1)}
-                class="hidden md:flex flex-col w-44 rounded-2xl bg-slate-900/80 border-2 border-white/25 p-2.5 opacity-60 hover:opacity-85 transition-all scale-90 cursor-pointer"
-              >
-                <img
-                  src={getCardArtwork(nextCourse)}
-                  alt={nextCourse.name}
-                  class="w-full h-28 object-cover rounded-xl mb-2"
+            <!-- Right Cartoon Arrow Button -->
+            <button
+              on:click={() => stepCourse(1)}
+              aria-label="Next Course"
+              class="shrink-0 w-14 h-14 rounded-full bg-gradient-to-b from-lime-300 via-emerald-500 to-green-700 border-[3px] border-white ring-2 ring-[#14532d] shadow-[0_5px_0_#14532d,0_8px_16px_rgba(0,0,0,0.45)] hover:brightness-110 hover:scale-110 active:translate-y-0.5 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" class="w-7 h-7 ml-0.5" fill="none">
+                <path
+                  d="M8 4L18 12L8 20V4Z"
+                  fill="#ffffff"
+                  stroke="#14532d"
+                  stroke-width="2"
+                  stroke-linejoin="round"
                 />
-                <div class="text-xs font-black uppercase text-white truncate">{nextCourse.name}</div>
-              </button>
-            {/if}
+              </svg>
+            </button>
           </div>
 
-          <!-- Right Arrow -->
-          <button
-            on:click={() => stepCourse(1)}
-            disabled={safeCourses.length <= 1}
-            aria-label="Next Course"
-            class="shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-lime-300 via-emerald-500 to-green-700 border-[3px] border-white shadow-[0_4px_0_#14532d,0_6px_14px_rgba(0,0,0,0.45)] hover:brightness-110 active:translate-y-0.5 disabled:opacity-40 disabled:cursor-default flex items-center justify-center text-2xl font-black text-white transition-all cursor-pointer"
-          >
-            ▶
-          </button>
-        </div>
+          <!-- Pagination Dots & Secondary Link to Hole Browser -->
+          <div class="relative z-10 mt-5 flex flex-col items-center gap-2">
+            <div class="flex items-center gap-2">
+              {#each safeCourses as c, i (c.id)}
+                <button
+                  on:click={() => (selectedIndex = i)}
+                  aria-label="Select {c.name}"
+                  class="w-3.5 h-3.5 rounded-full border-2 border-[#431407] transition-all cursor-pointer {i === clampedIndex
+                    ? 'bg-amber-300 scale-125 shadow'
+                    : 'bg-amber-100/40 hover:bg-amber-100/70'}"
+                ></button>
+              {/each}
+            </div>
 
-        <!-- Pagination Dots & Secondary Link to Hole Browser -->
-        <div class="mt-5 flex flex-col items-center gap-2">
-          <div class="flex items-center gap-2">
-            {#each safeCourses as c, i (c.id)}
-              <button
-                on:click={() => (selectedIndex = i)}
-                aria-label="Select {c.name}"
-                class="w-3 h-3 rounded-full border border-white/60 transition-all cursor-pointer {i === clampedIndex
-                  ? 'bg-amber-300 scale-125 shadow'
-                  : 'bg-white/25 hover:bg-white/45'}"
-              ></button>
-            {/each}
+            <a
+              href="/courses"
+              class="text-xs font-extrabold text-amber-100 hover:text-white underline underline-offset-4 drop-shadow transition-colors"
+            >
+              Browse Individual Holes &amp; Custom Tours →
+            </a>
           </div>
-
-          <a
-            href="/courses"
-            class="text-xs font-bold text-amber-200/85 hover:text-white underline underline-offset-4 transition-colors"
-          >
-            Browse Individual Holes &amp; Custom Tours →
-          </a>
         </div>
       </div>
     </div>
@@ -186,11 +255,12 @@
 {/if}
 
 <style>
-  .select-card-title {
-    -webkit-text-stroke: 2px #431407;
+  .card-course-title {
     text-shadow:
-      0 4px 0 #431407,
-      0 8px 14px rgba(0, 0, 0, 0.55);
+      -2px -2px 0 #431407,
+      2px -2px 0 #431407,
+      -2px 2px 0 #431407,
+      2px 2px 0 #431407,
+      0 3px 0 #431407;
   }
 </style>
-
