@@ -37,6 +37,7 @@ export class AimArrowMesh {
 
     this.material = new THREE.ShaderMaterial({
       transparent: true,
+      depthTest: false,
       depthWrite: false,
       side: THREE.DoubleSide,
       uniforms: {
@@ -73,6 +74,8 @@ export class AimArrowMesh {
 
     this.arrowMesh = new THREE.Mesh(geometry, this.material);
     this.arrowMesh.position.y = 0.03; // Slightly above turf
+    this.arrowMesh.renderOrder = 999;
+    this.group.renderOrder = 999;
     this.group.add(this.arrowMesh);
   }
 
