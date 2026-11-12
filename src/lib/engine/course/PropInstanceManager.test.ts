@@ -73,6 +73,53 @@ describe("PropInstanceManager", () => {
     expect(avgX / count).toBeCloseTo(5);
   });
 
+  it("replaces legacy booster pad mesh with hovering chevron visuals that are removed with the prop", () => {
+    const scene = new THREE.Scene();
+    const { rapierWorld, rapier } = makeMockRapier();
+    const boosterSensors = new Map<number, BoosterSensorInfo>();
+
+    const template = new THREE.Group();
+    const legacyPad = new THREE.Mesh(new THREE.BoxGeometry(1, 0.1, 2), new THREE.MeshBasicMaterial());
+    legacyPad.name = "Mesh_Booster_Pad";
+    template.add(legacyPad);
+
+    const manager = new PropInstanceManager({
+      scene,
+      rapierWorld: rapierWorld as any,
+      rapier: rapier as any,
+      assetLoader: {
+        getPiece: () => ({
+          id: "prop_booster",
+          visualTemplate: template,
+          metadata: { tags: ["booster"] },
+          ubxColliderGeometries: [],
+          ubxSensorGeometry: new THREE.BoxGeometry(0.8, 0.2, 0.8),
+        }),
+      } as any,
+      boosterSensors,
+      bumperColliderHandles: new Set<number>(),
+    });
+
+    const booster = manager.addProp({
+      instanceId: "pad_visual",
+      propId: "prop_booster",
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    })!;
+
+    const clonedPad = booster.group.getObjectByName("Mesh_Booster_Pad")!;
+    expect(clonedPad.visible).toBe(false);
+    expect(booster.group.getObjectByName("Visual_Booster_Chevrons")).toBeTruthy();
+
+    const info = boosterSensors.get(booster.colliders[0].handle)!;
+    expect(info.visuals).toBeDefined();
+    expect(booster.group.children).toContain(info.visuals!.group);
+
+    manager.removeProp("pad_visual");
+    expect(boosterSensors.size).toBe(0);
+  });
+
   it("instantiates bumper and booster props, registers physics metadata, updates transforms, and removes cleanly", () => {
     const scene = new THREE.Scene();
     const { rapierWorld, rapier } = makeMockRapier();
@@ -155,3 +202,4 @@ describe("PropInstanceManager", () => {
     expect(onChanged).toHaveBeenCalled();
   });
 });
+

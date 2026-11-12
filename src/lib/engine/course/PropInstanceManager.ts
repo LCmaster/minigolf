@@ -2,12 +2,15 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedProp } from "../types/CourseSchema";
+import { BoosterVisuals } from "./BoosterVisuals";
 
 /** Runtime data stored for an active booster volume sensor collider. */
 export interface BoosterSensorInfo {
   direction: THREE.Vector3;
   impulse: number;
   center: THREE.Vector3;
+  /** Hovering chevron visuals animated by the engine and flashed on trigger. */
+  visuals?: BoosterVisuals;
 }
 
 /** Instantiated placed prop with its scene group and physics colliders. */
@@ -16,6 +19,7 @@ export interface InstantiatedProp {
   pieceTemplate: ParsedKitPiece;
   group: THREE.Group;
   colliders: RAPIER.Collider[];
+  boosterVisuals?: BoosterVisuals;
 }
 
 export interface PropInstanceManagerDeps {
@@ -117,8 +121,18 @@ export class PropInstanceManager {
     group.updateMatrixWorld(true);
 
     const colliders: RAPIER.Collider[] = [];
+    let boosterVisuals: BoosterVisuals | undefined;
     const isBumper = Boolean(template.metadata?.tags?.includes("bumper"));
     const isBooster = Boolean(template.metadata?.tags?.includes("booster"));
+    if (isBooster) {
+      // Replace the legacy flat pad with two hovering glowing chevrons
+      const legacyPad = group.getObjectByName("Mesh_Booster_Pad");
+      if (legacyPad) legacyPad.visible = false;
+      boosterVisuals = new BoosterVisuals();
+      boosterVisuals.update(0);
+      group.add(boosterVisuals.group);
+    }
+
     const colliderGeos: THREE.BufferGeometry[] = [
       ...(template.ubxColliderGeometries || []),
       ...(template.ubxFloorGeometry ? [template.ubxFloorGeometry] : []),
@@ -155,6 +169,7 @@ export class PropInstanceManager {
             direction: forwardDir,
             impulse: 0.038,
             center: group.position.clone(),
+            visuals: boosterVisuals,
           });
         }
       }
@@ -165,6 +180,7 @@ export class PropInstanceManager {
       pieceTemplate: template,
       group,
       colliders,
+      boosterVisuals,
     };
     this.props.set(propData.instanceId, instantiated);
     onChanged?.();
@@ -178,6 +194,7 @@ export class PropInstanceManager {
 
     const { scene, rapierWorld, boosterSensors, bumperColliderHandles, onChanged } = this.deps;
     scene.remove(prop.group);
+    prop.boosterVisuals?.dispose();
     for (const col of prop.colliders) {
       boosterSensors.delete(col.handle);
       bumperColliderHandles.delete(col.handle);
@@ -211,6 +228,7 @@ export class PropInstanceManager {
     const { scene, rapierWorld, boosterSensors, bumperColliderHandles } = this.deps;
     for (const prop of this.props.values()) {
       scene.remove(prop.group);
+      prop.boosterVisuals?.dispose();
       for (const col of prop.colliders) {
         boosterSensors.delete(col.handle);
         bumperColliderHandles.delete(col.handle);
@@ -220,3 +238,4 @@ export class PropInstanceManager {
     this.props.clear();
   }
 }
+
