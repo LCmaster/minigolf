@@ -6,33 +6,20 @@
 
 import * as THREE from "three";
 import type { CourseManager } from "../course/CourseManager";
-import { SocketSolver } from "../course/SocketSolver";
 import type { AssetLoader } from "../kitbash/AssetLoader";
-import type { PlacedTile, PlacedProp, SplinePathData } from "../types/CourseSchema";
+import type { PlacedProp, SplinePathData } from "../types/CourseSchema";
 import { getPiecePropRole, type PropRole } from "../types/KitTypes";
-import { HistoryManager, type EditorCommand } from "./HistoryManager";
+import { HistoryManager } from "./HistoryManager";
 import { PropEditTool } from "./PropEditTool";
 import { type GridSnapSize } from "../spline/PolylineMath";
-import { resolveOrderedTileChain, syncSplineAfterSocketChange } from "../spline/SplineTrackSync";
 import { SocketOverlayManager, type OpenSocketInfo } from "./SocketOverlayManager";
 import { GapOverlayManager } from "./GapOverlayManager";
 import { PathEditTool, type SelectedSplineNodeInfo } from "./PathEditTool";
+import { TileEditCommands, type TileClickInfo } from "./TileEditCommands";
 
-export type { OpenSocketInfo, SelectedSplineNodeInfo };
+export type { OpenSocketInfo, SelectedSplineNodeInfo, TileClickInfo };
 
 export type EditorToolMode = "select" | "place_prop" | "erase" | "track_path";
-
-export interface TileClickInfo {
-  tileInstanceId: string;
-  kitPieceId: string;
-  name: string;
-  walls: { left: boolean; right: boolean };
-  hasDynamicWalls: boolean;
-  isGap: boolean;
-  isTee: boolean;
-  isCup: boolean;
-  hasDownstream: boolean;
-}
 
 export class EditorController {
   private canvas: HTMLCanvasElement;
@@ -48,6 +35,7 @@ export class EditorController {
   private gapOverlay: GapOverlayManager;
   private propTool: PropEditTool;
   private pathTool: PathEditTool;
+  private tileCommands: TileEditCommands;
   private raycaster: THREE.Raycaster;
 
   public get openSockets(): OpenSocketInfo[] {
@@ -107,6 +95,15 @@ export class EditorController {
       history: this.history,
       onRefreshOpenSockets: () => this.refreshOpenSockets(),
       onSplineSelectionChanged: (info) => this.onSplineSelectionChanged?.(info),
+      onCourseModified: () => this.onCourseModified?.(),
+    });
+
+    this.tileCommands = new TileEditCommands({
+      courseManager: this.courseManager,
+      assetLoader: this.assetLoader,
+      history: this.history,
+      onSyncSpline: (spline) => this.pathTool.setActiveSpline(spline),
+      onRefreshOpenSockets: () => this.refreshOpenSockets(),
       onCourseModified: () => this.onCourseModified?.(),
     });
 
@@ -428,47 +425,7 @@ export class EditorController {
   }
 
   public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
-    const instantiated = this.courseManager.getTile?.(tileInstanceId);
-    if (!instantiated) return null;
-
-    const tileData: PlacedTile = instantiated.tileData;
-    const idLower = tileData.kitPieceId.toLowerCase();
-    const isTee = idLower.includes("tee");
-    const isCup = idLower.includes("cup");
-
-    let hasDownstream = false;
-    const tiles = this.courseManager.getAllTiles?.() ?? [];
-    const allTiles: PlacedTile[] = tiles.map((t) => t.tileData);
-    const chain = resolveOrderedTileChain(allTiles, this.assetLoader);
-    const chainIdx = chain.findIndex((c) => c.tile.instanceId === tileInstanceId);
-    if (chainIdx >= 0 && chainIdx < chain.length - 1) {
-      hasDownstream = true;
-    } else {
-      for (const otherTile of tiles) {
-        if (
-          otherTile.tileData.instanceId !== tileInstanceId &&
-          otherTile.tileData.attachedTo?.parentInstanceId === tileInstanceId
-        ) {
-          hasDownstream = true;
-          break;
-        }
-      }
-    }
-
-    return {
-      tileInstanceId,
-      kitPieceId: tileData.kitPieceId,
-      name:
-        instantiated.pieceTemplate?.metadata?.name ||
-        (instantiated.pieceTemplate as any)?.name ||
-        tileData.kitPieceId,
-      walls: { ...tileData.walls },
-      hasDynamicWalls: instantiated.pieceTemplate?.metadata?.hasDynamicWalls ?? true,
-      isGap: Boolean(tileData.isGap),
-      isTee,
-      isCup,
-      hasDownstream,
-    };
+    return this.tileCommands.getTileClickInfo(tileInstanceId);
   }
 
   private handlePointerMove = (ev: PointerEvent): void => {
@@ -622,111 +579,15 @@ export class EditorController {
   }
 
   public deleteTile(tileInstanceId: string): boolean {
-    const allTiles = this.courseManager.getAllTiles?.() ?? [];
-    if (allTiles.length <= 1) return false; // Keep at least root tee tile
-
-    const existing = this.courseManager.getTile?.(tileInstanceId);
-    if (!existing) return false;
-    if (existing.tileData.kitPieceId.includes("tee") && allTiles[0]?.tileData.instanceId === tileInstanceId) {
-      return false; // Protect starting tee box
-    }
-
-    const savedTile: PlacedTile = {
-      ...existing.tileData,
-      position: existing.tileData.position ? ([...existing.tileData.position] as [number, number, number]) : undefined,
-      walls: { ...existing.tileData.walls },
-      connectedSockets: existing.tileData.connectedSockets ? { ...existing.tileData.connectedSockets } : undefined,
-    };
-
-    // Capture incoming socket links from other tiles pointing to this tile so Undo restores them
-    const incomingLinks = this.courseManager.findIncomingSocketLinks?.(tileInstanceId) ?? [];
-
-    const prevSpline = this.courseManager.getSplinePath?.() || null;
-
-    const cmd: EditorCommand = {
-      name: `Remove ${savedTile.kitPieceId}`,
-      execute: () => {
-        this.courseManager.removeTile(tileInstanceId);
-        if (typeof this.courseManager.exportHoleData === "function") {
-          const synced = syncSplineAfterSocketChange(
-            prevSpline,
-            this.courseManager.exportHoleData().tiles,
-            this.assetLoader
-          );
-          this.courseManager.setSplinePath?.(synced);
-          this.pathTool.setActiveSpline(synced);
-        }
-        this.refreshOpenSockets();
-      },
-      undo: () => {
-        const restored: PlacedTile = {
-          ...savedTile,
-          position: savedTile.position ? ([...savedTile.position] as [number, number, number]) : undefined,
-          walls: { ...savedTile.walls },
-          connectedSockets: savedTile.connectedSockets ? { ...savedTile.connectedSockets } : undefined,
-        };
-        this.courseManager.addTile(restored, true);
-        for (const link of incomingLinks) {
-          this.courseManager.connectTileSocket?.(link.tileId, link.socketId, tileInstanceId);
-        }
-        this.courseManager.setSplinePath?.(prevSpline);
-        this.pathTool.setActiveSpline(prevSpline);
-        this.refreshOpenSockets();
-      },
-    };
-
-    this.history.execute(cmd);
-    this.onCourseModified?.();
-    return true;
+    return this.tileCommands.deleteTile(tileInstanceId);
   }
 
   public toggleTileWall(tileInstanceId: string, side: "left" | "right"): boolean {
-    const existing = this.courseManager.getTile?.(tileInstanceId);
-    if (!existing || existing.tileData.isGap) return false;
-
-    const cmd: EditorCommand = {
-      name: `Toggle ${side} wall`,
-      execute: () => {
-        this.courseManager.toggleWall(tileInstanceId, side);
-      },
-      undo: () => {
-        this.courseManager.toggleWall(tileInstanceId, side);
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
-    return true;
+    return this.tileCommands.toggleTileWall(tileInstanceId, side);
   }
 
   public toggleTileGap(tileInstanceId: string): boolean {
-    const existing = this.courseManager.getTile?.(tileInstanceId);
-    if (!existing) return false;
-
-    const idLower = existing.tileData.kitPieceId.toLowerCase();
-    if (idLower.includes("tee") || idLower.includes("cup")) return false;
-
-    const prevGap = Boolean(existing.tileData.isGap);
-    const nextGap = !prevGap;
-    const prevSpline = this.courseManager.getSplinePath?.() || null;
-
-    const cmd: EditorCommand = {
-      name: nextGap ? `Remove tile surface (Gap)` : `Restore tile surface`,
-      execute: () => {
-        this.courseManager.setTileGap(tileInstanceId, nextGap);
-        this.courseManager.setSplinePath?.(prevSpline);
-        this.pathTool.setActiveSpline(prevSpline);
-        this.refreshOpenSockets();
-      },
-      undo: () => {
-        this.courseManager.setTileGap(tileInstanceId, prevGap);
-        this.courseManager.setSplinePath?.(prevSpline);
-        this.pathTool.setActiveSpline(prevSpline);
-        this.refreshOpenSockets();
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
-    return true;
+    return this.tileCommands.toggleTileGap(tileInstanceId);
   }
 
   public swapTileType(
@@ -734,148 +595,12 @@ export class EditorController {
     newKitPieceId: string,
     options?: { reverseDirection?: boolean }
   ): boolean {
-    const oldHole = this.courseManager.exportHoleData?.();
-    if (!oldHole) return false;
-
-    const ok = this.courseManager.swapTileType(tileInstanceId, newKitPieceId, options);
-    if (!ok) return false;
-
-    const prevSpline = oldHole.splinePath || null;
-    const updatedHole = this.courseManager.exportHoleData();
-    const syncedSpline = syncSplineAfterSocketChange(
-      prevSpline,
-      updatedHole.tiles,
-      this.assetLoader
-    );
-    updatedHole.splinePath = syncedSpline;
-    this.courseManager.setSplinePath?.(syncedSpline);
-    this.pathTool.setActiveSpline(syncedSpline);
-    this.refreshOpenSockets();
-
-    let firstRun = true;
-    const newTpl = this.assetLoader.getPiece(newKitPieceId);
-    const label = newTpl?.metadata?.name || (newTpl as any)?.name || newKitPieceId;
-    const cmd: EditorCommand = {
-      name: `Swap tile to ${label}`,
-      execute: () => {
-        if (firstRun) {
-          firstRun = false;
-          return;
-        }
-        this.courseManager.loadHole(updatedHole);
-        this.pathTool.setActiveSpline(syncedSpline);
-        this.refreshOpenSockets();
-      },
-      undo: () => {
-        this.courseManager.loadHole(oldHole);
-        this.pathTool.setActiveSpline(oldHole.splinePath || null);
-        this.refreshOpenSockets();
-      },
-    };
-    this.history.execute(cmd);
-    this.onCourseModified?.();
-    return true;
+    return this.tileCommands.swapTileType(tileInstanceId, newKitPieceId, options);
   }
 
-  /**
-   * Snaps a new kit piece onto an open socket using exact SocketSolver transforms.
-   */
+  /** Snaps a new kit piece onto an open socket using exact SocketSolver transforms. */
   public snapPieceToSocket(targetSocket: OpenSocketInfo, newKitPieceId: string): void {
-    const template = this.assetLoader.getPiece(newKitPieceId);
-    if (!template) return;
-
-    const inSocket = template.sockets.find((s) => s.id === "LOC_Socket_In") || template.sockets[0];
-    if (!inSocket) return;
-
-    const parentTile = this.courseManager.getTile?.(targetSocket.tileInstanceId);
-
-    let newPos: THREE.Vector3;
-    let rotationY: number;
-
-    if (parentTile && parentTile.pieceTemplate?.sockets) {
-      const parentSocket = parentTile.pieceTemplate.sockets.find(
-        (s: any) => s.id === targetSocket.socketId
-      );
-      if (parentSocket) {
-        parentTile.group.updateMatrixWorld(true);
-        const snappedMatrix = SocketSolver.computeSnappedTransform(
-          parentTile.group.matrixWorld,
-          parentSocket,
-          inSocket
-        );
-        const pos = new THREE.Vector3();
-        const quat = new THREE.Quaternion();
-        snappedMatrix.decompose(pos, quat, new THREE.Vector3());
-        const euler = new THREE.Euler().setFromQuaternion(quat, "YXZ");
-        newPos = pos;
-        rotationY = Math.round(((euler.y * 180) / Math.PI) % 360);
-      } else {
-        newPos = targetSocket.worldPosition.clone();
-        rotationY = 0;
-      }
-    } else {
-      const targetNorm = targetSocket.normal.clone();
-      const inNorm = new THREE.Vector3(...inSocket.normal);
-      const targetAngle = Math.atan2(targetNorm.x, targetNorm.z);
-      const desiredAngle = targetAngle + Math.PI;
-      const inAngle = Math.atan2(inNorm.x, inNorm.z);
-      rotationY = Math.round(((desiredAngle - inAngle) * 180) / Math.PI);
-
-      const rotatedInPos = new THREE.Vector3(...inSocket.position);
-      rotatedInPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), (rotationY * Math.PI) / 180);
-      newPos = targetSocket.worldPosition.clone().sub(rotatedInPos);
-    }
-
-    const newInstanceId = `tile_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-    const newTileData: PlacedTile = {
-      instanceId: newInstanceId,
-      kitPieceId: newKitPieceId,
-      position: [newPos.x, newPos.y, newPos.z],
-      rotationY: ((rotationY % 360) + 360) % 360,
-      walls: { left: true, right: true },
-      attachedTo: {
-        parentInstanceId: targetSocket.tileInstanceId,
-        parentSocketId: targetSocket.socketId,
-        childSocketId: inSocket.id,
-      },
-      connectedSockets: {
-        [inSocket.id]: targetSocket.tileInstanceId,
-      },
-    };
-
-    const prevSpline = this.courseManager.getSplinePath?.() || null;
-
-    const pieceLabel = template.metadata?.name || (template as any).name || newKitPieceId;
-    const cmd: EditorCommand = {
-      name: `Add ${pieceLabel}`,
-      execute: () => {
-        this.courseManager.addTile(newTileData, true);
-        this.courseManager.connectTileSocket?.(
-          targetSocket.tileInstanceId,
-          targetSocket.socketId,
-          newInstanceId
-        );
-        const synced = syncSplineAfterSocketChange(
-          prevSpline,
-          this.courseManager.exportHoleData?.().tiles || [],
-          this.assetLoader
-        );
-        this.courseManager.setSplinePath?.(synced);
-        this.pathTool.setActiveSpline(synced);
-        this.refreshOpenSockets();
-      },
-      undo: () => {
-        this.courseManager.disconnectTileSocket?.(targetSocket.tileInstanceId, targetSocket.socketId);
-        this.courseManager.removeTile(newInstanceId);
-        this.courseManager.setSplinePath?.(prevSpline);
-        this.pathTool.setActiveSpline(prevSpline);
-        this.refreshOpenSockets();
-      },
-    };
-
-    this.history.execute(cmd);
-    this.onCourseModified?.();
+    this.tileCommands.snapPieceToSocket(targetSocket, newKitPieceId);
   }
 
   public setEnabled(enabled: boolean): void {
