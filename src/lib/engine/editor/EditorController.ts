@@ -16,6 +16,7 @@ import { GapOverlayManager } from "./GapOverlayManager";
 import { PathEditTool, type SelectedSplineNodeInfo } from "./PathEditTool";
 import { TileEditCommands, type TileClickInfo } from "./TileEditCommands";
 import { EditorRaycastPicker } from "./EditorRaycastPicker";
+import { EditorInputHandler } from "./EditorInputHandler";
 
 export type { OpenSocketInfo, SelectedSplineNodeInfo, TileClickInfo };
 
@@ -37,6 +38,7 @@ export class EditorController {
   private pathTool: PathEditTool;
   private tileCommands: TileEditCommands;
   private picker: EditorRaycastPicker;
+  private inputHandler: EditorInputHandler;
   private raycaster: THREE.Raycaster;
 
   public get openSockets(): OpenSocketInfo[] {
@@ -113,7 +115,29 @@ export class EditorController {
       getPropPieceMetadata: (propId) => this.assetLoader.getPiece?.(propId)?.metadata,
     });
 
-    this.attachEventListeners();
+    this.inputHandler = new EditorInputHandler({
+      canvas: this.canvas,
+      camera: this.camera,
+      raycaster: this.raycaster,
+      isEnabled: () => this.enabled,
+      isEraseMode: () => this.eraseMode,
+      picker: this.picker,
+      socketOverlay: this.socketOverlay,
+      propTool: this.propTool,
+      pathTool: this.pathTool,
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      setTrackPathMode: (enabled) => this.setTrackPathMode(enabled),
+      setEraseMode: (enabled) => this.setEraseMode(enabled),
+      setSelectedProp: (propId) => this.setSelectedProp(propId),
+      selectPlacedProp: (id) => this.selectPlacedProp(id),
+      deleteSelectedSplineNode: () => this.deleteSelectedSplineNode(),
+      deleteTile: (tileId) => this.deleteTile(tileId),
+      getTileClickInfo: (tileId) => this.getTileClickInfo(tileId),
+      onSocketClick: (info, sx, sy) => this.onSocketClick?.(info, sx, sy),
+      onTileClick: (info, sx, sy) => this.onTileClick?.(info, sx, sy),
+    });
+    this.inputHandler.attach();
   }
 
   public get toolMode(): EditorToolMode {
@@ -193,61 +217,6 @@ export class EditorController {
     return true;
   }
 
-  private handleKeyDown = (ev: KeyboardEvent): void => {
-    if (!this.enabled) return;
-    const tag = (ev.target as HTMLElement | null)?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-
-    if ((ev.ctrlKey || ev.metaKey) && ev.key === "z") {
-      ev.preventDefault();
-      if (ev.shiftKey) {
-        this.redo();
-      } else {
-        this.undo();
-      }
-    } else if ((ev.ctrlKey || ev.metaKey) && ev.key === "y") {
-      ev.preventDefault();
-      this.redo();
-    } else if (ev.key === "r" || ev.key === "R") {
-      const placedId = this.propTool.getSelectedPlacedPropId();
-      if (placedId && !this.propTool.getSelectedPropId() && !this.eraseMode) {
-        this.propTool.rotatePlacedProp(placedId, 45);
-      } else {
-        this.propTool.rotateBrush(45);
-      }
-    } else if (ev.key === "t" || ev.key === "T") {
-      this.setTrackPathMode(!this.pathTool.isActive());
-    } else if (ev.key === "x" || ev.key === "X") {
-      this.setEraseMode(!this.eraseMode);
-    } else if (ev.key === "Delete" || ev.key === "Backspace") {
-      const placedId = this.propTool.getSelectedPlacedPropId();
-      if (this.pathTool.isActive()) {
-        ev.preventDefault();
-        this.deleteSelectedSplineNode();
-      } else if (placedId) {
-        ev.preventDefault();
-        this.propTool.selectPlacedProp(null);
-        this.propTool.deleteProp(placedId);
-      }
-    } else if (ev.key === "Escape") {
-      this.setTrackPathMode(false);
-      this.setEraseMode(false);
-      this.setSelectedProp(null);
-      this.selectPlacedProp(null);
-    }
-  };
-
-  private attachEventListeners(): void {
-    this.canvas.addEventListener("pointermove", this.handlePointerMove);
-    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
-    this.canvas.addEventListener("dblclick", this.handleDoubleClick);
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("pointerup", this.handlePointerUp);
-      window.addEventListener("keydown", this.handleKeyDown);
-    }
-  }
-
   public setTrackPathMode(enabled: boolean): void {
     if (enabled) {
       this.eraseMode = false;
@@ -306,10 +275,6 @@ export class EditorController {
     return this.pathTool.toggleSelectedNodeBevel();
   }
 
-  public toggleSelectedNodeCorner(): boolean {
-    return this.pathTool.toggleSelectedNodeBevel();
-  }
-
   public snapAllSplineNodesToGrid(): boolean {
     return this.pathTool.snapAllNodesToGrid();
   }
@@ -335,136 +300,6 @@ export class EditorController {
   public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
     return this.tileCommands.getTileClickInfo(tileInstanceId);
   }
-
-  private handlePointerMove = (ev: PointerEvent): void => {
-    if (!this.enabled) return;
-    this.picker.setRayFromClient(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
-
-    // 00. Spline Track Edit Mode hover & live drag
-    if (this.pathTool.isActive()) {
-      this.canvas.style.cursor = this.pathTool.handlePointerMove(
-        this.raycaster,
-        (planeY) => this.picker.getPointOnPlane(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY, planeY),
-        ev.shiftKey || ev.altKey
-      );
-      return;
-    }
-
-    // 0. Dragging or ghost preview for props
-    if (this.propTool.isDragging() || this.propTool.getSelectedPropId()) {
-      const pt = this.picker.getSurfaceHitPoint(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
-      const res = this.propTool.updateHoverAndDrag(pt);
-      if (res.handled) {
-        if (res.cursor) this.canvas.style.cursor = res.cursor;
-        return;
-      }
-    }
-
-    // 2. Erase mode cursor feedback
-    if (this.eraseMode) {
-      const target = this.picker.pickInteractiveTarget(this.raycaster);
-      this.canvas.style.cursor = target ? "pointer" : "crosshair";
-      return;
-    }
-
-    // 3. Socket gizmo raycast
-    const hoveredSocket = this.socketOverlay.updateHover(this.raycaster);
-    if (hoveredSocket) {
-      this.canvas.style.cursor = "pointer";
-      return;
-    }
-    this.canvas.style.cursor = "default";
-
-    // 4. Prop or track tile / gap hover cursor feedback
-    const hoverTarget = this.picker.pickInteractiveTarget(this.raycaster);
-    this.canvas.style.cursor = hoverTarget ? "pointer" : "default";
-  };
-
-  private handlePointerDown = (ev: PointerEvent): void => {
-    if (!this.enabled) return;
-    if (ev.button !== 0) return; // Left click only (right/middle reserved for camera orbit)
-
-    this.picker.setRayFromClient(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
-
-    // -1. Spline Track Edit Mode click / begin drag
-    if (this.pathTool.isActive()) {
-      this.pathTool.handlePointerDown(this.raycaster);
-      return;
-    }
-
-    // 0. Erase mode
-    if (this.eraseMode) {
-      const target = this.picker.pickInteractiveTarget(this.raycaster);
-      if (target?.kind === "prop") {
-        this.deleteProp(target.id);
-      } else if (target?.kind === "tile") {
-        this.deleteTile(target.id);
-      }
-      return;
-    }
-
-    // 1. Prop placement mode
-    const activeBrushId = this.propTool.getSelectedPropId();
-    if (activeBrushId) {
-      const hitPoint = this.picker.getSurfaceHitPoint(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
-      if (hitPoint) {
-        this.propTool.placePropAtPoint(activeBrushId, hitPoint);
-      }
-      return;
-    }
-
-    // 2. Socket click
-    if (this.socketOverlay.hoveredSocket) {
-      this.selectPlacedProp(null);
-      this.onSocketClick?.(this.socketOverlay.hoveredSocket, ev.clientX, ev.clientY);
-      return;
-    }
-
-    // 3. Pick playable prop, track tile (priority over overlapping scenery), or freeform scenery prop
-    const target = this.picker.pickInteractiveTarget(this.raycaster);
-    if (target?.kind === "prop") {
-      this.selectPlacedProp(target.id);
-      this.propTool.beginDrag(target.id);
-      return;
-    }
-    if (target?.kind === "tile") {
-      this.selectPlacedProp(null);
-      const info = this.getTileClickInfo(target.id);
-      if (info) {
-        this.onTileClick?.(info, ev.clientX, ev.clientY);
-      }
-      return;
-    }
-
-    // 4. Clicking empty space clears prop selection
-    this.selectPlacedProp(null);
-  };
-
-  private handleDoubleClick = (ev: MouseEvent): void => {
-    if (!this.enabled || !this.pathTool.isActive()) return;
-    this.pathTool.handleDoubleClick(
-      (planeY) => this.picker.getPointOnPlane(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY, planeY),
-      ev.shiftKey || ev.altKey
-    );
-  };
-
-  private handlePointerUp = (): void => {
-    if (!this.enabled) {
-      this.pathTool.cancelDrag();
-      this.propTool.cancelDrag();
-      return;
-    }
-    if (this.pathTool.isDragging()) {
-      this.canvas.style.cursor = "default";
-      this.pathTool.finishDrag();
-      return;
-    }
-
-    if (this.propTool.isDragging()) {
-      this.canvas.style.cursor = "default";
-      this.propTool.finishDrag();
-    }
-  };
 
   public rotatePlacedProp(instanceId: string, deltaDeg: number): void {
     this.propTool.rotatePlacedProp(instanceId, deltaDeg);
@@ -531,13 +366,7 @@ export class EditorController {
   }
 
   public dispose(): void {
-    this.canvas.removeEventListener("pointermove", this.handlePointerMove);
-    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
-    this.canvas.removeEventListener("dblclick", this.handleDoubleClick);
-    if (typeof window !== "undefined") {
-      window.removeEventListener("pointerup", this.handlePointerUp);
-      window.removeEventListener("keydown", this.handleKeyDown);
-    }
+    this.inputHandler.dispose();
     this.pathTool.dispose();
     this.socketOverlay.dispose();
     this.gapOverlay.dispose();

@@ -44,7 +44,10 @@ describe("codebase architecture guards", () => {
   });
 
   it("keeps core engine classes under the 450-line single-responsibility budget", () => {
-    const budgeted = ["lib/engine/course/CourseManager.ts"];
+    const budgeted = [
+      "lib/engine/course/CourseManager.ts",
+      "lib/engine/editor/EditorController.ts",
+    ];
     for (const rel of budgeted) {
       expect(lineCount(rel), `${rel} exceeds 450 lines`).toBeLessThanOrEqual(450);
     }
