@@ -4,6 +4,8 @@
   import { userProfile } from "$lib/stores/profile";
   import { updateUserProfile } from "$lib/user";
   import { onMount } from "svelte";
+  import ArcadeFrame from "$lib/components/ui/ArcadeFrame.svelte";
+  import ArcadeButton from "$lib/components/ui/ArcadeButton.svelte";
 
   let nickname = "";
   let avatarUrl = "";
@@ -12,7 +14,6 @@
   let isLoading = false;
   let saveMessage = "";
 
-  // Make sure we load the initial data
   $: if ($userProfile && !nickname && !isLoading && !saveMessage) {
     nickname = $userProfile.nickname || "";
     avatarUrl = $userProfile.avatarUrl || "";
@@ -21,7 +22,6 @@
   }
 
   onMount(() => {
-    // Redirect if not signed in
     if (!$user) {
       goto("/");
     }
@@ -29,7 +29,7 @@
 
   async function handleSave() {
     if (!$userProfile) return;
-    
+
     isLoading = true;
     saveMessage = "";
 
@@ -39,21 +39,20 @@
         avatarUrl: avatarUrl.trim(),
         settings: {
           ballColor,
-          ballTrail
-        }
+          ballTrail,
+        },
       };
 
       await updateUserProfile($userProfile.id, updatedProfile);
-      
-      // Update local store
-      $userProfile = { 
+
+      $userProfile = {
         ...$userProfile,
         ...updatedProfile,
-        settings: { ...$userProfile.settings, ...updatedProfile.settings }
+        settings: { ...$userProfile.settings, ...updatedProfile.settings },
       };
 
       saveMessage = "Profile updated successfully!";
-      setTimeout(() => saveMessage = "", 3000);
+      setTimeout(() => (saveMessage = ""), 3000);
     } catch (err) {
       saveMessage = "Error updating profile.";
       console.error(err);
@@ -63,128 +62,138 @@
   }
 </script>
 
-<div class="w-screen h-screen overflow-y-auto bg-[#C4E9CC] flex flex-col relative overflow-x-hidden p-4 md:p-8">
-  <!-- Background glowing orbs -->
-  <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-    <div class="absolute -top-32 -left-32 w-96 h-96 bg-white/20 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-white/20 rounded-full blur-[120px]"></div>
+<div class="relative w-screen min-h-screen overflow-y-auto flex items-center justify-center p-4 md:p-8 bg-sky-400">
+  <!-- Blurred Course Backdrop -->
+  <div class="fixed inset-0 pointer-events-none">
+    <img
+      src="/courses/carnival-park-card.png"
+      alt=""
+      aria-hidden="true"
+      class="w-full h-full object-cover blur-[8px] scale-105 brightness-75"
+    />
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-900/20 to-[#2a1205]/70"></div>
   </div>
 
-  <div class="z-10 flex flex-col items-center w-full max-w-2xl mx-auto">
-    
-    <!-- Header -->
-    <div class="flex items-center justify-between w-full mb-8">
-      <button 
-        class="btn bg-white/50 backdrop-blur-md hover:bg-white/80 border border-white/60 text-[#4A4A4A] font-bold rounded-full px-6 py-2 shadow-sm transition-transform hover:scale-105"
-        on:click={() => goto('/')}
-      >
-        &larr; Back
-      </button>
-      <h1 class="text-3xl font-black text-[#4A4A4A] drop-shadow-md">My Profile</h1>
-      <div class="w-24"></div> <!-- Spacer for flex centering -->
-    </div>
+  <div class="relative z-10 w-full flex justify-center py-6">
+    <ArcadeFrame
+      title="MY PROFILE"
+      titleWidthClass="w-60 md:w-[330px]"
+      maxWidthClass="max-w-2xl"
+      showClose={true}
+      closeLabel="Back to Home"
+      on:close={() => goto("/")}
+    >
+      {#if $userProfile}
+        <div class="flex flex-col gap-4">
+          <!-- Avatar Preview & URL Card -->
+          <div class="rounded-2xl bg-amber-50/95 border-[3px] border-[#431407] p-4 shadow-[0_4px_0_#431407] flex flex-col md:flex-row items-center gap-5">
+            <div class="w-28 h-28 rounded-full border-4 border-[#431407] ring-2 ring-amber-300 shadow-lg overflow-hidden bg-gradient-to-b from-sky-300 to-emerald-400 flex items-center justify-center shrink-0">
+              {#if avatarUrl}
+                <img src={avatarUrl} alt="Avatar" class="w-full h-full object-cover" />
+              {:else}
+                <span class="text-5xl font-black text-white drop-shadow">?</span>
+              {/if}
+            </div>
+            <div class="flex-1 w-full space-y-1.5">
+              <label for="profile-avatar" class="font-black text-[#431407] text-sm uppercase tracking-wider">
+                Avatar Image URL
+              </label>
+              <input
+                id="profile-avatar"
+                type="url"
+                bind:value={avatarUrl}
+                class="w-full rounded-xl bg-white border-2 border-[#431407]/40 focus:border-amber-500 px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none"
+                placeholder="https://example.com/my-avatar.png"
+              />
+              <p class="text-xs text-[#431407]/70 font-bold">
+                Paste a direct link to an image to use as your avatar.
+              </p>
+            </div>
+          </div>
 
-    <!-- Profile Card -->
-    {#if $userProfile}
-      <div class="w-full bg-white/60 backdrop-blur-xl border border-white rounded-3xl shadow-xl p-6 md:p-10 flex flex-col gap-8">
-        
-        <!-- Avatar Preview & Input -->
-        <div class="flex flex-col md:flex-row items-center gap-6">
-          <div class="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-[#C4E9CC] flex items-center justify-center shrink-0">
-            {#if avatarUrl}
-              <img src={avatarUrl} alt="Avatar" class="w-full h-full object-cover" on:error={(e) => e.target.style.display = 'none'} />
-            {:else}
-              <span class="text-5xl font-black text-white/50">?</span>
+          <!-- Golfer Settings Card -->
+          <div class="rounded-2xl bg-amber-50/95 border-[3px] border-[#431407] p-4 shadow-[0_4px_0_#431407] grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label for="profile-nickname" class="font-black text-[#431407] text-xs uppercase tracking-wider block">
+                Nickname
+              </label>
+              <input
+                id="profile-nickname"
+                type="text"
+                bind:value={nickname}
+                class="w-full rounded-xl bg-white border-2 border-[#431407]/40 focus:border-amber-500 px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="font-black text-[#431407] text-xs uppercase tracking-wider block">
+                Role
+              </span>
+              <div class="w-full rounded-xl bg-amber-100/80 border-2 border-[#431407]/25 px-3 py-2 text-sm text-[#431407]/80 font-black capitalize select-none">
+                {$userProfile.role || "Player"}
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="profile-ball-color" class="font-black text-[#431407] text-xs uppercase tracking-wider flex items-center gap-2">
+                <span>Ball Color</span>
+                <span class="w-5 h-5 rounded-full border-2 border-[#431407] inline-block" style="background-color: {ballColor}"></span>
+              </label>
+              <div class="flex gap-2 items-center">
+                <input
+                  id="profile-ball-color"
+                  type="color"
+                  bind:value={ballColor}
+                  class="w-11 h-10 rounded-xl cursor-pointer border-2 border-[#431407]/40 bg-white p-0.5"
+                />
+                <input
+                  type="text"
+                  aria-label="Ball color hex"
+                  bind:value={ballColor}
+                  class="flex-1 rounded-xl bg-white border-2 border-[#431407]/40 focus:border-amber-500 px-3 py-2 text-sm font-bold text-slate-900 uppercase focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="profile-ball-trail" class="font-black text-[#431407] text-xs uppercase tracking-wider block">
+                Ball Trail
+              </label>
+              <select
+                id="profile-ball-trail"
+                bind:value={ballTrail}
+                class="w-full rounded-xl bg-white border-2 border-[#431407]/40 focus:border-amber-500 px-3 py-2 text-sm font-black text-slate-900 focus:outline-none"
+              >
+                <option value="none">None</option>
+                <option value="sparkle">Sparkle</option>
+                <option value="rainbow">Rainbow</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Save Action Bar -->
+          <div class="flex flex-col items-center justify-center gap-2 pt-2">
+            <ArcadeButton
+              variant="green"
+              size="lg"
+              disabled={isLoading}
+              on:click={handleSave}
+            >
+              {isLoading ? "Saving..." : "Save Profile"}
+            </ArcadeButton>
+
+            {#if saveMessage}
+              <p class="font-black text-sm px-3 py-1 rounded-full bg-amber-50 border-2 border-[#431407] {saveMessage.includes('Error') ? 'text-red-600' : 'text-emerald-700'}">
+                {saveMessage}
+              </p>
             {/if}
           </div>
-          <div class="flex-1 w-full space-y-2">
-            <label class="font-bold text-[#4A4A4A] text-lg">Avatar Image URL</label>
-            <input 
-              type="url" 
-              bind:value={avatarUrl} 
-              class="input rounded-xl bg-white/80 border-white/50 focus:border-[#F6A655] focus:ring-[#F6A655] w-full" 
-              placeholder="https://example.com/my-avatar.png" 
-            />
-            <p class="text-sm text-[#4A4A4A]/60 font-medium">Paste a direct link to an image to use as your avatar.</p>
-          </div>
         </div>
-
-        <hr class="border-white/50" />
-
-        <!-- User Settings Form -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          <div class="space-y-2">
-            <label class="font-bold text-[#4A4A4A] text-lg">Nickname</label>
-            <input 
-              type="text" 
-              bind:value={nickname} 
-              class="input rounded-xl bg-white/80 border-white/50 focus:border-[#F6A655] focus:ring-[#F6A655] w-full" 
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label class="font-bold text-[#4A4A4A] text-lg">Role</label>
-            <div class="input rounded-xl bg-black/5 border-white/50 w-full text-[#4A4A4A]/70 font-bold capitalize select-none cursor-not-allowed">
-              {$userProfile.role || 'Player'}
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="font-bold text-[#4A4A4A] text-lg flex items-center gap-3">
-              Ball Color
-              <div class="w-6 h-6 rounded-full border-2 border-white shadow-sm" style="background-color: {ballColor}"></div>
-            </label>
-            <div class="flex gap-2 items-center">
-              <input 
-                type="color" 
-                bind:value={ballColor} 
-                class="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent p-0" 
-              />
-              <input 
-                type="text" 
-                bind:value={ballColor} 
-                class="input rounded-xl bg-white/80 border-white/50 focus:border-[#F6A655] focus:ring-[#F6A655] flex-1 uppercase" 
-              />
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="font-bold text-[#4A4A4A] text-lg">Ball Trail</label>
-            <select bind:value={ballTrail} class="select rounded-xl bg-white/80 border-white/50 focus:border-[#F6A655] focus:ring-[#F6A655] w-full font-bold text-[#4A4A4A]">
-              <option value="none">None</option>
-              <option value="sparkle">Sparkle</option>
-              <option value="rainbow">Rainbow</option>
-            </select>
-          </div>
-
+      {:else}
+        <div class="flex justify-center items-center h-56">
+          <div class="w-12 h-12 border-4 border-amber-300 border-t-transparent rounded-full animate-spin"></div>
         </div>
-
-        <hr class="border-white/50" />
-
-        <!-- Actions -->
-        <div class="flex flex-col items-center justify-center gap-3">
-          <button 
-            class="btn bg-[#F6A655] hover:bg-[#E57300] text-white font-black text-xl rounded-full px-12 py-3 shadow-lg transition-transform hover:scale-105 active:scale-95 w-full md:w-auto"
-            on:click={handleSave}
-            disabled={isLoading}
-          >
-            {isLoading ? "Saving..." : "Save Profile"}
-          </button>
-          
-          {#if saveMessage}
-            <p class="font-bold {saveMessage.includes('Error') ? 'text-red-500' : 'text-[#567D46]'} animate-pulse">
-              {saveMessage}
-            </p>
-          {/if}
-        </div>
-
-      </div>
-    {:else}
-      <div class="flex justify-center items-center h-64">
-        <div class="w-12 h-12 border-4 border-[#F6A655] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    {/if}
-
+      {/if}
+    </ArcadeFrame>
   </div>
 </div>

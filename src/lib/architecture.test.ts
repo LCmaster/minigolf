@@ -34,6 +34,7 @@ describe("codebase architecture guards", () => {
       "lib/stores/audio.js",
       "lib/types/course.ts",
       "lib/component/ArrowButton.svelte",
+      "lib/component/Button.svelte",
       "lib/component/HudIndicator.svelte",
       "lib/component/Modal.svelte",
       "routes/mylevels/+page.svelte",

@@ -2,8 +2,10 @@
   import { getModalStore } from "@skeletonlabs/skeleton";
   import { updateUserProfile } from "$lib/user";
   import { userProfile } from "$lib/stores/profile";
+  import ArcadeFrame from "$lib/components/ui/ArcadeFrame.svelte";
+  import ArcadeButton from "$lib/components/ui/ArcadeButton.svelte";
 
-  export let parent;
+  export const parent = null;
 
   const modalStore = getModalStore();
   let nickname = "";
@@ -26,8 +28,8 @@
         role: "player",
         settings: {
           ballColor: "#FF0000",
-          ballTrail: "none"
-        }
+          ballTrail: "none",
+        },
       };
 
       await updateUserProfile(uid, initialProfile);
@@ -43,33 +45,43 @@
 </script>
 
 {#if $modalStore[0]}
-  <div class="card p-8 w-modal shadow-xl space-y-4 bg-white/90 backdrop-blur-md rounded-3xl border border-white">
-    <h2 class="h2 font-black text-[#4A4A4A]">Welcome to Minigolf Mania!</h2>
-    <p class="text-[#4A4A4A]/80">Please choose a nickname to get started. You can change this and customize your avatar later in your profile settings.</p>
+  <ArcadeFrame
+    title="WELCOME!"
+    titleWidthClass="w-56 md:w-[300px]"
+    maxWidthClass="max-w-md"
+    showDeckStrip={true}
+  >
+    <div class="rounded-2xl bg-amber-50/95 border-[3px] border-[#431407] p-5 shadow-[0_4px_0_#431407] space-y-4">
+      <p class="text-sm font-bold text-slate-700 leading-relaxed">
+        Choose a nickname to get started on the greens. You can customize your avatar, ball color, and wind trail anytime in your profile.
+      </p>
 
-    <div class="space-y-2">
-      <label class="font-bold text-[#4A4A4A]">
-        Nickname
-        <input 
-          type="text" 
-          bind:value={nickname} 
-          class="input mt-1 rounded-xl bg-white border-[#C4E9CC] focus:border-[#F6A655] focus:ring-[#F6A655]" 
-          placeholder="e.g. GolfMaster99" 
+      <div class="space-y-1.5">
+        <label for="first-login-nickname" class="font-black text-[#431407] text-xs uppercase tracking-wider block">
+          Nickname
+        </label>
+        <input
+          id="first-login-nickname"
+          type="text"
+          bind:value={nickname}
+          class="w-full rounded-xl bg-white border-2 border-[#431407]/40 focus:border-amber-500 px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none"
+          placeholder="e.g. GolfMaster99"
         />
-      </label>
-      {#if error}
-        <p class="text-red-500 text-sm font-bold">{error}</p>
-      {/if}
-    </div>
+        {#if error}
+          <p class="text-rose-600 text-xs font-black">{error}</p>
+        {/if}
+      </div>
 
-    <footer class="flex justify-end pt-4">
-      <button 
-        class="btn bg-[#F6A655] hover:bg-[#E57300] text-white font-bold rounded-full px-6 py-2 shadow-md transition-transform hover:scale-105" 
-        on:click={handleSave}
-        disabled={isLoading}
-      >
-        {isLoading ? "Saving..." : "Start Playing!"}
-      </button>
-    </footer>
-  </div>
+      <div class="flex justify-center pt-1">
+        <ArcadeButton
+          variant="green"
+          size="md"
+          disabled={isLoading}
+          on:click={handleSave}
+        >
+          {isLoading ? "Saving..." : "Start Playing!"}
+        </ArcadeButton>
+      </div>
+    </div>
+  </ArcadeFrame>
 {/if}
