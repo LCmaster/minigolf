@@ -8,7 +8,6 @@ import * as THREE from "three";
 import type { CourseManager } from "../course/CourseManager";
 import type { AssetLoader } from "../kitbash/AssetLoader";
 import type { PlacedProp, SplinePathData } from "../types/CourseSchema";
-import { getPiecePropRole, type PropRole } from "../types/KitTypes";
 import { HistoryManager } from "./HistoryManager";
 import { PropEditTool } from "./PropEditTool";
 import { type GridSnapSize } from "../spline/PolylineMath";
@@ -16,6 +15,7 @@ import { SocketOverlayManager, type OpenSocketInfo } from "./SocketOverlayManage
 import { GapOverlayManager } from "./GapOverlayManager";
 import { PathEditTool, type SelectedSplineNodeInfo } from "./PathEditTool";
 import { TileEditCommands, type TileClickInfo } from "./TileEditCommands";
+import { EditorRaycastPicker } from "./EditorRaycastPicker";
 
 export type { OpenSocketInfo, SelectedSplineNodeInfo, TileClickInfo };
 
@@ -36,6 +36,7 @@ export class EditorController {
   private propTool: PropEditTool;
   private pathTool: PathEditTool;
   private tileCommands: TileEditCommands;
+  private picker: EditorRaycastPicker;
   private raycaster: THREE.Raycaster;
 
   public get openSockets(): OpenSocketInfo[] {
@@ -44,8 +45,6 @@ export class EditorController {
 
   private eraseMode: boolean = false;
   private enabled: boolean = true;
-
-  private groundPlane: THREE.Plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.0);
 
   public onSocketClick?: (info: OpenSocketInfo, screenX: number, screenY: number) => void;
   public onTileClick?: (info: TileClickInfo, screenX: number, screenY: number) => void;
@@ -105,6 +104,13 @@ export class EditorController {
       onSyncSpline: (spline) => this.pathTool.setActiveSpline(spline),
       onRefreshOpenSockets: () => this.refreshOpenSockets(),
       onCourseModified: () => this.onCourseModified?.(),
+    });
+
+    this.picker = new EditorRaycastPicker({
+      getTiles: () => this.courseManager.getAllTiles?.() ?? [],
+      getProps: () => this.courseManager.getAllProps?.() ?? [],
+      getGapPickables: () => this.gapOverlay.getPickables(),
+      getPropPieceMetadata: (propId) => this.assetLoader.getPiece?.(propId)?.metadata,
     });
 
     this.attachEventListeners();
@@ -284,16 +290,6 @@ export class EditorController {
     return this.pathTool.syncFromCourse();
   }
 
-  private getPointOnPlane(clientX: number, clientY: number, planeY: number): THREE.Vector3 | null {
-    const rect = this.canvas.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
-    const pt = new THREE.Vector3();
-    return this.raycaster.ray.intersectPlane(plane, pt) ? pt : null;
-  }
-
   public stepSelectedNodeElevation(deltaStep: 1 | -1): boolean {
     return this.pathTool.stepSelectedNodeElevation(deltaStep);
   }
@@ -336,111 +332,19 @@ export class EditorController {
     this.gapOverlay.refresh(tiles);
   }
 
-  private getSurfaceHitPoint(clientX: number, clientY: number): THREE.Vector3 | null {
-    const rect = this.canvas.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
-
-    const tiles = this.courseManager.getAllTiles?.() ?? [];
-    const tileGroups = tiles.map((t) => t.group);
-    const hits = this.raycaster.intersectObjects(tileGroups, true);
-    if (hits.length > 0) {
-      return hits[0].point.clone();
-    }
-
-    const hitPoint = new THREE.Vector3();
-    if (this.raycaster.ray.intersectPlane(this.groundPlane, hitPoint)) {
-      return hitPoint;
-    }
-    return null;
-  }
-
-  private resolvePropRole(propInstanceId: string): PropRole {
-    const inst = this.courseManager.getProp?.(propInstanceId);
-    if (!inst) return "decorative";
-    const meta = this.assetLoader.getPiece?.(inst.propData.propId)?.metadata;
-    if (meta) return getPiecePropRole(meta);
-    return getPiecePropRole({ id: inst.propData.propId, tags: [inst.propData.propId] });
-  }
-
-  private extractPropInstanceId(object: THREE.Object3D): string | null {
-    let obj: THREE.Object3D | null = object;
-    while (obj && !obj.userData?.propInstanceId) {
-      obj = obj.parent;
-    }
-    return obj?.userData?.propInstanceId || null;
-  }
-
-  private findHitTile(): { id: string; distance: number } | null {
-    const tiles = this.courseManager.getAllTiles?.() ?? [];
-    const targets: THREE.Object3D[] = tiles.map((t) => t.group);
-    targets.push(...this.gapOverlay.getPickables());
-    if (targets.length === 0) return null;
-    const hits = this.raycaster.intersectObjects(targets, true);
-    if (hits.length === 0) return null;
-    let obj: THREE.Object3D | null = hits[0].object;
-    while (obj && !obj.userData?.tileInstanceId) {
-      obj = obj.parent;
-    }
-    const id = obj?.userData?.tileInstanceId;
-    return id ? { id, distance: hits[0].distance } : null;
-  }
-
-  /**
-   * Resolves raycast priority between track tiles and props so overlapping scenery
-   * (arches, tents, knolls, rocks) never steals clicks meant for track tiles,
-   * while closer playable props (bumpers, boosters) remain clickable above track surfaces.
-   */
-  private pickInteractiveTarget(): { kind: "prop" | "tile"; id: string } | null {
-    const propGroups = this.courseManager.getAllProps?.().map((p) => p.group) || [];
-    const propHits = propGroups.length > 0 ? this.raycaster.intersectObjects(propGroups, true) : [];
-    const tileHit = this.findHitTile();
-
-    let firstAnyProp: { id: string; distance: number } | null = null;
-    let firstPlayableProp: { id: string; distance: number } | null = null;
-
-    for (const hit of propHits) {
-      const id = this.extractPropInstanceId(hit.object);
-      if (!id) continue;
-      if (!firstAnyProp) {
-        firstAnyProp = { id, distance: hit.distance };
-      }
-      if (!firstPlayableProp && this.resolvePropRole(id) === "playable") {
-        firstPlayableProp = { id, distance: hit.distance };
-        break;
-      }
-    }
-
-    if (firstPlayableProp && (!tileHit || firstPlayableProp.distance <= tileHit.distance + 0.05)) {
-      return { kind: "prop", id: firstPlayableProp.id };
-    }
-    if (tileHit) {
-      return { kind: "tile", id: tileHit.id };
-    }
-    if (firstAnyProp) {
-      return { kind: "prop", id: firstAnyProp.id };
-    }
-    return null;
-  }
-
   public getTileClickInfo(tileInstanceId: string): TileClickInfo | null {
     return this.tileCommands.getTileClickInfo(tileInstanceId);
   }
 
   private handlePointerMove = (ev: PointerEvent): void => {
     if (!this.enabled) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-
-    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+    this.picker.setRayFromClient(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
 
     // 00. Spline Track Edit Mode hover & live drag
     if (this.pathTool.isActive()) {
       this.canvas.style.cursor = this.pathTool.handlePointerMove(
         this.raycaster,
-        (planeY) => this.getPointOnPlane(ev.clientX, ev.clientY, planeY),
+        (planeY) => this.picker.getPointOnPlane(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY, planeY),
         ev.shiftKey || ev.altKey
       );
       return;
@@ -448,7 +352,7 @@ export class EditorController {
 
     // 0. Dragging or ghost preview for props
     if (this.propTool.isDragging() || this.propTool.getSelectedPropId()) {
-      const pt = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
+      const pt = this.picker.getSurfaceHitPoint(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
       const res = this.propTool.updateHoverAndDrag(pt);
       if (res.handled) {
         if (res.cursor) this.canvas.style.cursor = res.cursor;
@@ -458,9 +362,8 @@ export class EditorController {
 
     // 2. Erase mode cursor feedback
     if (this.eraseMode) {
-      const hitProp = this.findHitPropId();
-      const hitTile = !hitProp ? this.findHitTileId() : null;
-      this.canvas.style.cursor = hitProp || hitTile ? "pointer" : "crosshair";
+      const target = this.picker.pickInteractiveTarget(this.raycaster);
+      this.canvas.style.cursor = target ? "pointer" : "crosshair";
       return;
     }
 
@@ -473,7 +376,7 @@ export class EditorController {
     this.canvas.style.cursor = "default";
 
     // 4. Prop or track tile / gap hover cursor feedback
-    const hoverTarget = this.pickInteractiveTarget();
+    const hoverTarget = this.picker.pickInteractiveTarget(this.raycaster);
     this.canvas.style.cursor = hoverTarget ? "pointer" : "default";
   };
 
@@ -481,10 +384,7 @@ export class EditorController {
     if (!this.enabled) return;
     if (ev.button !== 0) return; // Left click only (right/middle reserved for camera orbit)
 
-    const rect = this.canvas.getBoundingClientRect();
-    const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-    this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
+    this.picker.setRayFromClient(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
 
     // -1. Spline Track Edit Mode click / begin drag
     if (this.pathTool.isActive()) {
@@ -494,7 +394,7 @@ export class EditorController {
 
     // 0. Erase mode
     if (this.eraseMode) {
-      const target = this.pickInteractiveTarget();
+      const target = this.picker.pickInteractiveTarget(this.raycaster);
       if (target?.kind === "prop") {
         this.deleteProp(target.id);
       } else if (target?.kind === "tile") {
@@ -506,7 +406,7 @@ export class EditorController {
     // 1. Prop placement mode
     const activeBrushId = this.propTool.getSelectedPropId();
     if (activeBrushId) {
-      const hitPoint = this.getSurfaceHitPoint(ev.clientX, ev.clientY);
+      const hitPoint = this.picker.getSurfaceHitPoint(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY);
       if (hitPoint) {
         this.propTool.placePropAtPoint(activeBrushId, hitPoint);
       }
@@ -521,7 +421,7 @@ export class EditorController {
     }
 
     // 3. Pick playable prop, track tile (priority over overlapping scenery), or freeform scenery prop
-    const target = this.pickInteractiveTarget();
+    const target = this.picker.pickInteractiveTarget(this.raycaster);
     if (target?.kind === "prop") {
       this.selectPlacedProp(target.id);
       this.propTool.beginDrag(target.id);
@@ -543,7 +443,7 @@ export class EditorController {
   private handleDoubleClick = (ev: MouseEvent): void => {
     if (!this.enabled || !this.pathTool.isActive()) return;
     this.pathTool.handleDoubleClick(
-      (planeY) => this.getPointOnPlane(ev.clientX, ev.clientY, planeY),
+      (planeY) => this.picker.getPointOnPlane(this.raycaster, this.canvas, this.camera, ev.clientX, ev.clientY, planeY),
       ev.shiftKey || ev.altKey
     );
   };
