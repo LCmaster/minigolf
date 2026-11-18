@@ -11,7 +11,14 @@ import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import { GoalCupManager } from "./GoalCupManager";
 import { TilePhysics } from "./TilePhysics";
 import { createTileBooster } from "./TileBooster";
-import { snapTileToParent, computeTeeHeading } from "./TilePlacement";
+import {
+  snapTileToParent,
+  computeTeeHeading,
+  splineStartHeading,
+  findWallMeshes,
+  clonePlacedTile,
+  locatorWorldPosition,
+} from "./TilePlacement";
 import { cloneSplinePath } from "../spline/PolylineMath";
 import {
   connectSocket,
@@ -77,14 +84,8 @@ export class CourseManager {
     this.spawnHeading.set(0, 0, -1);
     this.splinePath = hole.splinePath ? cloneSplinePath(hole.splinePath) : null;
 
-    if (this.splinePath?.nodes && this.splinePath.nodes.length >= 2) {
-      const n0 = this.splinePath.nodes[0].position;
-      const n1 = this.splinePath.nodes[1].position;
-      const dir = new THREE.Vector3(n1[0] - n0[0], 0, n1[2] - n0[2]);
-      if (dir.lengthSq() > 0.0001) {
-        this.spawnHeading.copy(dir.normalize());
-      }
-    }
+    const splineHeading = splineStartHeading(this.splinePath);
+    if (splineHeading) this.spawnHeading.copy(splineHeading);
 
     for (const tileData of hole.tiles) {
       this.addTile(tileData, false);
@@ -128,32 +129,19 @@ export class CourseManager {
     group.userData = { tileInstanceId: tileData.instanceId };
     this.scene.add(group);
 
-    // Find wall submeshes (supports both single Mesh and multi-material Group wrappers)
-    let wallLMesh: THREE.Object3D | undefined;
-    let wallRMesh: THREE.Object3D | undefined;
-    let wallBackMesh: THREE.Object3D | undefined;
-
-    if (!isGap) {
-      group.traverse((child) => {
-        const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
-        if (cleanName === "Mesh_Wall_L" && !wallLMesh) wallLMesh = child;
-        if (cleanName === "Mesh_Wall_R" && !wallRMesh) wallRMesh = child;
-        if ((cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") && !wallBackMesh) wallBackMesh = child;
-      });
-    }
-
+    const walls = isGap ? {} : findWallMeshes(group);
     const instantiated: InstantiatedTile = {
       tileData,
       pieceTemplate: template,
       group,
-      wallLMesh,
-      wallRMesh,
-      wallBackMesh,
+      wallLMesh: walls.left,
+      wallRMesh: walls.right,
+      wallBackMesh: walls.back,
     };
 
     // Apply initial wall visibility
-    if (wallLMesh) wallLMesh.visible = tileData.walls.left;
-    if (wallRMesh) wallRMesh.visible = tileData.walls.right;
+    if (walls.left) walls.left.visible = tileData.walls.left;
+    if (walls.right) walls.right.visible = tileData.walls.right;
 
     // Ensure transform matrix is computed before instantiating physics colliders
     group.updateMatrixWorld(true);
@@ -162,26 +150,18 @@ export class CourseManager {
     this.tilePhysics.syncWallColliders(instantiated);
 
     if (!isGap) {
-      // Check for Tee spawn locator
-      if (template.locators.has("LOC_Spawn_Tee")) {
-        const loc = template.locators.get("LOC_Spawn_Tee")!.clone();
-        loc.applyEuler(group.rotation);
-        loc.add(group.position);
-        this.spawnPosition.copy(loc);
-
-        if (!this.hasSplineHeading()) {
-          this.spawnHeading.copy(computeTeeHeading(group, template.sockets, this.spawnPosition));
+      // Tee spawn locator
+      const spawn = locatorWorldPosition(group, template.locators, "LOC_Spawn_Tee");
+      if (spawn) {
+        this.spawnPosition.copy(spawn);
+        if (!splineStartHeading(this.splinePath)) {
+          this.spawnHeading.copy(computeTeeHeading(group, template.sockets, spawn));
         }
       }
 
-      // Check for Goal sensor locator (anchor rim at tile surface, cup cavity & indicator at true bottom)
-      if (template.locators.has("LOC_Sensor_Goal")) {
-        const loc = template.locators.get("LOC_Sensor_Goal")!.clone();
-        loc.applyEuler(group.rotation);
-        loc.add(group.position);
-        const cupRimPos = new THREE.Vector3(loc.x, group.position.y, loc.z);
-        this.goalCup.place(cupRimPos);
-      }
+      // Goal locator: cup rim is anchored at the tile surface height
+      const goal = locatorWorldPosition(group, template.locators, "LOC_Sensor_Goal");
+      if (goal) this.goalCup.place(new THREE.Vector3(goal.x, group.position.y, goal.z));
 
       // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
       if (template.metadata?.tags?.includes("booster")) {
@@ -427,19 +407,10 @@ export class CourseManager {
     return this.splinePath ? cloneSplinePath(this.splinePath) : null;
   }
 
-  /** True when the loaded hole has a spline whose first leg defines the spawn heading. */
-  private hasSplineHeading(): boolean {
-    return (this.splinePath?.nodes.length ?? 0) >= 2;
-  }
-
   public exportHoleData(par: number = 3, holeNumber: number = 1): HoleData {
-    const tiles: PlacedTile[] = Array.from(this.tiles.values()).map((t) => ({
-      ...t.tileData,
-      position: t.tileData.position ? ([...t.tileData.position] as [number, number, number]) : undefined,
-      walls: { ...t.tileData.walls },
-      connectedSockets: t.tileData.connectedSockets ? { ...t.tileData.connectedSockets } : undefined,
-      attachedTo: t.tileData.attachedTo ? { ...t.tileData.attachedTo } : undefined,
-    }));
+    const tiles: PlacedTile[] = Array.from(this.tiles.values()).map((t) =>
+      clonePlacedTile(t.tileData)
+    );
     const props: PlacedProp[] = this.propManager.exportProps();
 
     const teeTile = tiles.find((t) => t.kitPieceId.includes("tee")) || tiles[0];

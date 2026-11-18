@@ -5,7 +5,7 @@
  */
 
 import * as THREE from "three";
-import type { PlacedTile } from "../types/CourseSchema";
+import type { PlacedTile, SplinePathData } from "../types/CourseSchema";
 import type { SocketDefinition } from "../types/KitTypes";
 import { SocketSolver } from "./SocketSolver";
 
@@ -64,4 +64,58 @@ export function computeTeeHeading(
   }
   const forward = new THREE.Vector3(0, 0, -1).applyEuler(group.rotation);
   return new THREE.Vector3(forward.x, 0, forward.z).normalize();
+}
+
+/** Horizontal unit direction of the spline's first leg, or `null` when it is missing/degenerate. */
+export function splineStartHeading(path: SplinePathData | null): THREE.Vector3 | null {
+  if (!path || path.nodes.length < 2) return null;
+  const [x0, , z0] = path.nodes[0].position;
+  const [x1, , z1] = path.nodes[1].position;
+  const dir = new THREE.Vector3(x1 - x0, 0, z1 - z0);
+  return dir.lengthSq() > 0.0001 ? dir.normalize() : null;
+}
+
+export interface WallMeshes {
+  left?: THREE.Object3D;
+  right?: THREE.Object3D;
+  back?: THREE.Object3D;
+}
+
+/**
+ * Finds wall submeshes inside a tile group (supports both single Mesh and multi-material Group
+ * wrappers) by name, ignoring Blender duplicate suffixes such as `.008` or `001`.
+ */
+export function findWallMeshes(group: THREE.Object3D): WallMeshes {
+  const walls: WallMeshes = {};
+  group.traverse((child) => {
+    const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
+    if (cleanName === "Mesh_Wall_L" && !walls.left) walls.left = child;
+    if (cleanName === "Mesh_Wall_R" && !walls.right) walls.right = child;
+    if ((cleanName === "Mesh_Wall_Back" || cleanName === "Mesh_Wall_B") && !walls.back) {
+      walls.back = child;
+    }
+  });
+  return walls;
+}
+
+/** Deep copy of serialized tile data (position, walls, socket links, attachment). */
+export function clonePlacedTile(tile: PlacedTile): PlacedTile {
+  return {
+    ...tile,
+    position: tile.position ? ([...tile.position] as [number, number, number]) : undefined,
+    walls: { ...tile.walls },
+    connectedSockets: tile.connectedSockets ? { ...tile.connectedSockets } : undefined,
+    attachedTo: tile.attachedTo ? { ...tile.attachedTo } : undefined,
+  };
+}
+
+/** World position of a named template locator (rotated by the group's Euler, then translated). */
+export function locatorWorldPosition(
+  group: THREE.Object3D,
+  locators: ReadonlyMap<string, THREE.Vector3>,
+  name: string
+): THREE.Vector3 | null {
+  const local = locators.get(name);
+  if (!local) return null;
+  return local.clone().applyEuler(group.rotation).add(group.position);
 }

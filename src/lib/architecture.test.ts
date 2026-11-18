@@ -9,6 +9,10 @@ import * as path from "path";
 
 const SRC = path.resolve(__dirname, "..");
 
+function lineCount(rel: string): number {
+  return fs.readFileSync(path.join(SRC, rel), "utf-8").split("\n").length;
+}
+
 function exists(rel: string): boolean {
   return fs.existsSync(path.join(SRC, rel));
 }
@@ -37,5 +41,12 @@ describe("codebase architecture guards", () => {
     ];
     const lingering = legacy.filter(exists);
     expect(lingering).toEqual([]);
+  });
+
+  it("keeps core engine classes under the 450-line single-responsibility budget", () => {
+    const budgeted = ["lib/engine/course/CourseManager.ts"];
+    for (const rel of budgeted) {
+      expect(lineCount(rel), `${rel} exceeds 450 lines`).toBeLessThanOrEqual(450);
+    }
   });
 });
