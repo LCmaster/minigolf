@@ -197,5 +197,52 @@ describe("BallController Unit Tests", () => {
 
     ball.dispose();
   });
+
+  it("attaches BallWindTrail to scene, activates on high-speed updates, and clears on sink/respawn/dispose", () => {
+    const ball = new BallController(scene, world, RAPIER);
+    expect(scene.children.includes(ball.windTrail.group)).toBe(true);
+    expect(ball.windTrail.group.visible).toBe(false);
+
+    ball.shoot(new THREE.Vector3(0, 0, -4.0));
+    ball.rigidBody.setLinvel(new RAPIER.Vector3(0, 0, -9.5), true);
+
+    for (let i = 0; i < 6; i++) {
+      ball.rigidBody.setTranslation(new RAPIER.Vector3(0, 0.2, -0.15 * (i + 1)), true);
+      ball.update(1.0, 0.016);
+    }
+
+    expect(ball.windTrail.group.visible).toBe(true);
+    expect(ball.windTrail.intensity).toBeGreaterThan(0.1);
+
+    ball.sinkAt(new THREE.Vector3(0, -0.2, -5));
+    expect(ball.windTrail.group.visible).toBe(false);
+    expect(ball.windTrail.intensity).toBe(0);
+
+    // Respawn to recreate a dynamic body, re-activate, then test respawn clear + dispose cleanup
+    ball.respawn();
+    ball.state = "moving";
+    ball.rigidBody.setLinvel(new RAPIER.Vector3(0, 0, -9.5), true);
+    for (let i = 0; i < 4; i++) {
+      ball.rigidBody.setTranslation(new RAPIER.Vector3(0, 0.2, -0.2 * (i + 1)), true);
+      ball.update(1.0, 0.016);
+    }
+    expect(ball.windTrail.group.visible).toBe(true);
+
+    ball.respawn();
+    expect(ball.windTrail.group.visible).toBe(false);
+
+    ball.dispose();
+    expect(scene.children.includes(ball.windTrail.group)).toBe(false);
+  });
+
+  it("updates ball standard material color via setBallColor()", () => {
+    const ball = new BallController(scene, world, RAPIER);
+    ball.setBallColor("#38bdf8");
+
+    const mat = ball.mesh.material as THREE.MeshStandardMaterial;
+    expect(mat.color.getHexString()).toBe("38bdf8");
+
+    ball.dispose();
+  });
 });
 

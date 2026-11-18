@@ -270,7 +270,7 @@ export class GameEngine {
     }
 
     // Update ball physics, ready indicator pulse & interpolated visual transform
-    this.ballController.update(this.physicsWorld.getInterpolationAlpha());
+    this.ballController.update(this.physicsWorld.getInterpolationAlpha(), deltaTime);
     this.ballController.updateReadyIndicator(
       deltaTime,
       this.slingshotInput?.isDraggingActive?.() ?? false

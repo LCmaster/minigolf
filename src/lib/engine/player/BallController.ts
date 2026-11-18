@@ -6,10 +6,12 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { BallPlayState } from "../types/EngineEvents";
+import { BallWindTrail } from "./BallWindTrail";
 
 export class BallController {
   public mesh: THREE.Mesh;
   public ghostSphereMesh: THREE.Mesh;
+  public windTrail: BallWindTrail;
   public rigidBody!: RAPIER.RigidBody;
   public collider!: RAPIER.Collider;
 
@@ -26,6 +28,7 @@ export class BallController {
   private lastSafePosition: THREE.Vector3 = new THREE.Vector3();
   private prevPosition: THREE.Vector3 = new THREE.Vector3();
   private prevQuaternion: THREE.Quaternion = new THREE.Quaternion();
+  private readonly tmpVelocity: THREE.Vector3 = new THREE.Vector3();
 
   constructor(scene: THREE.Scene, rapierWorld: RAPIER.World, rapier: typeof RAPIER) {
     this.scene = scene;
@@ -55,6 +58,9 @@ export class BallController {
     this.ghostSphereMesh = new THREE.Mesh(ghostGeo, ghostMat);
     this.ghostSphereMesh.name = "Ball_Ready_Ghost";
     this.scene.add(this.ghostSphereMesh);
+
+    this.windTrail = new BallWindTrail();
+    this.scene.add(this.windTrail.group);
 
     this.createPhysicsBody(new THREE.Vector3(0, 0.2, 0));
   }
@@ -90,6 +96,7 @@ export class BallController {
     this.ghostSphereMesh.position.copy(spawnPos);
     this.ghostSphereMesh.scale.set(1, 1, 1);
     this.ghostSphereMesh.visible = this.mesh.visible;
+    this.windTrail.clear();
     this.lastSafePosition.copy(spawnPos);
     if (resetStrokes) {
       this.strokes = 0;
@@ -122,7 +129,7 @@ export class BallController {
     );
   }
 
-  public update(interpolationAlpha: number = 1.0): void {
+  public update(interpolationAlpha: number = 1.0, deltaTime: number = 1 / 60): void {
     if (!this.rigidBody) return;
     if (this.state === "in_hole") return;
 
@@ -142,6 +149,12 @@ export class BallController {
       this.mesh.quaternion.set(r.x, r.y, r.z, r.w);
     }
 
+    const linvel = this.rigidBody.linvel();
+    if (this.mesh.visible) {
+      this.tmpVelocity.set(linvel.x, linvel.y, linvel.z);
+      this.windTrail.update(this.mesh.position, this.tmpVelocity, deltaTime);
+    }
+
     // Out of bounds check (fell off course)
     if (t.y < -5.0 && this.state !== "out_of_bounds") {
       this.state = "out_of_bounds";
@@ -150,7 +163,6 @@ export class BallController {
 
     // Velocity settling check
     if (this.state === "moving") {
-      const linvel = this.rigidBody.linvel();
       const speedSq = linvel.x * linvel.x + linvel.y * linvel.y + linvel.z * linvel.z;
 
       if (speedSq < 0.005) {
@@ -173,6 +185,7 @@ export class BallController {
     this.stationaryFrames = 0;
     this.mesh.position.copy(targetPos);
     this.ghostSphereMesh.visible = false;
+    this.windTrail.clear();
     if (this.rigidBody) {
       this.rigidBody.setBodyType(this.rapier.RigidBodyType.Fixed, true);
       this.rigidBody.setLinvel(new this.rapier.Vector3(0, 0, 0), true);
@@ -193,10 +206,16 @@ export class BallController {
     return this.mesh.position;
   }
 
+  /** Updates the ball's painted albedo color. */
+  public setBallColor(colorHex: string): void {
+    (this.mesh.material as THREE.MeshStandardMaterial).color.set(colorHex);
+  }
+
   public setVisible(visible: boolean): void {
     this.mesh.visible = visible;
     if (!visible) {
       this.ghostSphereMesh.visible = false;
+      this.windTrail.clear();
     } else {
       this.ghostSphereMesh.visible = this.state === "aiming";
     }
@@ -226,6 +245,8 @@ export class BallController {
   public dispose(): void {
     this.scene.remove(this.mesh);
     this.scene.remove(this.ghostSphereMesh);
+    this.scene.remove(this.windTrail.group);
+    this.windTrail.dispose();
     this.disablePhysics();
   }
 }
