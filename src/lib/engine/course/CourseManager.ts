@@ -11,12 +11,7 @@ import { BoosterVisuals } from "./BoosterVisuals";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
 import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
-import {
-  CUP_DEPTH,
-  createCupVisualGroup,
-  createFlagBillboard,
-  disposeCupVisuals,
-} from "./GoalCupVisuals";
+import { GoalCupManager } from "./GoalCupManager";
 import {
   PropInstanceManager,
   createStaticTrimeshColliderDesc,
@@ -50,16 +45,11 @@ export class CourseManager {
   private propManager: PropInstanceManager;
   private unifiedFloorCollider: RAPIER.Collider | null = null;
   private terrainCollider: RAPIER.Collider | null = null;
-  private goalSensorCollider: RAPIER.Collider | null = null;
-  private cupBottomCollider: RAPIER.Collider | null = null;
+  private goalCup: GoalCupManager;
   private boosterSensors: Map<number, BoosterSensorInfo> = new Map();
   private bumperColliderHandles: Set<number> = new Set();
-  private flagSprite: THREE.Sprite | null = null;
-  private visualCupGroup: THREE.Group | null = null;
   private splinePath: SplinePathData | null = null;
 
-  public goalPosition: THREE.Vector3 | null = null;
-  public cupBottomPosition: THREE.Vector3 | null = null;
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
   public spawnHeading: THREE.Vector3 = new THREE.Vector3(0, 0, -1);
   public showBoundary: boolean = true;
@@ -75,6 +65,7 @@ export class CourseManager {
     this.rapierWorld = rapierWorld;
     this.rapier = rapier;
     this.assetLoader = assetLoader;
+    this.goalCup = new GoalCupManager(scene, rapierWorld, rapier);
     this.propManager = new PropInstanceManager({
       scene,
       rapierWorld,
@@ -237,7 +228,7 @@ export class CourseManager {
         loc.applyEuler(group.rotation);
         loc.add(group.position);
         const cupRimPos = new THREE.Vector3(loc.x, group.position.y, loc.z);
-        this.createGoalSensor(cupRimPos);
+        this.goalCup.place(cupRimPos);
       }
 
       // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
@@ -385,62 +376,22 @@ export class CourseManager {
     this.onHoleChanged?.();
   }
 
-  private removeGoalVisuals(): void {
-    if (this.flagSprite) {
-      this.scene.remove(this.flagSprite);
-    }
-    if (this.visualCupGroup) {
-      this.scene.remove(this.visualCupGroup);
-    }
-    disposeCupVisuals(this.visualCupGroup, this.flagSprite);
-    this.flagSprite = null;
-    this.visualCupGroup = null;
+  /** Cup rim position (turf level) of the current hole, or `null` when it has no cup. */
+  public get goalPosition(): THREE.Vector3 | null {
+    return this.goalCup.goalPosition;
   }
 
-  private createGoalSensor(cupRimPos: THREE.Vector3): void {
-    if (this.goalSensorCollider) {
-      this.rapierWorld.removeCollider(this.goalSensorCollider, false);
-      this.goalSensorCollider = null;
-    }
-    if (this.cupBottomCollider) {
-      this.rapierWorld.removeCollider(this.cupBottomCollider, false);
-      this.cupBottomCollider = null;
-    }
-    this.removeGoalVisuals();
-
-    const cupFloorY = cupRimPos.y - CUP_DEPTH;
-    this.goalPosition = cupRimPos.clone();
-    this.cupBottomPosition = new THREE.Vector3(cupRimPos.x, cupFloorY, cupRimPos.z);
-
-    // High-visibility real 3D circular cup liner and bottom indicator
-    this.visualCupGroup = createCupVisualGroup(cupRimPos, CUP_DEPTH);
-    this.scene.add(this.visualCupGroup);
-
-    // Solid cup floor collider to physically catch and support balls at the bottom of the cup
-    const bottomDesc = this.rapier.ColliderDesc.cylinder(0.05, 0.44)
-      .setTranslation(cupRimPos.x, cupFloorY - 0.05, cupRimPos.z)
-      .setFriction(1.5)
-      .setRestitution(0.05);
-    this.cupBottomCollider = this.rapierWorld.createCollider(bottomDesc);
-
-    // Goal sensor seated directly on the bottom floor of the cup cavity
-    const desc = this.rapier.ColliderDesc.cylinder(0.025, 0.425)
-      .setTranslation(cupRimPos.x, cupFloorY + 0.025, cupRimPos.z)
-      .setSensor(true)
-      .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
-    this.goalSensorCollider = this.rapierWorld.createCollider(desc);
-
-    // Tournament flag billboard planted with pole base at the true bottom of the cup
-    this.flagSprite = createFlagBillboard(this.cupBottomPosition);
-    this.scene.add(this.flagSprite);
+  /** Cup floor position of the current hole. */
+  public get cupBottomPosition(): THREE.Vector3 | null {
+    return this.goalCup.cupBottomPosition;
   }
 
   public getCupBottomCollider(): RAPIER.Collider | null {
-    return this.cupBottomCollider;
+    return this.goalCup.cupBottomCollider;
   }
 
   public getCupBottomPosition(): THREE.Vector3 | null {
-    return this.cupBottomPosition;
+    return this.goalCup.cupBottomPosition;
   }
 
   public updateTerrainCollider(
@@ -464,7 +415,7 @@ export class CourseManager {
   }
 
   public getGoalSensorCollider(): RAPIER.Collider | null {
-    return this.goalSensorCollider;
+    return this.goalCup.goalSensorCollider;
   }
 
   /** Advances hover/pulse/flash animation of every booster's chevron visuals. */
@@ -483,7 +434,7 @@ export class CourseManager {
   }
 
   public getGoalPosition(): THREE.Vector3 | null {
-    return this.goalPosition;
+    return this.goalCup.goalPosition;
   }
 
   public getAllTiles(): InstantiatedTile[] {
@@ -710,19 +661,11 @@ export class CourseManager {
       this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
       this.unifiedFloorCollider = null;
     }
-    if (this.goalSensorCollider) {
-      this.rapierWorld.removeCollider(this.goalSensorCollider, false);
-      this.goalSensorCollider = null;
-    }
-    if (this.cupBottomCollider) {
-      this.rapierWorld.removeCollider(this.cupBottomCollider, false);
-      this.cupBottomCollider = null;
-    }
     if (this.terrainCollider) {
       this.rapierWorld.removeCollider(this.terrainCollider, false);
       this.terrainCollider = null;
     }
-    this.removeGoalVisuals();
+    this.goalCup.clear();
   }
 }
 
