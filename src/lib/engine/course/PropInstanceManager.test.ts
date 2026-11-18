@@ -201,5 +201,62 @@ describe("PropInstanceManager", () => {
     expect(scene.children).toHaveLength(0);
     expect(onChanged).toHaveBeenCalled();
   });
+
+  it("registers water hazard colliders from ubxWaterGeometries and removes them on removeProp/clear", () => {
+    const scene = new THREE.Scene();
+    const { rapierWorld, rapier } = makeMockRapier();
+    const boosterSensors = new Map<number, BoosterSensorInfo>();
+    const bumperColliderHandles = new Set<number>();
+    const waterHazardColliderHandles = new Set<number>();
+
+    const pieces: Record<string, any> = {
+      terrain_pond_patch_6x6: {
+        id: "terrain_pond_patch_6x6",
+        visualTemplate: new THREE.Group(),
+        metadata: { tags: ["terrain", "pond", "water"] },
+        ubxColliderGeometries: [new THREE.BoxGeometry(6, 0.2, 6)],
+        ubxWaterGeometries: [new THREE.PlaneGeometry(5, 5)],
+      },
+    };
+
+    const manager = new PropInstanceManager({
+      scene,
+      rapierWorld: rapierWorld as any,
+      rapier: rapier as any,
+      assetLoader: { getPiece: (id: string) => pieces[id] } as any,
+      boosterSensors,
+      bumperColliderHandles,
+      waterHazardColliderHandles,
+    });
+
+    const pond = manager.addProp({
+      instanceId: "pond_1",
+      propId: "terrain_pond_patch_6x6",
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    })!;
+
+    expect(pond.colliders).toHaveLength(2);
+    expect(waterHazardColliderHandles.size).toBe(1);
+    const [waterHandle] = Array.from(waterHazardColliderHandles);
+    const waterCol = pond.colliders.find((c) => c.handle === waterHandle) as any;
+    expect(waterCol._desc.sensor).toBe(true);
+
+    manager.removeProp("pond_1");
+    expect(waterHazardColliderHandles.size).toBe(0);
+
+    manager.addProp({
+      instanceId: "pond_2",
+      propId: "terrain_pond_patch_6x6",
+      position: [4, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    });
+    expect(waterHazardColliderHandles.size).toBe(1);
+
+    manager.clear();
+    expect(waterHazardColliderHandles.size).toBe(0);
+  });
 });
 

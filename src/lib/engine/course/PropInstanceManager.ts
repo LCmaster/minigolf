@@ -29,6 +29,7 @@ export interface PropInstanceManagerDeps {
   assetLoader: AssetLoader;
   boosterSensors: Map<number, BoosterSensorInfo>;
   bumperColliderHandles: Set<number>;
+  waterHazardColliderHandles?: Set<number>;
   onChanged?: () => void;
 }
 
@@ -63,6 +64,22 @@ export function createStaticTrimeshColliderDesc(
   collider.setFriction(0.4);
   collider.setRestitution(0.6); // Wood rail bounce
   return collider;
+}
+
+/** Creates a static trimesh sensor collider for water hazards and registers its handle. */
+export function createWaterHazardCollider(
+  rapier: typeof RAPIER,
+  rapierWorld: RAPIER.World,
+  geo: THREE.BufferGeometry,
+  worldMatrix: THREE.Matrix4,
+  waterHandles?: Set<number>
+): RAPIER.Collider | null {
+  const desc = createStaticTrimeshColliderDesc(rapier, geo, worldMatrix);
+  if (!desc) return null;
+  desc.setSensor(true).setActiveEvents(rapier.ActiveEvents.COLLISION_EVENTS);
+  const col = rapierWorld.createCollider(desc);
+  waterHandles?.add(col.handle);
+  return col;
 }
 
 /**
@@ -100,8 +117,16 @@ export class PropInstanceManager {
 
   /** Instantiates a prop visual clone and registers its static colliders and trigger sensors. */
   public addProp(propData: PlacedProp): InstantiatedProp | null {
-    const { scene, rapierWorld, rapier, assetLoader, boosterSensors, bumperColliderHandles, onChanged } =
-      this.deps;
+    const {
+      scene,
+      rapierWorld,
+      rapier,
+      assetLoader,
+      boosterSensors,
+      bumperColliderHandles,
+      waterHazardColliderHandles,
+      onChanged,
+    } = this.deps;
     const template = assetLoader.getPiece(propData.propId);
     if (!template) {
       console.warn(`Prop template not found: ${propData.propId}`);
@@ -153,6 +178,17 @@ export class PropInstanceManager {
       }
     }
 
+    for (const waterGeo of template.ubxWaterGeometries || []) {
+      const waterCol = createWaterHazardCollider(
+        rapier,
+        rapierWorld,
+        waterGeo,
+        group.matrixWorld,
+        waterHazardColliderHandles
+      );
+      if (waterCol) colliders.push(waterCol);
+    }
+
     if (template.ubxSensorGeometry) {
       const sensorDesc = createStaticTrimeshColliderDesc(
         rapier,
@@ -187,21 +223,27 @@ export class PropInstanceManager {
     return instantiated;
   }
 
-  /** Removes a prop visual group, its Rapier colliders, and any sensor/bumper registrations. */
-  public removeProp(instanceId: string): boolean {
-    const prop = this.props.get(instanceId);
-    if (!prop) return false;
-
-    const { scene, rapierWorld, boosterSensors, bumperColliderHandles, onChanged } = this.deps;
+  private disposePropResources(prop: InstantiatedProp): void {
+    const { scene, rapierWorld, boosterSensors, bumperColliderHandles, waterHazardColliderHandles } =
+      this.deps;
     scene.remove(prop.group);
     prop.boosterVisuals?.dispose();
     for (const col of prop.colliders) {
       boosterSensors.delete(col.handle);
       bumperColliderHandles.delete(col.handle);
+      waterHazardColliderHandles?.delete(col.handle);
       rapierWorld.removeCollider(col, false);
     }
+  }
+
+  /** Removes a prop visual group, its Rapier colliders, and any sensor/bumper registrations. */
+  public removeProp(instanceId: string): boolean {
+    const prop = this.props.get(instanceId);
+    if (!prop) return false;
+
+    this.disposePropResources(prop);
     this.props.delete(instanceId);
-    onChanged?.();
+    this.deps.onChanged?.();
     return true;
   }
 
@@ -225,16 +267,7 @@ export class PropInstanceManager {
 
   /** Removes all props from scene and physics world (caller clears shared sensor maps on full clear). */
   public clear(): void {
-    const { scene, rapierWorld, boosterSensors, bumperColliderHandles } = this.deps;
-    for (const prop of this.props.values()) {
-      scene.remove(prop.group);
-      prop.boosterVisuals?.dispose();
-      for (const col of prop.colliders) {
-        boosterSensors.delete(col.handle);
-        bumperColliderHandles.delete(col.handle);
-        rapierWorld.removeCollider(col, false);
-      }
-    }
+    for (const prop of this.props.values()) this.disposePropResources(prop);
     this.props.clear();
   }
 }

@@ -116,5 +116,82 @@ describe("AssetLoader Unit Tests (Mocked Scene Graph)", () => {
     expect(sharedMat.normalMap?.flipY).toBe(false);
     expect(sharedMat.roughnessMap?.flipY).toBe(false);
   });
+
+  it("separates UBX_*Water* and PondWater visual meshes into ubxWaterGeometries instead of solid ubxColliderGeometries", async () => {
+    const pondRoot = new THREE.Group();
+    const ubxRim = new THREE.Mesh(new THREE.BoxGeometry(6, 0.2, 6));
+    ubxRim.name = "UBX_Pond_Rim";
+    pondRoot.add(ubxRim);
+
+    const ubxWater = new THREE.Mesh(new THREE.PlaneGeometry(5, 5));
+    ubxWater.name = "UBX_Pond_Water";
+    pondRoot.add(ubxWater);
+
+    const bridgeRoot = new THREE.Group();
+    const ubxBridgeFloor = new THREE.Mesh(new THREE.BoxGeometry(5, 0.2, 12));
+    ubxBridgeFloor.name = "UBX_Floor";
+    bridgeRoot.add(ubxBridgeFloor);
+
+    const pondWaterMat = new THREE.MeshStandardMaterial({ name: "Mat_PondWater" });
+    const meshPondWater = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), pondWaterMat);
+    meshPondWater.name = "Mesh_Pond_Water";
+    bridgeRoot.add(meshPondWater);
+
+    const mockManifest: KitManifest = {
+      version: "2.0.0",
+      theme: "carnival_park",
+      pieces: {
+        terrain_pond_patch_6x6: {
+          id: "terrain_pond_patch_6x6",
+          name: "Pond Patch",
+          category: "terrain",
+          glbPath: "models/kit/terrain_pond_patch_6x6.glb",
+          dimensions: [6, 0.4, 6],
+          turfWidth: 0,
+          railHeight: 0,
+          hasDynamicWalls: false,
+          preserveMaterials: true,
+          sockets: [],
+          tags: ["terrain", "pond", "water"],
+        },
+        carnival_bridge_pond_6x12: {
+          id: "carnival_bridge_pond_6x12",
+          name: "Carnival Pond Bridge",
+          category: "elevation",
+          glbPath: "models/kit/carnival_bridge_pond_6x12.glb",
+          dimensions: [11, 1.6, 12],
+          turfWidth: 5.2,
+          railHeight: 0.6,
+          hasDynamicWalls: true,
+          preserveMaterials: true,
+          sockets: [],
+          tags: ["bridge"],
+        },
+      },
+    };
+
+    const scenes: Record<string, THREE.Group> = {
+      "/models/kit/terrain_pond_patch_6x6.glb": pondRoot,
+      "/models/kit/carnival_bridge_pond_6x12.glb": bridgeRoot,
+    };
+
+    const loader = new AssetLoader({
+      gltfLoader: { loadAsync: vi.fn(async (url: string) => ({ scene: scenes[url] })) },
+      textureLoader: { loadAsync: vi.fn().mockResolvedValue(new THREE.Texture()) },
+      fetchFn: vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(mockManifest),
+      }) as unknown as typeof fetch,
+    });
+
+    await loader.init("/mock/manifest.json");
+
+    const pondPiece = loader.getPiece("terrain_pond_patch_6x6")!;
+    expect(pondPiece.ubxColliderGeometries).toHaveLength(1);
+    expect(pondPiece.ubxWaterGeometries).toHaveLength(1);
+
+    const bridgePiece = loader.getPiece("carnival_bridge_pond_6x12")!;
+    expect(bridgePiece.ubxFloorGeometry).not.toBeNull();
+    expect(bridgePiece.ubxWaterGeometries).toHaveLength(1);
+  });
 });
 

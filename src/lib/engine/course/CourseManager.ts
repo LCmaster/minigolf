@@ -49,6 +49,7 @@ export class CourseManager {
   private goalCup: GoalCupManager;
   private boosterSensors: Map<number, BoosterSensorInfo> = new Map();
   private bumperColliderHandles: Set<number> = new Set();
+  private waterHazardColliderHandles: Set<number> = new Set();
   private splinePath: SplinePathData | null = null;
 
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
@@ -66,7 +67,7 @@ export class CourseManager {
     this.rapierWorld = rapierWorld;
     this.rapier = rapier;
     this.assetLoader = assetLoader;
-    this.tilePhysics = new TilePhysics(rapierWorld, rapier);
+    this.tilePhysics = new TilePhysics(rapierWorld, rapier, this.waterHazardColliderHandles);
     this.goalCup = new GoalCupManager(scene, rapierWorld, rapier);
     this.propManager = new PropInstanceManager({
       scene,
@@ -75,6 +76,7 @@ export class CourseManager {
       assetLoader,
       boosterSensors: this.boosterSensors,
       bumperColliderHandles: this.bumperColliderHandles,
+      waterHazardColliderHandles: this.waterHazardColliderHandles,
       onChanged: () => this.onHoleChanged?.(),
     });
   }
@@ -279,6 +281,10 @@ export class CourseManager {
     return this.bumperColliderHandles.has(colliderHandle);
   }
 
+  public isWaterHazardCollider(colliderHandle: number): boolean {
+    return this.waterHazardColliderHandles.has(colliderHandle);
+  }
+
   public getGoalPosition(): THREE.Vector3 | null {
     return this.goalCup.goalPosition;
   }
@@ -355,35 +361,18 @@ export class CourseManager {
    * Swaps an instantiated tile to a new kit piece type (and optional reversed socket direction
    * for symmetrical left/right turns) and automatically re-chains all downstream attached tiles.
    */
-  public swapTileType(
-    instanceId: string,
-    newKitPieceId: string,
-    options?: TileSwapOptions
-  ): boolean {
+  public swapTileType(instanceId: string, newKitPieceId: string, options?: TileSwapOptions): boolean {
     if (!this.tiles.has(instanceId)) return false;
-
     const newTemplate = this.assetLoader.getPiece(newKitPieceId);
     if (!newTemplate) return false;
-
-    const plan = planTileSwap(
-      this.exportHoleData(),
-      instanceId,
-      newKitPieceId,
-      newTemplate.sockets,
-      options
-    );
+    const plan = planTileSwap(this.exportHoleData(), instanceId, newKitPieceId, newTemplate.sockets, options);
     if (!plan) return false;
-
     this.loadHole(plan);
     return true;
   }
 
-  public updatePropTransform(
-    instanceId: string,
-    position: [number, number, number],
-    rotation: [number, number, number]
-  ): boolean {
-    return this.propManager.updatePropTransform(instanceId, position, rotation);
+  public updatePropTransform(instanceId: string, pos: [number, number, number], rot: [number, number, number]): boolean {
+    return this.propManager.updatePropTransform(instanceId, pos, rot);
   }
 
   public addProp(propData: PlacedProp): InstantiatedProp | null {
@@ -442,6 +431,7 @@ export class CourseManager {
     this.propManager.clear();
     this.boosterSensors.clear();
     this.bumperColliderHandles.clear();
+    this.waterHazardColliderHandles.clear();
     this.splinePath = null;
     this.tilePhysics.clear();
     this.goalCup.clear();

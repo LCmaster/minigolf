@@ -16,6 +16,7 @@ export interface ParsedKitPiece {
   ubxWallRGeometry: THREE.BufferGeometry | null;
   ubxWallBackGeometry: THREE.BufferGeometry | null;
   ubxColliderGeometries: THREE.BufferGeometry[];
+  ubxWaterGeometries?: THREE.BufferGeometry[];
   ubxSensorGeometry?: THREE.BufferGeometry | null;
   sockets: SocketDefinition[];
   locators: Map<string, THREE.Vector3>;
@@ -95,12 +96,23 @@ export class AssetLoader {
     let ubxWallBackGeo: THREE.BufferGeometry | null = null;
     let ubxSensorGeo: THREE.BufferGeometry | null = null;
     const ubxColliderGeos: THREE.BufferGeometry[] = [];
+    const ubxWaterGeos: THREE.BufferGeometry[] = [];
+    const visualWaterGeos: THREE.BufferGeometry[] = [];
 
     const locators = new Map<string, THREE.Vector3>();
     const sockets: SocketDefinition[] = [];
     const keepPieceMaterials = Boolean(meta.preserveMaterials);
 
     root.updateMatrixWorld(true);
+
+    const recordVisualWater = (name: string, mesh: THREE.Mesh) => {
+      const matName = (mesh.material as THREE.Material | undefined)?.name || "";
+      if (/water/i.test(name) || matName.includes("PondWater")) {
+        const waterGeo = mesh.geometry.clone();
+        waterGeo.applyMatrix4(mesh.matrixWorld);
+        visualWaterGeos.push(waterGeo);
+      }
+    };
 
     const applyMeshStyling = (mesh: THREE.Mesh) => {
       mesh.castShadow = true;
@@ -131,6 +143,7 @@ export class AssetLoader {
       const cleanName = child.name.replace(/(?:\.\d+|\d{3})+$/, "");
 
       if (cleanName.startsWith("Mesh_") && child instanceof THREE.Mesh) {
+        recordVisualWater(cleanName, child);
         const mesh = child.clone();
         mesh.name = cleanName;
         applyMeshStyling(mesh);
@@ -138,6 +151,9 @@ export class AssetLoader {
       } else if (cleanName.startsWith("Mesh_") && child instanceof THREE.Group && child.children.some((c) => c instanceof THREE.Mesh)) {
         const clonedGroup = child.clone(true);
         clonedGroup.name = cleanName;
+        child.traverse((sub) => {
+          if (sub instanceof THREE.Mesh) recordVisualWater(cleanName, sub);
+        });
         clonedGroup.traverse((sub) => {
           if (sub instanceof THREE.Mesh) applyMeshStyling(sub);
         });
@@ -158,6 +174,10 @@ export class AssetLoader {
       } else if (cleanName.startsWith("UBX_") && cleanName.includes("Sensor") && child instanceof THREE.Mesh) {
         ubxSensorGeo = child.geometry.clone();
         ubxSensorGeo.applyMatrix4(child.matrixWorld);
+      } else if (cleanName.startsWith("UBX_") && /water/i.test(cleanName) && child instanceof THREE.Mesh) {
+        const waterGeo = child.geometry.clone();
+        waterGeo.applyMatrix4(child.matrixWorld);
+        ubxWaterGeos.push(waterGeo);
       } else if (cleanName.startsWith("UBX_") && child instanceof THREE.Mesh) {
         const colGeo = child.geometry.clone();
         colGeo.applyMatrix4(child.matrixWorld);
@@ -179,6 +199,15 @@ export class AssetLoader {
       }
     });
 
+    if (ubxWaterGeos.length === 0) {
+      if (visualWaterGeos.length > 0) {
+        ubxWaterGeos.push(...visualWaterGeos);
+      } else if (id.toLowerCase().includes("water_channel") && ubxFloorGeo) {
+        ubxWaterGeos.push(ubxFloorGeo);
+        ubxFloorGeo = null;
+      }
+    }
+
     this.pieces.set(id, {
       metadata: meta,
       visualTemplate: visualGroup,
@@ -187,6 +216,7 @@ export class AssetLoader {
       ubxWallRGeometry: ubxWallRGeo,
       ubxWallBackGeometry: ubxWallBackGeo,
       ubxColliderGeometries: ubxColliderGeos,
+      ubxWaterGeometries: ubxWaterGeos,
       ubxSensorGeometry: ubxSensorGeo,
       sockets: sockets.length > 0 ? sockets : meta.sockets,
       locators,

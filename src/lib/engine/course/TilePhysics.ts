@@ -7,18 +7,24 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
-import { createStaticTrimeshColliderDesc } from "./PropInstanceManager";
+import { createStaticTrimeshColliderDesc, createWaterHazardCollider } from "./PropInstanceManager";
 import type { InstantiatedTile } from "./InstantiatedTile";
 
 export class TilePhysics {
   private readonly rapierWorld: RAPIER.World;
   private readonly rapier: typeof RAPIER;
+  private readonly waterHazardColliderHandles: Set<number>;
   private weldedFloor: RAPIER.Collider | null = null;
   private terrain: RAPIER.Collider | null = null;
 
-  constructor(rapierWorld: RAPIER.World, rapier: typeof RAPIER) {
+  constructor(
+    rapierWorld: RAPIER.World,
+    rapier: typeof RAPIER,
+    waterHazardColliderHandles: Set<number> = new Set()
+  ) {
     this.rapierWorld = rapierWorld;
     this.rapier = rapier;
+    this.waterHazardColliderHandles = waterHazardColliderHandles;
   }
 
   public get terrainCollider(): RAPIER.Collider | null {
@@ -56,9 +62,23 @@ export class TilePhysics {
         worldMatrix
       );
     }
+
+    this.clearWaterColliders(tile);
+    if (solid && pieceTemplate.ubxWaterGeometries?.length) {
+      for (const waterGeo of pieceTemplate.ubxWaterGeometries) {
+        const col = createWaterHazardCollider(
+          this.rapier,
+          this.rapierWorld,
+          waterGeo,
+          worldMatrix,
+          this.waterHazardColliderHandles
+        );
+        if (col) tile.waterColliders!.push(col);
+      }
+    }
   }
 
-  /** Removes a tile's wall and booster-sensor colliders from the physics world. */
+  /** Removes a tile's wall, water-hazard, and booster-sensor colliders from the physics world. */
   public removeTileColliders(tile: InstantiatedTile): void {
     for (const collider of [
       tile.wallLCollider,
@@ -68,6 +88,17 @@ export class TilePhysics {
     ]) {
       if (collider) this.rapierWorld.removeCollider(collider, false);
     }
+    this.clearWaterColliders(tile);
+  }
+
+  private clearWaterColliders(tile: InstantiatedTile): void {
+    if (tile.waterColliders) {
+      for (const col of tile.waterColliders) {
+        this.waterHazardColliderHandles.delete(col.handle);
+        this.rapierWorld.removeCollider(col, false);
+      }
+    }
+    tile.waterColliders = [];
   }
 
   /** Welds the floors of all solid tiles into one seamless trimesh collider. */

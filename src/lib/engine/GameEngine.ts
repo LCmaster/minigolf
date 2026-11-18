@@ -285,6 +285,7 @@ export class GameEngine {
     let ballEnteredHole = false;
     let pendingBooster: BoosterSensorInfo | null = null;
     let hitBumper = false;
+    let hitWaterHazard = false;
 
     this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
       if (!started || ballHandle === undefined) return;
@@ -293,6 +294,10 @@ export class GameEngine {
 
       if (goalCollider && otherHandle === goalCollider.handle) {
         ballEnteredHole = true;
+      }
+
+      if (this.courseManager.isWaterHazardCollider(otherHandle)) {
+        hitWaterHazard = true;
       }
 
       if (!pendingBooster && this.boosterCooldownTimer <= 0) {
@@ -307,7 +312,10 @@ export class GameEngine {
       }
     });
 
-    if (pendingBooster && this.ballController.rigidBody) {
+    if (hitWaterHazard && this.ballController.state !== "in_hole") {
+      this.audio.playWaterSplash();
+      this.respawnOutOfBounds("water");
+    } else if (pendingBooster && this.ballController.rigidBody) {
       this.triggerBooster(pendingBooster);
     } else if (hitBumper) {
       this.audio.playBumper();
@@ -339,19 +347,7 @@ export class GameEngine {
 
     // Out of bounds check
     if (this.ballController.state === "out_of_bounds") {
-      this.ballController.respawn();
-      this.cameraController.setHeading(this.courseManager.spawnHeading);
-      this.cameraController.snapToTarget();
-      this.emit("outOfBounds", {
-        holeNumber: 1,
-        reason: "cliff_fall",
-        penaltyApplied: true,
-        respawnPosition: [
-          this.ballController.mesh.position.x,
-          this.ballController.mesh.position.y,
-          this.ballController.mesh.position.z,
-        ],
-      });
+      this.respawnOutOfBounds("cliff_fall");
     }
 
     // Camera following ball
@@ -372,6 +368,23 @@ export class GameEngine {
 
     // Render frame
     this.renderPipeline.render();
+  }
+
+  private respawnOutOfBounds(reason: "water" | "cliff_fall"): void {
+    this.ballController.respawn();
+    this.cameraController.setHeading(this.courseManager.spawnHeading);
+    this.cameraController.setTarget(this.ballController.getPosition());
+    this.cameraController.snapToTarget();
+    this.emit("outOfBounds", {
+      holeNumber: 1,
+      reason,
+      penaltyApplied: true,
+      respawnPosition: [
+        this.ballController.mesh.position.x,
+        this.ballController.mesh.position.y,
+        this.ballController.mesh.position.z,
+      ],
+    });
   }
 
   public resetBallToTee(): void {

@@ -122,4 +122,31 @@ describe("TilePhysics", () => {
     expect(world.colliders.len()).toBe(0);
     expect(physics.terrainCollider).toBeNull();
   });
+
+  it("creates, skips on gap, and cleans up water hazard colliders from ubxWaterGeometries", () => {
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const waterHandles = new Set<number>();
+    const physics = new TilePhysics(world, RAPIER, waterHandles);
+    const tile = makeTile();
+    tile.pieceTemplate.ubxWaterGeometries = [new THREE.PlaneGeometry(5, 3)];
+
+    physics.syncWallColliders(tile);
+    expect(tile.waterColliders).toHaveLength(1);
+    const handle = tile.waterColliders![0].handle;
+    expect(tile.waterColliders![0].isSensor()).toBe(true);
+    expect(waterHandles.has(handle)).toBe(true);
+
+    tile.tileData.isGap = true;
+    physics.syncWallColliders(tile);
+    expect(tile.waterColliders).toHaveLength(0);
+    expect(waterHandles.has(handle)).toBe(false);
+
+    tile.tileData.isGap = false;
+    physics.syncWallColliders(tile);
+    expect(waterHandles.size).toBe(1);
+
+    physics.removeTileColliders(tile);
+    expect(waterHandles.size).toBe(0);
+    expect(world.colliders.len()).toBe(0);
+  });
 });

@@ -22,6 +22,7 @@ export interface InstantiatedTile {
   wallRCollider?: RAPIER.Collider;
   wallBackCollider?: RAPIER.Collider;
   boosterSensorCollider?: RAPIER.Collider;
+  waterColliders?: RAPIER.Collider[];
   boosterVisuals?: BoosterVisuals;
   windmill?: TileWindmill;
 }

@@ -141,4 +141,58 @@ describe("GameEngine Headless Orchestrator Tests", () => {
 
     engine.dispose();
   });
+
+  it("respawns ball to last safe position, plays water splash, and emits outOfBounds(reason='water') when ball touches pond water", async () => {
+    const engine = new GameEngine(undefined, { headless: true });
+    vi.spyOn(engine.assetLoader, "init").mockImplementation(async () => {});
+    vi.spyOn(engine.assetLoader, "getPiece").mockImplementation((id: string) => {
+      if (id === "terrain_pond_patch_6x6") {
+        const waterPlane = new THREE.PlaneGeometry(5, 5);
+        waterPlane.rotateX(-Math.PI / 2);
+        return {
+          ...MockFactories.createMockPiece(id),
+          ubxWaterGeometries: [waterPlane],
+        };
+      }
+      if (id.includes("tee")) return MockFactories.createMockPiece(id, { isTee: true });
+      if (id.includes("cup")) return MockFactories.createMockPiece(id, { isCup: true });
+      return MockFactories.createMockPiece(id);
+    });
+
+    await engine.init();
+    engine.loadTestHole();
+    engine.courseManager.addProp({
+      instanceId: "test_pond",
+      propId: "terrain_pond_patch_6x6",
+      position: [12, 0.1, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    });
+
+    const oobEvents: any[] = [];
+    engine.on("outOfBounds", (ev) => oobEvents.push(ev));
+    const splashSpy = vi.spyOn(engine.audio, "playWaterSplash").mockImplementation(() => {});
+
+    const safePos = engine.ballController.getPosition().clone();
+    engine.ballController.shoot(new THREE.Vector3(0, 0, -0.02));
+    expect(engine.ballController.strokes).toBe(1);
+
+    // Drop the ball directly above the pond water plane at Y = 0.1
+    engine.ballController.rigidBody.setTranslation({ x: 12, y: 0.25, z: 0 }, true);
+    engine.ballController.rigidBody.setLinvel({ x: 0, y: -1.5, z: 0 }, true);
+    for (let i = 0; i < 15; i++) {
+      engine.stepFrame(1 / 60);
+      if (oobEvents.length > 0) break;
+    }
+
+    expect(splashSpy).toHaveBeenCalledTimes(1);
+    expect(oobEvents).toHaveLength(1);
+    expect(oobEvents[0].reason).toBe("water");
+    expect(engine.ballController.state).toBe("aiming");
+    expect(engine.ballController.strokes).toBe(1);
+    expect(engine.ballController.getPosition().x).toBeCloseTo(safePos.x, 2);
+    expect(engine.ballController.getPosition().z).toBeCloseTo(safePos.z, 2);
+
+    engine.dispose();
+  });
 });
