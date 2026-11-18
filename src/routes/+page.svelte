@@ -1,7 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { getModalStore } from "@skeletonlabs/skeleton";
-  import HowToPlayModal from "./components/HowToPlayModal.svelte";
+  import HowToPlayCard from "$lib/components/home/HowToPlayCard.svelte";
   import HomeOverlay from "$lib/components/home/HomeOverlay.svelte";
   import { GameEngine } from "$lib/engine/GameEngine";
   import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
@@ -10,19 +9,11 @@
   import { canEditLevels } from "$lib/stores/profile";
   import { signOut } from "firebase/auth";
 
-  const modalStore = getModalStore();
-
-  const howToPlayModal = {
-    type: "component",
-    component: {
-      ref: HowToPlayModal,
-    },
-  };
-
   let canvas;
   let engine;
   let isSceneReady = false;
   let isMuted = false;
+  let isHowToPlayOpen = false;
 
   onMount(async () => {
     if (!canvas) return;
@@ -75,7 +66,9 @@
     canEditLevels={$canEditLevels}
     {isMuted}
     on:toggleAudio={handleToggleAudio}
-    on:openHowToPlay={() => modalStore.trigger(howToPlayModal)}
+    on:openHowToPlay={() => (isHowToPlayOpen = true)}
     on:signOut={handleSignout}
   />
+
+  <HowToPlayCard isOpen={isHowToPlayOpen} onClose={() => (isHowToPlayOpen = false)} />
 </div>

@@ -38,6 +38,7 @@ describe("codebase architecture guards", () => {
       "lib/component/Modal.svelte",
       "routes/mylevels/+page.svelte",
       "routes/campaign/[id]/+page.svelte",
+      "routes/components/HowToPlayModal.svelte",
     ];
     const lingering = legacy.filter(exists);
     expect(lingering).toEqual([]);
