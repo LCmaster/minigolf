@@ -53,4 +53,24 @@ describe("codebase architecture guards", () => {
       expect(lineCount(rel), `${rel} exceeds 450 lines`).toBeLessThanOrEqual(450);
     }
   });
+
+  it("maintains the workspace code-reviewer skill with TDD, single-responsibility, and git hygiene rules", () => {
+    const repoRoot = path.resolve(__dirname, "../..");
+    const skillPath = path.join(repoRoot, ".agent/skills/code-reviewer/SKILL.md");
+    expect(fs.existsSync(skillPath)).toBe(true);
+
+    const content = fs.readFileSync(skillPath, "utf-8");
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    expect(fmMatch).not.toBeNull();
+    const frontmatter = fmMatch![1];
+    expect(frontmatter).toMatch(/^name:\s*code-reviewer$/m);
+    expect(frontmatter).toMatch(/^description:\s*\S+/m);
+
+    expect(content).toContain("Red -> Green -> Refactor -> Commit");
+    expect(content).toContain("450");
+    expect(content).toContain("JSDoc");
+    expect(content).toContain(".dispose()");
+    expect(content).toContain("Cartoon Arcade");
+    expect(content).toContain("git add -A");
+  });
 });
