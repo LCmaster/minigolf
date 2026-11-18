@@ -12,6 +12,13 @@ import { SocketSolver } from "./SocketSolver";
 import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import { GoalCupManager } from "./GoalCupManager";
 import { TilePhysics } from "./TilePhysics";
+import {
+  connectSocket,
+  disconnectSocket,
+  findIncomingLinks,
+  removeLinksTo,
+  type SocketLink,
+} from "./TileSocketGraph";
 import type { InstantiatedTile } from "./InstantiatedTile";
 import {
   PropInstanceManager,
@@ -355,36 +362,17 @@ export class CourseManager {
 
   /** Connects `socketId` on `tileInstanceId` to `targetTileId`. */
   public connectTileSocket(tileInstanceId: string, socketId: string, targetTileId: string): boolean {
-    const tile = this.tiles.get(tileInstanceId);
-    if (!tile) return false;
-    tile.tileData.connectedSockets = tile.tileData.connectedSockets || {};
-    tile.tileData.connectedSockets[socketId] = targetTileId;
-    return true;
+    return connectSocket(this.tiles, tileInstanceId, socketId, targetTileId);
   }
 
   /** Disconnects `socketId` on `tileInstanceId` if currently connected. */
   public disconnectTileSocket(tileInstanceId: string, socketId: string): boolean {
-    const tile = this.tiles.get(tileInstanceId);
-    if (!tile?.tileData.connectedSockets || !(socketId in tile.tileData.connectedSockets)) {
-      return false;
-    }
-    delete tile.tileData.connectedSockets[socketId];
-    return true;
+    return disconnectSocket(this.tiles, tileInstanceId, socketId);
   }
 
   /** Returns all other tiles holding an outgoing socket link pointing at `tileInstanceId`. */
-  public findIncomingSocketLinks(tileInstanceId: string): Array<{ tileId: string; socketId: string }> {
-    const links: Array<{ tileId: string; socketId: string }> = [];
-    for (const [otherId, otherTile] of this.tiles.entries()) {
-      const conns = otherTile.tileData.connectedSockets;
-      if (!conns) continue;
-      for (const [sockId, targetId] of Object.entries(conns)) {
-        if (targetId === tileInstanceId) {
-          links.push({ tileId: otherId, socketId: sockId });
-        }
-      }
-    }
-    return links;
+  public findIncomingSocketLinks(tileInstanceId: string): SocketLink[] {
+    return findIncomingLinks(this.tiles, tileInstanceId);
   }
 
   public removeTile(instanceId: string): boolean {
@@ -399,16 +387,7 @@ export class CourseManager {
     this.tilePhysics.removeTileColliders(tile);
     this.tiles.delete(instanceId);
 
-    // Clear references to removed tile in remaining connectedSockets
-    for (const remaining of this.tiles.values()) {
-      const conns = remaining.tileData.connectedSockets;
-      if (!conns) continue;
-      for (const [sockId, targetId] of Object.entries(conns)) {
-        if (targetId === instanceId) {
-          delete conns[sockId];
-        }
-      }
-    }
+    removeLinksTo(this.tiles, instanceId);
 
     this.rebuildWeldedFloorPhysics();
     return true;
