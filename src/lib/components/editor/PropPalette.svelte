@@ -116,84 +116,81 @@
   ].filter((section) => (roleFilter === "all" || roleFilter === section.key) && section.items.length > 0);
 
   function selectProp(id) {
-    if (selectedPropId === id) {
-      selectedPropId = null;
-    } else {
-      selectedPropId = id;
-    }
+    selectedPropId = selectedPropId === id ? null : id;
     dispatch("selectProp", selectedPropId);
   }
 </script>
 
-<div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl text-white font-mono space-y-2.5 w-80">
-  <div class="text-xs font-bold text-amber-400 uppercase tracking-wider flex justify-between items-center">
-    <span>Freeform Props</span>
-    {#if selectedPropId}
-      <button on:click={() => selectProp(null)} class="text-[10px] text-red-400 hover:underline">Cancel</button>
-    {/if}
-  </div>
+<div class="w-80 rounded-3xl p-[3px] bg-[#2a1205] shadow-[0_6px_0_#2a1205,0_14px_28px_rgba(0,0,0,0.45)]">
+  <div class="rounded-[1.35rem] bg-gradient-to-b from-amber-700 via-amber-800 to-amber-950 border-[3px] border-amber-300/90 p-3 text-white space-y-2.5">
+    <div class="text-xs font-black text-amber-200 uppercase tracking-wider flex justify-between items-center">
+      <span>Freeform Props</span>
+      {#if selectedPropId}
+        <button on:click={() => selectProp(null)} class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white hover:brightness-110 cursor-pointer">
+          Cancel
+        </button>
+      {/if}
+    </div>
 
-  <!-- Segmented Filter Tabs -->
-  <div class="grid grid-cols-4 gap-1 bg-black/30 p-1 rounded-xl border border-white/10 text-[10px] font-bold">
-    <button
-      on:click={() => (roleFilter = "all")}
-      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'all' ? 'bg-white/15 text-white shadow' : 'text-gray-400 hover:text-gray-200'}"
-    >
-      All ({baseCatalog.length})
-    </button>
-    <button
-      on:click={() => (roleFilter = "playable")}
-      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'playable' ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40 shadow' : 'text-gray-400 hover:text-amber-200'}"
-    >
-      ⚡ ({grouped.playable.length})
-    </button>
-    <button
-      on:click={() => (roleFilter = "decor")}
-      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'decor' ? 'bg-sky-500/25 text-sky-300 border border-sky-400/40 shadow' : 'text-gray-400 hover:text-sky-200'}"
-    >
-      🎪 ({grouped.decor.length})
-    </button>
-    <button
-      on:click={() => (roleFilter = "terrain")}
-      class="py-1 px-1 rounded-lg transition-all {roleFilter === 'terrain' ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 shadow' : 'text-gray-400 hover:text-emerald-200'}"
-    >
-      🪨 ({grouped.terrain.length})
-    </button>
-  </div>
+    <!-- Segmented Filter Tabs -->
+    <div class="grid grid-cols-4 gap-1 bg-black/35 p-1 rounded-xl border border-amber-300/25 text-[10px] font-black">
+      <button
+        on:click={() => (roleFilter = "all")}
+        class="py-1 px-1 rounded-lg transition-all cursor-pointer {roleFilter === 'all' ? 'bg-amber-300 text-[#431407] shadow' : 'text-amber-100/75 hover:text-white'}"
+      >
+        All ({baseCatalog.length})
+      </button>
+      <button
+        on:click={() => (roleFilter = "playable")}
+        class="py-1 px-1 rounded-lg transition-all cursor-pointer {roleFilter === 'playable' ? 'bg-amber-300 text-[#431407] shadow' : 'text-amber-100/75 hover:text-amber-200'}"
+      >
+        ⚡ ({grouped.playable.length})
+      </button>
+      <button
+        on:click={() => (roleFilter = "decor")}
+        class="py-1 px-1 rounded-lg transition-all cursor-pointer {roleFilter === 'decor' ? 'bg-sky-400 text-white shadow' : 'text-amber-100/75 hover:text-sky-200'}"
+      >
+        🎪 ({grouped.decor.length})
+      </button>
+      <button
+        on:click={() => (roleFilter = "terrain")}
+        class="py-1 px-1 rounded-lg transition-all cursor-pointer {roleFilter === 'terrain' ? 'bg-lime-400 text-[#14532d] shadow' : 'text-amber-100/75 hover:text-lime-200'}"
+      >
+        🪨 ({grouped.terrain.length})
+      </button>
+    </div>
 
-  <div class="max-h-60 overflow-y-auto pr-1 space-y-3">
-    {#each sections as section (section.key)}
-      <div>
-        <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5 px-0.5">
-          {section.title} ({section.items.length})
-        </div>
-        <div class="grid grid-cols-3 gap-1.5">
-          {#each section.items as p (p.id)}
-            {@const role = getPiecePropRole(p)}
-            {@const isPlayable = role === "playable"}
-            <button
-              on:click={() => selectProp(p.id)}
-              title="{p.name} ({isPlayable ? 'Playable physics prop' : 'Decorative prop'})"
-              class="relative flex flex-col items-center justify-center p-2 rounded-xl text-center border transition-all text-[11px] {selectedPropId === p.id
-                ? isPlayable
-                  ? 'bg-amber-500/25 border-amber-400 text-amber-200 scale-105 shadow-lg'
-                  : 'bg-emerald-500/25 border-emerald-400 text-emerald-200 scale-105 shadow-lg'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-300'}"
-            >
-              <span
-                class="absolute top-1 right-1 text-[9px] leading-none px-1 py-0.5 rounded {isPlayable
-                  ? 'bg-amber-500/20 text-amber-300'
-                  : 'bg-emerald-500/20 text-emerald-300'}"
+    <div class="max-h-60 overflow-y-auto pr-1 space-y-3">
+      {#each sections as section (section.key)}
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-amber-200/80 mb-1.5 px-0.5">
+            {section.title} ({section.items.length})
+          </div>
+          <div class="grid grid-cols-3 gap-1.5">
+            {#each section.items as p (p.id)}
+              {@const role = getPiecePropRole(p)}
+              {@const isPlayable = role === "playable"}
+              <button
+                on:click={() => selectProp(p.id)}
+                title="{p.name} ({isPlayable ? 'Playable physics prop' : 'Decorative prop'})"
+                class="relative flex flex-col items-center justify-center p-2 rounded-xl text-center border-2 transition-all text-[11px] cursor-pointer {selectedPropId === p.id
+                  ? 'bg-amber-300 border-white text-[#431407] scale-[1.03] shadow'
+                  : 'bg-black/30 hover:bg-black/45 border-amber-300/25 text-amber-50'}"
               >
-                {isPlayable ? "⚡" : section.key === "decor" ? "🎪" : "🌿"}
-              </span>
-              <span class="text-xl mb-1 mt-1">{PROP_ICONS[p.id] ?? (isPlayable ? "⚡" : "🌿")}</span>
-              <span class="truncate w-full font-bold">{p.name}</span>
-            </button>
-          {/each}
+                <span
+                  class="absolute top-1 right-1 text-[9px] leading-none px-1 py-0.5 rounded {isPlayable
+                    ? 'bg-amber-400/30 text-amber-200'
+                    : 'bg-emerald-400/25 text-emerald-200'}"
+                >
+                  {isPlayable ? "⚡" : section.key === "decor" ? "🎪" : "🌿"}
+                </span>
+                <span class="text-xl mb-1 mt-1">{PROP_ICONS[p.id] ?? (isPlayable ? "⚡" : "🌿")}</span>
+                <span class="truncate w-full font-black">{p.name}</span>
+              </button>
+            {/each}
+          </div>
         </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
 </div>
-

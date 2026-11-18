@@ -1,5 +1,7 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import ArcadeFrame from "$lib/components/ui/ArcadeFrame.svelte";
+  import ArcadeButton from "$lib/components/ui/ArcadeButton.svelte";
 
   export let par = 3;
   export let strokes = 0;
@@ -8,52 +10,48 @@
   const dispatch = createEventDispatcher();
 </script>
 
-<!-- Playtest Bottom HUD -->
-<div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-white font-mono shadow-2xl flex items-center gap-6">
-  <div class="text-center">
-    <div class="text-[10px] text-gray-400">PAR</div>
-    <div class="text-lg font-bold text-cyan-400">{par}</div>
+<!-- Playtest Bottom Cartoon Wood HUD -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-3xl p-[3px] bg-[#2a1205] shadow-[0_6px_0_#2a1205,0_14px_28px_rgba(0,0,0,0.45)]">
+  <div class="rounded-[1.35rem] bg-gradient-to-b from-amber-700 via-amber-800 to-amber-950 border-[3px] border-amber-300/90 px-5 py-2.5 text-white flex items-center gap-4">
+    <div class="rounded-2xl bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-white shadow-[0_2px_0_#1e3a8a] px-3.5 py-1 text-center">
+      <div class="text-[9px] font-black tracking-widest text-sky-100 uppercase">PAR</div>
+      <div class="text-xl font-black text-white leading-tight drop-shadow">{par}</div>
+    </div>
+
+    <div class="rounded-2xl bg-gradient-to-b from-lime-400 to-emerald-600 border-2 border-white shadow-[0_2px_0_#14532d] px-3.5 py-1 text-center">
+      <div class="text-[9px] font-black tracking-widest text-lime-100 uppercase">STROKES</div>
+      <div class="text-xl font-black text-white leading-tight drop-shadow">{strokes}</div>
+    </div>
+
+    <ArcadeButton variant="purple" size="sm" on:click={() => dispatch("respawn")}>
+      🔄 Respawn Ball
+    </ArcadeButton>
   </div>
-  <div class="w-px h-6 bg-white/10"></div>
-  <div class="text-center">
-    <div class="text-[10px] text-gray-400">STROKES</div>
-    <div class="text-lg font-bold text-amber-400">{strokes}</div>
-  </div>
-  <div class="w-px h-6 bg-white/10"></div>
-  <button
-    on:click={() => dispatch("respawn")}
-    class="bg-white/10 hover:bg-white/20 text-xs font-bold px-3 py-1.5 rounded-xl border border-white/10 transition-colors"
-  >
-    Respawn Ball
-  </button>
 </div>
 
 <!-- Celebratory Sink Modal -->
 {#if isCupSunk}
-  <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-    <div class="bg-black/90 backdrop-blur-xl border border-emerald-500/50 p-8 rounded-3xl text-center shadow-2xl pointer-events-auto space-y-4">
-      <div class="text-5xl">⛳ 🎉</div>
-      <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 font-sans">
-        HOLE IN!
+  <div class="absolute inset-0 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-4 z-50">
+    <ArcadeFrame
+      title="HOLE IN!"
+      titleWidthClass="w-56 md:w-[300px]"
+      maxWidthClass="max-w-md"
+    >
+      <div class="rounded-2xl bg-amber-50/95 border-[3px] border-[#431407] p-6 shadow-[0_4px_0_#431407] text-center space-y-4">
+        <div class="text-4xl">⛳ 🎉</div>
+        <div class="text-lg font-black text-[#431407]">
+          Total Strokes: <span class="text-amber-700">{strokes}</span>
+          <span class="text-sm font-bold text-[#431407]/70">(Par {par})</span>
+        </div>
+        <div class="flex gap-3 justify-center pt-1">
+          <ArcadeButton variant="green" size="md" on:click={() => dispatch("puttAgain")}>
+            Putt Again
+          </ArcadeButton>
+          <ArcadeButton variant="amber" size="md" on:click={() => dispatch("exitPlaytest")}>
+            Edit Track
+          </ArcadeButton>
+        </div>
       </div>
-      <div class="text-lg text-white font-mono">
-        Total Strokes: <span class="font-bold text-amber-400">{strokes}</span>
-      </div>
-      <div class="flex gap-3 justify-center">
-        <button
-          on:click={() => dispatch("puttAgain")}
-          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl transition-all"
-        >
-          Putt Again
-        </button>
-        <button
-          on:click={() => dispatch("exitPlaytest")}
-          class="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2 rounded-xl transition-all"
-        >
-          Edit Track
-        </button>
-      </div>
-    </div>
+    </ArcadeFrame>
   </div>
 {/if}
-
