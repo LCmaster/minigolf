@@ -10,7 +10,7 @@ import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/
 import { BoosterVisuals } from "./BoosterVisuals";
 import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
-import { walkOrderedTileChain } from "../spline/SplineTrackSync";
+import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import {
   CUP_DEPTH,
   createCupVisualGroup,
@@ -590,190 +590,23 @@ export class CourseManager {
   public swapTileType(
     instanceId: string,
     newKitPieceId: string,
-    options?: { reverseDirection?: boolean }
+    options?: TileSwapOptions
   ): boolean {
-    const existing = this.tiles.get(instanceId);
-    if (!existing) return false;
+    if (!this.tiles.has(instanceId)) return false;
 
     const newTemplate = this.assetLoader.getPiece(newKitPieceId);
     if (!newTemplate) return false;
 
-    const oldLower = existing.tileData.kitPieceId.toLowerCase();
-    const newLower = newKitPieceId.toLowerCase();
-    if (oldLower.includes("tee") && !newLower.includes("tee")) return false;
-    if (oldLower.includes("cup") && !newLower.includes("cup")) return false;
-    if (!oldLower.includes("cup") && newLower.includes("cup")) {
-      // Only allow swapping to a cup if there are no downstream tiles
-      const holeCheck = this.exportHoleData();
-      const hasDownstream = holeCheck.tiles.some(
-        (t) =>
-          t.instanceId !== instanceId &&
-          (t.attachedTo?.parentInstanceId === instanceId ||
-            (existing.tileData.connectedSockets &&
-              Object.values(existing.tileData.connectedSockets).includes(t.instanceId) &&
-              t.instanceId !== existing.tileData.attachedTo?.parentInstanceId))
-      );
-      if (hasDownstream) return false;
-    }
+    const plan = planTileSwap(
+      this.exportHoleData(),
+      instanceId,
+      newKitPieceId,
+      newTemplate.sockets,
+      options
+    );
+    if (!plan) return false;
 
-    const hole = this.exportHoleData();
-    const { connectedChain, byId, visited } = walkOrderedTileChain(hole.tiles);
-
-    const target = byId.get(instanceId);
-    if (!target) return false;
-
-    const orderedIds = connectedChain.map((t) => t.instanceId);
-
-    const targetOrderIdx = orderedIds.indexOf(instanceId);
-    const parentId =
-      target.attachedTo?.parentInstanceId ||
-      (targetOrderIdx > 0 ? orderedIds[targetOrderIdx - 1] : undefined);
-    const parentTile = parentId ? byId.get(parentId) : undefined;
-
-    // Collect downstream chain [C1, C2, ...] in forward order
-    const downstreamIds =
-      targetOrderIdx >= 0 ? orderedIds.slice(targetOrderIdx + 1) : [];
-
-    // Resolve parent's outgoing socket towards target BEFORE mutating
-    let parentOutSocketId = target.attachedTo?.parentSocketId;
-    if (!parentOutSocketId && parentTile?.connectedSockets) {
-      for (const [sockId, cid] of Object.entries(parentTile.connectedSockets)) {
-        if (cid === instanceId) {
-          parentOutSocketId = sockId;
-          break;
-        }
-      }
-    }
-    if (!parentOutSocketId) parentOutSocketId = "LOC_Socket_Out";
-
-    // Snapshot link specs for every adjacent pair inside downstream
-    const chainLinks: Array<{
-      parentId: string;
-      parentExitSocketId: string;
-      childId: string;
-      childEntrySocketId: string;
-    }> = [];
-
-    if (downstreamIds.length > 0) {
-      // Link between target -> first child
-      const firstChild = byId.get(downstreamIds[0])!;
-      let firstEntrySock = firstChild.attachedTo?.childSocketId;
-      if (!firstEntrySock && firstChild.connectedSockets) {
-        for (const [sockId, pid] of Object.entries(firstChild.connectedSockets)) {
-          if (pid === instanceId) {
-            firstEntrySock = sockId;
-            break;
-          }
-        }
-      }
-      firstEntrySock = firstEntrySock || "LOC_Socket_In";
-
-      const reverse = Boolean(options?.reverseDirection) && newTemplate.sockets.length >= 2;
-      const targetExitSock = reverse ? "LOC_Socket_In" : "LOC_Socket_Out";
-      chainLinks.push({
-        parentId: instanceId,
-        parentExitSocketId: targetExitSock,
-        childId: firstChild.instanceId,
-        childEntrySocketId: firstEntrySock,
-      });
-
-      // Preserve internal socket directions for subsequent children
-      for (let i = 0; i < downstreamIds.length - 1; i++) {
-        const p = byId.get(downstreamIds[i])!;
-        const c = byId.get(downstreamIds[i + 1])!;
-        let pExit = c.attachedTo?.parentSocketId;
-        if (!pExit && p.connectedSockets) {
-          for (const [sockId, cid] of Object.entries(p.connectedSockets)) {
-            if (cid === c.instanceId) {
-              pExit = sockId;
-              break;
-            }
-          }
-        }
-        let cEntry = c.attachedTo?.childSocketId;
-        if (!cEntry && c.connectedSockets) {
-          for (const [sockId, pid] of Object.entries(c.connectedSockets)) {
-            if (pid === p.instanceId) {
-              cEntry = sockId;
-              break;
-            }
-          }
-        }
-        chainLinks.push({
-          parentId: p.instanceId,
-          parentExitSocketId: pExit || "LOC_Socket_Out",
-          childId: c.instanceId,
-          childEntrySocketId: cEntry || "LOC_Socket_In",
-        });
-      }
-    }
-
-    // Mutate target tile cleanly
-    const reverse = Boolean(options?.reverseDirection) && newTemplate.sockets.length >= 2;
-    const defaultInSock =
-      newTemplate.sockets.find((s) => s.id === "LOC_Socket_In")?.id ||
-      newTemplate.sockets[0]?.id ||
-      "LOC_Socket_In";
-    const newEntrySocketId = reverse ? "LOC_Socket_Out" : defaultInSock;
-    const newExitSocketId =
-      newTemplate.sockets.length >= 2
-        ? reverse
-          ? "LOC_Socket_In"
-          : "LOC_Socket_Out"
-        : null;
-
-    if (downstreamIds.length > 0 && !newExitSocketId) {
-      return false;
-    }
-
-    target.kitPieceId = newKitPieceId;
-    target.isGap = false;
-    target.connectedSockets = {};
-
-    if (parentTile) {
-      parentTile.connectedSockets = parentTile.connectedSockets || {};
-      parentTile.connectedSockets[parentOutSocketId] = target.instanceId;
-      target.attachedTo = {
-        parentInstanceId: parentTile.instanceId,
-        parentSocketId: parentOutSocketId,
-        childSocketId: newEntrySocketId,
-      };
-      target.connectedSockets[newEntrySocketId] = parentTile.instanceId;
-      delete target.position;
-      delete target.rotationY;
-    }
-
-    if (downstreamIds.length > 0 && newExitSocketId) {
-      target.connectedSockets[newExitSocketId] = downstreamIds[0];
-    }
-
-    // Rewire and clear cached positions across downstream chain so socket snapping shifts smoothly
-    for (const link of chainLinks) {
-      const child = byId.get(link.childId);
-      if (!child) continue;
-      child.attachedTo = {
-        parentInstanceId: link.parentId,
-        parentSocketId: link.parentExitSocketId,
-        childSocketId: link.childEntrySocketId,
-      };
-      child.connectedSockets = child.connectedSockets || {};
-      child.connectedSockets[link.childEntrySocketId] = link.parentId;
-      delete child.position;
-      delete child.rotationY;
-    }
-
-    // Ensure parent-before-child ordering in hole.tiles before loadHole
-    const orderedTiles: PlacedTile[] = [];
-    for (const id of orderedIds) {
-      const t = byId.get(id);
-      if (t) orderedTiles.push(t);
-    }
-    for (const t of hole.tiles) {
-      if (!visited.has(t.instanceId)) orderedTiles.push(t);
-    }
-    hole.tiles = orderedTiles;
-
-    this.loadHole(hole);
+    this.loadHole(plan);
     return true;
   }
 
