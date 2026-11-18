@@ -8,32 +8,18 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
 import { BoosterVisuals } from "./BoosterVisuals";
-import { SeamWelder, type TileFloorMeshInfo } from "../physics/SeamWelder";
 import { SocketSolver } from "./SocketSolver";
 import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import { GoalCupManager } from "./GoalCupManager";
+import { TilePhysics } from "./TilePhysics";
+import type { InstantiatedTile } from "./InstantiatedTile";
 import {
   PropInstanceManager,
-  createStaticTrimeshColliderDesc,
   type BoosterSensorInfo,
   type InstantiatedProp,
 } from "./PropInstanceManager";
 
-export type { BoosterSensorInfo, InstantiatedProp };
-
-export interface InstantiatedTile {
-  tileData: PlacedTile;
-  pieceTemplate: ParsedKitPiece;
-  group: THREE.Group;
-  wallLMesh?: THREE.Object3D;
-  wallRMesh?: THREE.Object3D;
-  wallBackMesh?: THREE.Object3D;
-  wallLCollider?: RAPIER.Collider;
-  wallRCollider?: RAPIER.Collider;
-  wallBackCollider?: RAPIER.Collider;
-  boosterSensorCollider?: RAPIER.Collider;
-  boosterVisuals?: BoosterVisuals;
-}
+export type { BoosterSensorInfo, InstantiatedProp, InstantiatedTile };
 
 export class CourseManager {
   private scene: THREE.Scene;
@@ -43,8 +29,7 @@ export class CourseManager {
 
   private tiles: Map<string, InstantiatedTile> = new Map();
   private propManager: PropInstanceManager;
-  private unifiedFloorCollider: RAPIER.Collider | null = null;
-  private terrainCollider: RAPIER.Collider | null = null;
+  private tilePhysics: TilePhysics;
   private goalCup: GoalCupManager;
   private boosterSensors: Map<number, BoosterSensorInfo> = new Map();
   private bumperColliderHandles: Set<number> = new Set();
@@ -65,6 +50,7 @@ export class CourseManager {
     this.rapierWorld = rapierWorld;
     this.rapier = rapier;
     this.assetLoader = assetLoader;
+    this.tilePhysics = new TilePhysics(rapierWorld, rapier);
     this.goalCup = new GoalCupManager(scene, rapierWorld, rapier);
     this.propManager = new PropInstanceManager({
       scene,
@@ -193,7 +179,7 @@ export class CourseManager {
     group.updateMatrixWorld(true);
 
     // Create wall colliders in Rapier
-    this.updateTileWallPhysics(instantiated);
+    this.tilePhysics.syncWallColliders(instantiated);
 
     if (!isGap) {
       // Check for Tee spawn locator
@@ -298,81 +284,12 @@ export class CourseManager {
       tile.wallRMesh.visible = !tile.tileData.isGap && active;
     }
 
-    this.updateTileWallPhysics(tile);
+    this.tilePhysics.syncWallColliders(tile);
     return active;
   }
 
-  private updateTileWallPhysics(tile: InstantiatedTile): void {
-    tile.group.updateMatrixWorld(true);
-    const worldMatrix = tile.group.matrixWorld.clone();
-
-    // Left Wall
-    if (tile.wallLCollider) {
-      this.rapierWorld.removeCollider(tile.wallLCollider, false);
-      tile.wallLCollider = undefined;
-    }
-    if (!tile.tileData.isGap && tile.tileData.walls.left && tile.pieceTemplate.ubxWallLGeometry) {
-      const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallLGeometry, worldMatrix);
-      if (desc) {
-        tile.wallLCollider = this.rapierWorld.createCollider(desc);
-      }
-    }
-
-    // Right Wall
-    if (tile.wallRCollider) {
-      this.rapierWorld.removeCollider(tile.wallRCollider, false);
-      tile.wallRCollider = undefined;
-    }
-    if (!tile.tileData.isGap && tile.tileData.walls.right && tile.pieceTemplate.ubxWallRGeometry) {
-      const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallRGeometry, worldMatrix);
-      if (desc) {
-        tile.wallRCollider = this.rapierWorld.createCollider(desc);
-      }
-    }
-
-    // Back Wall (if present on Tee or Cup)
-    if (tile.wallBackCollider) {
-      if (tile.tileData.isGap) {
-        this.rapierWorld.removeCollider(tile.wallBackCollider, false);
-        tile.wallBackCollider = undefined;
-      }
-    } else if (!tile.tileData.isGap && tile.pieceTemplate.ubxWallBackGeometry) {
-      const desc = this.createStaticColliderFromGeo(tile.pieceTemplate.ubxWallBackGeometry, worldMatrix);
-      if (desc) {
-        tile.wallBackCollider = this.rapierWorld.createCollider(desc);
-      }
-    }
-  }
-
-  private createStaticColliderFromGeo(
-    geo: THREE.BufferGeometry,
-    matrix: THREE.Matrix4
-  ): RAPIER.ColliderDesc | null {
-    return createStaticTrimeshColliderDesc(this.rapier, geo, matrix);
-  }
-
   public rebuildWeldedFloorPhysics(): void {
-    if (this.unifiedFloorCollider) {
-      this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
-      this.unifiedFloorCollider = null;
-    }
-
-    const floorTiles: TileFloorMeshInfo[] = [];
-
-    for (const tile of this.tiles.values()) {
-      if (!tile.tileData.isGap && tile.pieceTemplate.ubxFloorGeometry) {
-        tile.group.updateMatrixWorld(true);
-        floorTiles.push({
-          geometry: tile.pieceTemplate.ubxFloorGeometry,
-          worldMatrix: tile.group.matrixWorld.clone(),
-        });
-      }
-    }
-
-    const floorColliderDesc = SeamWelder.weldFloorsToRapierTrimesh(floorTiles, this.rapier);
-    if (floorColliderDesc) {
-      this.unifiedFloorCollider = this.rapierWorld.createCollider(floorColliderDesc);
-    }
+    this.tilePhysics.rebuildWeldedFloor(this.tiles.values());
     this.onHoleChanged?.();
   }
 
@@ -398,20 +315,11 @@ export class CourseManager {
     geometry: THREE.BufferGeometry,
     worldMatrix: THREE.Matrix4 = new THREE.Matrix4()
   ): void {
-    if (this.terrainCollider) {
-      this.rapierWorld.removeCollider(this.terrainCollider, false);
-      this.terrainCollider = null;
-    }
-    const desc = this.createStaticColliderFromGeo(geometry, worldMatrix);
-    if (desc) {
-      desc.setFriction(0.75);
-      desc.setRestitution(0.2);
-      this.terrainCollider = this.rapierWorld.createCollider(desc);
-    }
+    this.tilePhysics.setTerrain(geometry, worldMatrix);
   }
 
   public getTerrainCollider(): RAPIER.Collider | null {
-    return this.terrainCollider;
+    return this.tilePhysics.terrainCollider;
   }
 
   public getGoalSensorCollider(): RAPIER.Collider | null {
@@ -484,14 +392,11 @@ export class CourseManager {
     if (!tile) return false;
 
     this.scene.remove(tile.group);
-    if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
-    if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
-    if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
     tile.boosterVisuals?.dispose();
     if (tile.boosterSensorCollider) {
       this.boosterSensors.delete(tile.boosterSensorCollider.handle);
-      this.rapierWorld.removeCollider(tile.boosterSensorCollider, false);
     }
+    this.tilePhysics.removeTileColliders(tile);
     this.tiles.delete(instanceId);
 
     // Clear references to removed tile in remaining connectedSockets
@@ -645,10 +550,7 @@ export class CourseManager {
     for (const tile of this.tiles.values()) {
       this.scene.remove(tile.group);
       tile.boosterVisuals?.dispose();
-      if (tile.wallLCollider) this.rapierWorld.removeCollider(tile.wallLCollider, false);
-      if (tile.wallRCollider) this.rapierWorld.removeCollider(tile.wallRCollider, false);
-      if (tile.wallBackCollider) this.rapierWorld.removeCollider(tile.wallBackCollider, false);
-      if (tile.boosterSensorCollider) this.rapierWorld.removeCollider(tile.boosterSensorCollider, false);
+      this.tilePhysics.removeTileColliders(tile);
     }
     this.tiles.clear();
 
@@ -657,15 +559,7 @@ export class CourseManager {
     this.bumperColliderHandles.clear();
     this.splinePath = null;
 
-    if (this.unifiedFloorCollider) {
-      this.rapierWorld.removeCollider(this.unifiedFloorCollider, false);
-      this.unifiedFloorCollider = null;
-    }
-    if (this.terrainCollider) {
-      this.rapierWorld.removeCollider(this.terrainCollider, false);
-      this.terrainCollider = null;
-    }
+    this.tilePhysics.clear();
     this.goalCup.clear();
   }
 }
-
