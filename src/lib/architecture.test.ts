@@ -49,6 +49,7 @@ describe("codebase architecture guards", () => {
     const budgeted = [
       "lib/engine/course/CourseManager.ts",
       "lib/engine/editor/EditorController.ts",
+      "lib/components/courses/CoursesHub.svelte",
     ];
     for (const rel of budgeted) {
       expect(lineCount(rel), `${rel} exceeds 450 lines`).toBeLessThanOrEqual(450);

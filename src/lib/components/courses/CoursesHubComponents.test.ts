@@ -107,6 +107,9 @@ describe("CoursesHub & CourseHubHelpers", () => {
     expect(res.html).toContain("/play?course=course_carnival_park_showcase&amp;hole=1");
     expect(res.html).not.toContain("Export JSON");
     expect(res.html).not.toContain("Import JSON");
+    expect(res.html).toContain("/courses/carnival-park-card.png");
+    expect(res.html).toContain("#431407");
+    expect(res.html).not.toContain("bg-slate-950 text-white");
 
     // My Holes & Tours tab renders custom course & visibility/remix controls
     const myRes = (CoursesHub as any).render({
