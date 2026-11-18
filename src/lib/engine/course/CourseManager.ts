@@ -11,6 +11,7 @@ import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import { GoalCupManager } from "./GoalCupManager";
 import { TilePhysics } from "./TilePhysics";
 import { createTileBooster } from "./TileBooster";
+import { createTileWindmill, isWindmillTile } from "./TileWindmill";
 import {
   snapTileToParent,
   computeTeeHeading,
@@ -170,6 +171,10 @@ export class CourseManager {
         instantiated.boosterVisuals = booster.visuals;
         this.boosterSensors.set(booster.collider.handle, booster.info);
       }
+
+      if (isWindmillTile(tileData.kitPieceId)) {
+        instantiated.windmill = createTileWindmill(this.rapier, this.rapierWorld, group, this.bumperColliderHandles);
+      }
     }
 
     this.tiles.set(tileData.instanceId, instantiated);
@@ -258,11 +263,12 @@ export class CourseManager {
     return this.goalCup.goalSensorCollider;
   }
 
-  /** Advances hover/pulse/flash animation of every booster's chevron visuals. */
+  /** Advances hover/pulse/flash animation of every booster's chevron visuals and animated hazards. */
   public updateBoosterVisuals(time: number, deltaTime: number): void {
     for (const info of this.boosterSensors.values()) {
       info.visuals?.update(time, deltaTime);
     }
+    for (const tile of this.tiles.values()) tile.windmill?.update(deltaTime);
   }
 
   public getBoosterSensor(colliderHandle: number): BoosterSensorInfo | undefined {
@@ -300,20 +306,22 @@ export class CourseManager {
     return findIncomingLinks(this.tiles, tileInstanceId);
   }
 
-  public removeTile(instanceId: string): boolean {
-    const tile = this.tiles.get(instanceId);
-    if (!tile) return false;
-
+  private cleanupTileResources(tile: InstantiatedTile): void {
     this.scene.remove(tile.group);
     tile.boosterVisuals?.dispose();
+    tile.windmill?.dispose();
     if (tile.boosterSensorCollider) {
       this.boosterSensors.delete(tile.boosterSensorCollider.handle);
     }
     this.tilePhysics.removeTileColliders(tile);
+  }
+
+  public removeTile(instanceId: string): boolean {
+    const tile = this.tiles.get(instanceId);
+    if (!tile) return false;
+    this.cleanupTileResources(tile);
     this.tiles.delete(instanceId);
-
     removeLinksTo(this.tiles, instanceId);
-
     this.rebuildWeldedFloorPhysics();
     return true;
   }
@@ -429,18 +437,12 @@ export class CourseManager {
   }
 
   public clear(): void {
-    for (const tile of this.tiles.values()) {
-      this.scene.remove(tile.group);
-      tile.boosterVisuals?.dispose();
-      this.tilePhysics.removeTileColliders(tile);
-    }
+    for (const tile of this.tiles.values()) this.cleanupTileResources(tile);
     this.tiles.clear();
-
     this.propManager.clear();
     this.boosterSensors.clear();
     this.bumperColliderHandles.clear();
     this.splinePath = null;
-
     this.tilePhysics.clear();
     this.goalCup.clear();
   }

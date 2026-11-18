@@ -9,6 +9,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import type { ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile } from "../types/CourseSchema";
 import type { BoosterVisuals } from "./BoosterVisuals";
+import type { TileWindmill } from "./TileWindmill";
 
 export interface InstantiatedTile {
   tileData: PlacedTile;
@@ -22,4 +23,5 @@ export interface InstantiatedTile {
   wallBackCollider?: RAPIER.Collider;
   boosterSensorCollider?: RAPIER.Collider;
   boosterVisuals?: BoosterVisuals;
+  windmill?: TileWindmill;
 }

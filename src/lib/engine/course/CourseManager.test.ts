@@ -393,5 +393,47 @@ describe("CourseManager Dynamic Socket Snapping (TDD)", () => {
     expect(cm.getBoosterSensor(tile!.boosterSensorCollider!.handle)).toBeUndefined();
     cm.clear();
   });
+
+  it("attaches rotating windmill blades and kinematic bumper colliders to windmill tiles", async () => {
+    const RAPIER = await import("@dimforge/rapier3d-compat");
+    await RAPIER.init();
+
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+
+    const mockLoader: any = {
+      getPiece: (id: string) => ({
+        metadata: { id, dimensions: [6, 0.6, 12], hasDynamicWalls: false },
+        visualTemplate: new THREE.Group(),
+        sockets: [],
+        locators: new Map(),
+      }),
+    };
+
+    const { CourseManager } = await import("./CourseManager");
+    const cm = new CourseManager(scene, world, RAPIER, mockLoader);
+
+    const tile = cm.addTile({
+      instanceId: "windmill_tile",
+      kitPieceId: "carnival_windmill_6x12",
+      position: [0, 0, 0],
+      rotationY: 0,
+      walls: { left: true, right: true },
+    });
+    expect(tile).not.toBeNull();
+    expect(tile!.windmill).toBeDefined();
+    expect(tile!.windmill!.colliders).toHaveLength(4);
+
+    const bladeHandle = tile!.windmill!.colliders[0].handle;
+    expect(cm.isBumperCollider(bladeHandle)).toBe(true);
+
+    const rotBefore = tile!.windmill!.visuals.rotorGroup.rotation.z;
+    cm.updateBoosterVisuals(0.5, 0.25);
+    expect(tile!.windmill!.visuals.rotorGroup.rotation.z).toBeGreaterThan(rotBefore);
+
+    cm.removeTile("windmill_tile");
+    expect(cm.isBumperCollider(bladeHandle)).toBe(false);
+    cm.clear();
+  });
 });
 
