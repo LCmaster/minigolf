@@ -46,7 +46,8 @@ describe("Home Menu Cartoon Arcade Components", () => {
     });
     expect(openAuthed.html).toContain("Luiz");
     expect(openAuthed.html).toContain("/profile");
-    expect(openAuthed.html).toContain("/mylevels");
+    expect(openAuthed.html).toContain("/courses?tab=mine");
+    expect(openAuthed.html).not.toContain("/mylevels");
     expect(openAuthed.html).toContain("Sign Out");
   });
 

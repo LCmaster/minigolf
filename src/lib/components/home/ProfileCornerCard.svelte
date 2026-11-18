@@ -85,7 +85,7 @@
           </a>
           {#if canEditLevels}
             <a
-              href="/mylevels"
+              href="/courses?tab=mine"
               class="text-center py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 border border-white/60 text-slate-950 shadow transition-colors"
             >
               My Levels

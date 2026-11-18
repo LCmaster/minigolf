@@ -3,6 +3,7 @@ import { carnivalParkCourse } from "$lib/courses/carnivalParkCourse";
 import type { CourseData } from "$lib/engine/types/CourseSchema";
 import CoursesHub from "./CoursesHub.svelte";
 import {
+  resolveInitialHubTab,
   moveBundlerHole,
   resolveEditorLoadTarget,
   resolvePlayStartHoleIndex,
@@ -135,5 +136,12 @@ describe("CoursesHub & CourseHubHelpers", () => {
     expect(myRes.html).toContain("Public");
     expect(myRes.html).toContain("Remixable");
     expect(myRes.html).toContain("Tour Bundler");
+  });
+
+  it("resolves the initial hub tab from the ?tab= query parameter", () => {
+    expect(resolveInitialHubTab(new URLSearchParams("tab=mine"))).toBe("mine");
+    expect(resolveInitialHubTab(new URLSearchParams("tab=official"))).toBe("official");
+    expect(resolveInitialHubTab(new URLSearchParams("tab=bogus"))).toBe("official");
+    expect(resolveInitialHubTab(new URLSearchParams(""))).toBe("official");
   });
 });

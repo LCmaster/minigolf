@@ -5,6 +5,13 @@
 
 import type { CourseData, HoleData } from "$lib/engine/types/CourseSchema";
 
+export type HubTab = "official" | "mine";
+
+/** Resolves the Courses Hub tab from `?tab=mine|official`, defaulting to `official`. */
+export function resolveInitialHubTab(params: URLSearchParams): HubTab {
+  return params.get("tab") === "mine" ? "mine" : "official";
+}
+
 export interface EditorLoadTarget {
   hole: HoleData;
   theme: CourseData["theme"];
