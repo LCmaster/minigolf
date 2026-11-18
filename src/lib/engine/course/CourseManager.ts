@@ -7,11 +7,12 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import type { AssetLoader, ParsedKitPiece } from "../kitbash/AssetLoader";
 import type { PlacedTile, PlacedProp, HoleData, SplinePathData } from "../types/CourseSchema";
-import { BoosterVisuals } from "./BoosterVisuals";
-import { SocketSolver } from "./SocketSolver";
 import { planTileSwap, type TileSwapOptions } from "./TileSwapPlanner";
 import { GoalCupManager } from "./GoalCupManager";
 import { TilePhysics } from "./TilePhysics";
+import { createTileBooster } from "./TileBooster";
+import { snapTileToParent, computeTeeHeading } from "./TilePlacement";
+import { cloneSplinePath } from "../spline/PolylineMath";
 import {
   connectSocket,
   disconnectSocket,
@@ -74,16 +75,7 @@ export class CourseManager {
     this.clear();
     this.showBoundary = hole.showBoundary ?? true;
     this.spawnHeading.set(0, 0, -1);
-    this.splinePath = hole.splinePath
-      ? {
-          closed: false,
-          nodes: hole.splinePath.nodes.map((n) => ({
-            ...n,
-            position: [...n.position] as [number, number, number],
-            handleOffset: [...n.handleOffset] as [number, number],
-          })),
-        }
-      : null;
+    this.splinePath = hole.splinePath ? cloneSplinePath(hole.splinePath) : null;
 
     if (this.splinePath?.nodes && this.splinePath.nodes.length >= 2) {
       const n0 = this.splinePath.nodes[0].position;
@@ -117,33 +109,14 @@ export class CourseManager {
     }
 
     // Resolve mathematical socket snapping if attachedTo is provided
-    if (tileData.attachedTo) {
-      const parent = this.tiles.get(tileData.attachedTo.parentInstanceId);
-      if (parent) {
-        parent.group.updateMatrixWorld(true);
-        const parentSocket = parent.pieceTemplate.sockets.find(
-          (s) => s.id === tileData.attachedTo!.parentSocketId
-        );
-        const childSocketId = tileData.attachedTo.childSocketId || "LOC_Socket_In";
-        const childSocket = template.sockets.find((s) => s.id === childSocketId);
-
-        if (parentSocket && childSocket) {
-          const snappedMatrix = SocketSolver.computeSnappedTransform(
-            parent.group.matrixWorld,
-            parentSocket,
-            childSocket
-          );
-          const pos = new THREE.Vector3();
-          const quat = new THREE.Quaternion();
-          const scale = new THREE.Vector3();
-          snappedMatrix.decompose(pos, quat, scale);
-          const euler = new THREE.Euler().setFromQuaternion(quat, "YXZ");
-
-          tileData.position = [pos.x, pos.y, pos.z];
-          tileData.rotationY = (euler.y * 180) / Math.PI;
-        }
-      }
-    }
+    const parent = tileData.attachedTo
+      ? this.tiles.get(tileData.attachedTo.parentInstanceId)
+      : undefined;
+    snapTileToParent(
+      tileData,
+      parent && { group: parent.group, sockets: parent.pieceTemplate.sockets },
+      template.sockets
+    );
 
     const pos = tileData.position || [0, 0, 0];
     const rotY = tileData.rotationY || 0;
@@ -196,22 +169,8 @@ export class CourseManager {
         loc.add(group.position);
         this.spawnPosition.copy(loc);
 
-        const hasSplineNodes = Boolean(this.splinePath?.nodes && this.splinePath.nodes.length >= 2);
-        if (!hasSplineNodes) {
-          const outSocket = template.sockets.find((s) => s.id === "LOC_Socket_Out");
-          if (outSocket) {
-            const sockPos = new THREE.Vector3(...outSocket.position).applyMatrix4(group.matrixWorld);
-            const heading = new THREE.Vector3(sockPos.x - this.spawnPosition.x, 0, sockPos.z - this.spawnPosition.z);
-            if (heading.lengthSq() > 0.0001) {
-              this.spawnHeading.copy(heading.normalize());
-            } else {
-              const fwd = new THREE.Vector3(0, 0, -1).applyEuler(group.rotation);
-              this.spawnHeading.set(fwd.x, 0, fwd.z).normalize();
-            }
-          } else {
-            const fwd = new THREE.Vector3(0, 0, -1).applyEuler(group.rotation);
-            this.spawnHeading.set(fwd.x, 0, fwd.z).normalize();
-          }
+        if (!this.hasSplineHeading()) {
+          this.spawnHeading.copy(computeTeeHeading(group, template.sockets, this.spawnPosition));
         }
       }
 
@@ -226,24 +185,10 @@ export class CourseManager {
 
       // Check for socket-tile Booster trigger (e.g. hazard_booster_strip_6x3)
       if (template.metadata?.tags?.includes("booster")) {
-        const boosterDesc = this.rapier.ColliderDesc.cuboid(2.3, 0.25, 1.4)
-          .setTranslation(group.position.x, group.position.y + 0.15, group.position.z)
-          .setRotation(group.quaternion)
-          .setSensor(true)
-          .setActiveEvents(this.rapier.ActiveEvents.COLLISION_EVENTS);
-        const boosterCol = this.rapierWorld.createCollider(boosterDesc);
-        instantiated.boosterSensorCollider = boosterCol;
-        const boosterVisuals = new BoosterVisuals();
-        boosterVisuals.update(0);
-        group.add(boosterVisuals.group);
-        instantiated.boosterVisuals = boosterVisuals;
-        const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(group.quaternion).normalize();
-        this.boosterSensors.set(boosterCol.handle, {
-          direction: forwardDir,
-          impulse: 0.038,
-          center: group.position.clone(),
-          visuals: boosterVisuals,
-        });
+        const booster = createTileBooster(this.rapier, this.rapierWorld, group);
+        instantiated.boosterSensorCollider = booster.collider;
+        instantiated.boosterVisuals = booster.visuals;
+        this.boosterSensors.set(booster.collider.handle, booster.info);
       }
     }
 
@@ -475,29 +420,16 @@ export class CourseManager {
   }
 
   public setSplinePath(path: SplinePathData | null): void {
-    this.splinePath = path
-      ? {
-          closed: false,
-          nodes: path.nodes.map((n) => ({
-            ...n,
-            position: [...n.position] as [number, number, number],
-            handleOffset: [...n.handleOffset] as [number, number],
-          })),
-        }
-      : null;
+    this.splinePath = path ? cloneSplinePath(path) : null;
   }
 
   public getSplinePath(): SplinePathData | null {
-    return this.splinePath
-      ? {
-          closed: false,
-          nodes: this.splinePath.nodes.map((n) => ({
-            ...n,
-            position: [...n.position] as [number, number, number],
-            handleOffset: [...n.handleOffset] as [number, number],
-          })),
-        }
-      : null;
+    return this.splinePath ? cloneSplinePath(this.splinePath) : null;
+  }
+
+  /** True when the loaded hole has a spline whose first leg defines the spawn heading. */
+  private hasSplineHeading(): boolean {
+    return (this.splinePath?.nodes.length ?? 0) >= 2;
   }
 
   public exportHoleData(par: number = 3, holeNumber: number = 1): HoleData {
