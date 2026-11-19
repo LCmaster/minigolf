@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { HistoryManager, type EditorCommand } from "../src/lib/engine/editor/HistoryManager";
+import { HistoryManager, type EditorCommand } from "./HistoryManager";
 
 describe("HistoryManager Unit Tests", () => {
   it("starts empty with canUndo and canRedo false", () => {
@@ -25,14 +25,12 @@ describe("HistoryManager Unit Tests", () => {
     expect(history.canUndo()).toBe(true);
     expect(history.canRedo()).toBe(false);
 
-    // Undo
     const undone = history.undo();
     expect(undone).toBe(true);
     expect(state).toBe(0);
     expect(history.canUndo()).toBe(false);
     expect(history.canRedo()).toBe(true);
 
-    // Redo
     const redone = history.redo();
     expect(redone).toBe(true);
     expect(state).toBe(1);
@@ -73,7 +71,6 @@ describe("HistoryManager Unit Tests", () => {
       history.execute(cmd);
     }
 
-    // Should only have 50 undo steps
     let undoCount = 0;
     while (history.undo()) {
       undoCount++;

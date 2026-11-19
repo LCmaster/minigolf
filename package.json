@@ -7,9 +7,16 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:unit": "vitest run src/",
+    "test:physics": "vitest run tests/physics/",
+    "test:integration": "vitest run tests/integration/",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@skeletonlabs/skeleton": "^2.3.0",
     "@skeletonlabs/tw-plugin": "^0.2.2",
     "@sveltejs/adapter-auto": "^2.0.0",

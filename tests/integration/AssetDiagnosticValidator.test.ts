@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { AssetDiagnosticValidator } from "./helpers/AssetDiagnosticValidator";
+import { AssetDiagnosticValidator } from "../helpers/AssetDiagnosticValidator";
 
-describe("AssetDiagnosticValidator Unit Tests", () => {
+describe("AssetDiagnosticValidator Integration Tests", () => {
   it("validates mandatory colliders for standard straight tile", () => {
     const validColliders = ["UBX_Floor", "UBX_Floor_Slab", "UBX_Wall_L", "UBX_Wall_R"];
     const result = AssetDiagnosticValidator.validateTileColliders("straight_6m", validColliders);
@@ -31,13 +31,12 @@ describe("AssetDiagnosticValidator Unit Tests", () => {
     const result = AssetDiagnosticValidator.validateTileColliders(
       "Tile_Pack_01_End",
       endColliders,
-      true, // isEndTile
+      true,
       false
     );
 
     expect(result.valid).toBe(true);
 
-    // Missing hole indicator
     const withoutIndicator = endColliders.filter((c) => c !== "UBX_Hole_Indicator");
     const failResult = AssetDiagnosticValidator.validateTileColliders(
       "Tile_Pack_01_End",
@@ -66,3 +65,4 @@ describe("AssetDiagnosticValidator Unit Tests", () => {
     expect(failResult.errors[0]).toContain("6.0m");
   });
 });
+

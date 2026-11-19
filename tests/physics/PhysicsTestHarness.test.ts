@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import * as THREE from "three";
-import { PhysicsTestHarness } from "./helpers/PhysicsTestHarness";
+import { PhysicsTestHarness } from "../helpers/PhysicsTestHarness";
 
 describe("PhysicsTestHarness Unit Tests", () => {
   let RAPIER: typeof import("@dimforge/rapier3d-compat");
@@ -31,7 +31,6 @@ describe("PhysicsTestHarness Unit Tests", () => {
   it("detects rigid body settling accurately", () => {
     const world = PhysicsTestHarness.createWorld();
 
-    // Create a dynamic body that drops onto a static floor
     const groundDesc = RAPIER.ColliderDesc.cuboid(5, 0.1, 5);
     world.createCollider(groundDesc);
 
@@ -52,10 +51,9 @@ describe("PhysicsTestHarness Unit Tests", () => {
   });
 
   it("calculates incident and reflection angles accurately", () => {
-    // Ball approaching a vertical wall (normal pointing +X) at a 45 degree angle
     const wallNormal = new THREE.Vector3(1, 0, 0);
-    const incomingVel = new THREE.Vector3(-5, 0, 5); // Heading into -X, +Z
-    const outgoingVel = new THREE.Vector3(5, 0, 5);  // Bouncing into +X, +Z
+    const incomingVel = new THREE.Vector3(-5, 0, 5);
+    const outgoingVel = new THREE.Vector3(5, 0, 5);
 
     const angles = PhysicsTestHarness.calculateReboundAngles(incomingVel, outgoingVel, wallNormal);
 
@@ -63,3 +61,4 @@ describe("PhysicsTestHarness Unit Tests", () => {
     expect(angles.reflectionDeg).toBeCloseTo(45, 1);
   });
 });
+

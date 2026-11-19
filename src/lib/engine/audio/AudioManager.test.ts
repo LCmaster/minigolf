@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AudioManager } from "../src/lib/engine/audio/AudioManager";
+import { describe, it, expect, vi } from "vitest";
+import { AudioManager } from "./AudioManager";
 
 describe("AudioManager Unit Tests", () => {
   it("toggles mute state correctly", () => {

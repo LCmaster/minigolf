@@ -33,6 +33,10 @@
     // Load full 3-tile playable course: Tee -> Straight -> Cup
     engine.loadTestHole();
     engine.start();
+    // Expose engine instance on window for testing and diagnostics
+    if (typeof window !== "undefined") {
+      window.__engine = engine;
+    }
     isReady = true;
   });
 
@@ -129,7 +133,7 @@
   <!-- Celebratory Cup Sink Banner -->
   {#if isCupSunk}
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div class="bg-black/90 backdrop-blur-xl border border-emerald-500/50 p-8 rounded-3xl text-center shadow-2xl animate-bounce pointer-events-auto space-y-4">
+      <div class="bg-black/90 backdrop-blur-xl border border-emerald-500/50 p-8 rounded-3xl text-center shadow-2xl pointer-events-auto space-y-4">
         <div class="text-5xl">⛳ 🎉</div>
         <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 font-sans">
           HOLE COMPLETED!
