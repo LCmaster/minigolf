@@ -1,200 +1,306 @@
 /**
  * AudioManager.ts
- * Procedural low-latency Web Audio API sound generator for Mini Golf Mania.
- * Synthesizes putt thwacks, ball rolling rumbles, rubber bumper pops, water splashes,
- * and celebratory cup capture chimes without requiring external audio assets.
+ * Unified Web Audio sound coordinator for Mini Golf Mania.
+ * Combines normalized OpenGameArt sample playback (`SoundBank`), procedural fallbacks
+ * (`SynthEffects`), ground-gated turf rolling modulation, and persisted mute controls.
  */
+
+import { SoundBank, type SoundId } from "./SoundBank";
+import {
+  createNoiseRollingBuffer,
+  synthAimTick,
+  synthBooster,
+  synthBumper,
+  synthCupSink,
+  synthPutt,
+  synthWallBounce,
+  synthWaterSplash,
+} from "./SynthEffects";
+
+const MUTE_STORAGE_KEY = "minigolf_audio_muted";
+const WALL_BOUNCE_MIN_SPEED = 0.35;
+const WALL_BOUNCE_COOLDOWN_MS = 50;
+const ROLL_MIN_SPEED = 0.25;
 
 export class AudioManager {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private isMuted: boolean = false;
+  private readonly soundBank: SoundBank;
 
-  // Ball rolling continuous rumble
-  private rollOsc: OscillatorNode | null = null;
+  // Ground-gated continuous rolling loop
+  private rollSource: AudioBufferSourceNode | null = null;
+  private rollFilter: BiquadFilterNode | null = null;
   private rollGain: GainNode | null = null;
-  private isRolling: boolean = false;
+  private fallbackRollingBuffer: AudioBuffer | null = null;
+  private rollingUsesSample: boolean = false;
+  private rollStopTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor() {
-    // AudioContext will be lazily initialized on first user interaction
+  private lastWallBounceMs: number = -Infinity;
+
+  constructor(soundBank?: SoundBank) {
+    this.soundBank = soundBank ?? new SoundBank();
+    this.isMuted = this.readPersistedMute();
   }
 
-  private ensureContext(): AudioContext | null {
+  private readPersistedMute(): boolean {
+    try {
+      const storage = typeof window !== "undefined" ? window.localStorage : undefined;
+      return storage?.getItem(MUTE_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  }
+
+  private persistMute(muted: boolean): void {
+    try {
+      const storage = typeof window !== "undefined" ? window.localStorage : undefined;
+      storage?.setItem(MUTE_STORAGE_KEY, muted ? "true" : "false");
+    } catch {
+      // Ignore storage quota or private-browsing errors
+    }
+  }
+
+  private ensureContext(): { ctx: AudioContext; master: GainNode } | null {
     if (typeof window === "undefined") return null;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
+      if (!AudioCtx) return null;
+      this.ctx = new AudioCtx();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
+      void this.soundBank.preload(this.ctx);
     }
-    if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
+    if (this.ctx.state === "suspended") {
+      void this.ctx.resume?.();
     }
-    return this.ctx;
+    return this.masterGain ? { ctx: this.ctx, master: this.masterGain } : null;
   }
 
-  /**
-   * Putter hit impact sound: punchy pop scaling pitch & volume with shot power.
-   */
-  public playPutt(power: number): void {
-    if (this.isMuted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
+  private playSample(
+    ctx: AudioContext,
+    master: GainNode,
+    id: SoundId,
+    volume: number,
+    playbackRate: number = 1
+  ): boolean {
+    const buffer = this.soundBank.get(id);
+    if (!buffer) return false;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "sine";
-    const startFreq = 160 + power * 120;
-    osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.12);
-
-    const volume = 0.3 + power * 0.5;
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  }
-
-  /**
-   * Bumper bounce pop: crisp bouncy spring FM chime.
-   */
-  public playBumper(): void {
-    if (this.isMuted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(320, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(680, ctx.currentTime + 0.08);
-
-    gain.gain.setValueAtTime(0.45, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
-  }
-
-  /**
-   * Water hazard splash: filtered noise sweep.
-   */
-  public playWaterSplash(): void {
-    if (this.isMuted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    // Buffer noise
-    const bufferSize = ctx.sampleRate * 0.4;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    if (src.playbackRate) {
+      src.playbackRate.value = playbackRate;
     }
-
-    const whiteNoise = ctx.createBufferSource();
-    whiteNoise.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(800, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.35);
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    gain.gain.setValueAtTime(Math.max(0.001, volume), ctx.currentTime);
 
-    whiteNoise.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    whiteNoise.start();
-    whiteNoise.stop(ctx.currentTime + 0.4);
+    src.connect(gain);
+    gain.connect(master);
+    src.start();
+    return true;
   }
 
-  /**
-   * Cup capture chime: celebratory harmonic bell chord.
-   */
-  public playCupSink(): void {
-    if (this.isMuted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    // C-major chord frequencies: C6, E6, G6
-    const freqs = [1046.5, 1318.5, 1567.98];
-
-    freqs.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
-
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.8);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(ctx.currentTime + i * 0.06);
-      osc.stop(ctx.currentTime + i * 0.06 + 0.85);
-    });
-  }
-
-  public updateRolling(speed: number): void {
-    if (this.isMuted) return;
-    const ctx = this.ensureContext();
-    if (!ctx) return;
-
-    if (speed > 0.3) {
-      if (!this.isRolling) {
-        this.rollOsc = ctx.createOscillator();
-        this.rollGain = ctx.createGain();
-
-        this.rollOsc.type = "triangle";
-        this.rollOsc.frequency.setValueAtTime(60, ctx.currentTime);
-
-        this.rollGain.gain.setValueAtTime(0.05, ctx.currentTime);
-
-        this.rollOsc.connect(this.rollGain);
-        this.rollGain.connect(ctx.destination);
-
-        this.rollOsc.start();
-        this.isRolling = true;
-      }
-
-      if (this.rollOsc && this.rollGain) {
-        const pitch = Math.min(60 + speed * 12, 180);
-        const vol = Math.min(0.03 + (speed / 15) * 0.08, 0.12);
-        this.rollOsc.frequency.setTargetAtTime(pitch, ctx.currentTime, 0.05);
-        this.rollGain.gain.setTargetAtTime(vol, ctx.currentTime, 0.05);
-      }
-    } else {
-      if (this.isRolling && this.rollGain && this.rollOsc) {
-        this.rollGain.gain.setTargetAtTime(0.001, ctx.currentTime, 0.05);
-        setTimeout(() => {
-          if (this.rollOsc) {
-            this.rollOsc.stop();
-            this.rollOsc.disconnect();
-            this.rollOsc = null;
-          }
-          this.isRolling = false;
-        }, 60);
-      }
-    }
+  public getMuted(): boolean {
+    return this.isMuted;
   }
 
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
+    this.persistMute(this.isMuted);
+    if (this.isMuted) {
+      this.stopRollingImmediately();
+    }
+    if (this.ctx && this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime, 0.015);
+    }
     return this.isMuted;
   }
-}
 
+  public playPutt(power: number): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    const p = Math.max(0, Math.min(1, power));
+    if (!this.playSample(ready.ctx, ready.master, "putt", 0.35 + p * 0.55, 0.94 + p * 0.14)) {
+      synthPutt(ready.ctx, ready.master, p);
+    }
+  }
+
+  public playWallBounce(impactSpeed: number = 3.0): void {
+    if (this.isMuted || impactSpeed < WALL_BOUNCE_MIN_SPEED) return;
+
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (nowMs - this.lastWallBounceMs < WALL_BOUNCE_COOLDOWN_MS) return;
+
+    const ready = this.ensureContext();
+    if (!ready) return;
+    this.lastWallBounceMs = nowMs;
+
+    const intensity = Math.max(0.15, Math.min(1, impactSpeed / 10));
+    if (
+      !this.playSample(
+        ready.ctx,
+        ready.master,
+        "wall_bounce",
+        0.22 + intensity * 0.55,
+        0.92 + intensity * 0.18
+      )
+    ) {
+      synthWallBounce(ready.ctx, ready.master, impactSpeed);
+    }
+  }
+
+  public playBumper(): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    if (!this.playSample(ready.ctx, ready.master, "bumper", 0.72, 0.97 + Math.random() * 0.08)) {
+      synthBumper(ready.ctx, ready.master);
+    }
+  }
+
+  public playBooster(): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    if (!this.playSample(ready.ctx, ready.master, "booster", 0.8)) {
+      synthBooster(ready.ctx, ready.master);
+    }
+  }
+
+  public playWaterSplash(): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    if (!this.playSample(ready.ctx, ready.master, "splash", 0.82)) {
+      synthWaterSplash(ready.ctx, ready.master);
+    }
+  }
+
+  public playAimTick(tier: number = 1): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    const clamped = Math.max(1, Math.min(4, tier));
+    if (!this.playSample(ready.ctx, ready.master, "aim_tick", 0.28, 0.9 + clamped * 0.08)) {
+      synthAimTick(ready.ctx, ready.master, clamped);
+    }
+  }
+
+  public playCupSink(isParOrBetter: boolean = false): void {
+    if (this.isMuted) return;
+    const ready = this.ensureContext();
+    if (!ready) return;
+
+    if (!this.playSample(ready.ctx, ready.master, "cup_sink", 0.82)) {
+      synthCupSink(ready.ctx, ready.master);
+    }
+    if (isParOrBetter) {
+      this.playSample(ready.ctx, ready.master, "applause", 0.65);
+    }
+  }
+
+  public updateRolling(speed: number, isGrounded: boolean = true): void {
+    if (this.isMuted || !isGrounded || speed <= ROLL_MIN_SPEED) {
+      this.fadeOutRolling();
+      return;
+    }
+
+    const ready = this.ensureContext();
+    if (!ready) return;
+    const { ctx, master } = ready;
+
+    if (this.rollStopTimer !== null) {
+      clearTimeout(this.rollStopTimer);
+      this.rollStopTimer = null;
+    }
+
+    const sampleLoaded = this.soundBank.isLoaded("rolling");
+    if (this.rollSource && !this.rollingUsesSample && sampleLoaded) {
+      this.stopRollingImmediately();
+    }
+
+    if (!this.rollSource) {
+      const buffer =
+        this.soundBank.get("rolling") ??
+        this.fallbackRollingBuffer ??
+        (this.fallbackRollingBuffer = createNoiseRollingBuffer(ctx));
+
+      this.rollSource = ctx.createBufferSource();
+      this.rollSource.buffer = buffer;
+      this.rollSource.loop = true;
+
+      this.rollFilter = ctx.createBiquadFilter();
+      this.rollFilter.type = "lowpass";
+      this.rollFilter.frequency.setValueAtTime(550, ctx.currentTime);
+
+      this.rollGain = ctx.createGain();
+      this.rollGain.gain.setValueAtTime(0.02, ctx.currentTime);
+
+      this.rollSource.connect(this.rollFilter);
+      this.rollFilter.connect(this.rollGain);
+      this.rollGain.connect(master);
+
+      this.rollSource.start();
+      this.rollingUsesSample = sampleLoaded;
+    }
+
+    const norm = Math.max(0, Math.min(1, speed / 14));
+    const cutoffHz = 450 + norm * 1950;
+    const rate = 0.78 + norm * 0.72;
+    const vol = 0.04 + norm * 0.34;
+
+    this.rollFilter?.frequency.setTargetAtTime?.(cutoffHz, ctx.currentTime, 0.04);
+    this.rollSource.playbackRate?.setTargetAtTime?.(rate, ctx.currentTime, 0.04);
+    this.rollGain?.gain.setTargetAtTime(vol, ctx.currentTime, 0.04);
+  }
+
+  private fadeOutRolling(): void {
+    if (!this.rollSource || !this.rollGain || !this.ctx || this.rollStopTimer !== null) return;
+    this.rollGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.025);
+    this.rollStopTimer = setTimeout(() => {
+      this.rollStopTimer = null;
+      this.stopRollingImmediately();
+    }, 80);
+  }
+
+  private stopRollingImmediately(): void {
+    if (this.rollStopTimer !== null) {
+      clearTimeout(this.rollStopTimer);
+      this.rollStopTimer = null;
+    }
+    if (this.rollSource) {
+      try {
+        this.rollSource.stop();
+        this.rollSource.disconnect();
+      } catch {
+        // Ignore already-stopped source errors
+      }
+      this.rollSource = null;
+    }
+    this.rollFilter?.disconnect?.();
+    this.rollGain?.disconnect?.();
+    this.rollFilter = null;
+    this.rollGain = null;
+    this.rollingUsesSample = false;
+  }
+
+  public dispose(): void {
+    this.stopRollingImmediately();
+    this.fallbackRollingBuffer = null;
+    this.masterGain?.disconnect?.();
+    this.masterGain = null;
+    if (this.ctx) {
+      void this.ctx.close?.();
+      this.ctx = null;
+    }
+  }
+}

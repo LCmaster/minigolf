@@ -50,6 +50,7 @@ describe("codebase architecture guards", () => {
       "lib/engine/course/CourseManager.ts",
       "lib/engine/editor/EditorController.ts",
       "lib/engine/player/BallController.ts",
+      "lib/engine/audio/AudioManager.ts",
       "lib/components/courses/CoursesHub.svelte",
     ];
     for (const rel of budgeted) {
