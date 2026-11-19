@@ -195,4 +195,77 @@ describe("GameEngine Headless Orchestrator Tests", () => {
 
     engine.dispose();
   });
+
+  it("gates rolling audio by ground contact, uses playBooster on boosters, passes hole par to cupSink/playCupSink, and disposes audio", async () => {
+    const engine = new GameEngine(undefined, { headless: true });
+    vi.spyOn(engine.assetLoader, "init").mockImplementation(async () => {});
+    vi.spyOn(engine.assetLoader, "getPiece").mockImplementation((id: string) => {
+      if (id.includes("tee")) return MockFactories.createMockPiece(id, { isTee: true });
+      if (id.includes("cup")) return MockFactories.createMockPiece(id, { isCup: true });
+      return MockFactories.createMockPiece(id);
+    });
+    await engine.init();
+
+    // Load a Par-4 hole #7 so cupSink & playCupSink reflect course metadata
+    engine.courseManager.loadHole({
+      holeNumber: 7,
+      par: 4,
+      teeTileId: "t_tee",
+      cupTileId: "t_cup",
+      tiles: [
+        { instanceId: "t_tee", kitPieceId: "tile_tee", position: [0, 0, 0], walls: { left: true, right: true } },
+        { instanceId: "t_cup", kitPieceId: "tile_cup", attachedTo: { parentInstanceId: "t_tee", parentSocketId: "LOC_Socket_Out" }, walls: { left: true, right: true } },
+      ],
+    });
+    engine.ballController.createPhysicsBody(engine.courseManager.spawnPosition);
+
+    // 1. triggerBooster uses playBooster rather than playBumper
+    const boosterSpy = vi.spyOn(engine.audio, "playBooster").mockImplementation(() => {});
+    const bumperSpy = vi.spyOn(engine.audio, "playBumper").mockImplementation(() => {});
+    engine.triggerBooster({
+      direction: new THREE.Vector3(0, 0, -1),
+      impulse: 0.038,
+      center: new THREE.Vector3(),
+    });
+    expect(boosterSpy).toHaveBeenCalledTimes(1);
+    expect(bumperSpy).not.toHaveBeenCalled();
+
+    // 2. Grounded rolling vs airborne silence gating
+    const rollingSpy = vi.spyOn(engine.audio, "updateRolling");
+    engine.ballController.state = "moving";
+    // Welded floor top in MockFactories is Y = 1.0 (ball radius = 0.1 -> Y = 1.095 contacts floor)
+    engine.ballController.rigidBody.setTranslation({ x: 0, y: 1.095, z: 0 }, true);
+    engine.ballController.rigidBody.setLinvel({ x: 0, y: -0.2, z: -4.0 }, true);
+    engine.stepFrame(1 / 60);
+    const groundedCall = rollingSpy.mock.calls.at(-1)!;
+    expect(groundedCall[0]).toBeGreaterThan(2.0);
+    expect(groundedCall[1]).toBe(true);
+
+    // Lift ball high into the air -> isGrounded must be false
+    engine.ballController.rigidBody.setTranslation({ x: 0, y: 3.0, z: 0 }, true);
+    engine.ballController.rigidBody.setLinvel({ x: 0, y: 1.0, z: -4.0 }, true);
+    engine.stepFrame(1 / 60);
+    const airCall = rollingSpy.mock.calls.at(-1)!;
+    expect(airCall[0]).toBeGreaterThan(2.0);
+    expect(airCall[1]).toBe(false);
+
+    // 3. Cup sink forwards Par-or-better flag to audio.playCupSink and hole par to cupSink event
+    const cupEvents: any[] = [];
+    engine.on("cupSink", (ev) => cupEvents.push(ev));
+    const cupAudioSpy = vi.spyOn(engine.audio, "playCupSink").mockImplementation(() => {});
+
+    engine.ballController.strokes = 3; // Under Par 4 -> birdie (isParOrBetter = true)
+    const cupPos = engine.courseManager.getCupBottomPosition() || engine.courseManager.getGoalPosition()!;
+    engine.ballController.rigidBody.setTranslation({ x: cupPos.x, y: cupPos.y + 0.05, z: cupPos.z }, true);
+    engine.stepFrame(1 / 60);
+
+    expect(cupAudioSpy).toHaveBeenCalledWith(true);
+    expect(cupEvents).toHaveLength(1);
+    expect(cupEvents[0]).toMatchObject({ holeNumber: 7, par: 4, totalStrokes: 3, scoreRelative: -1 });
+
+    // 4. dispose() disposes AudioManager
+    const disposeSpy = vi.spyOn(engine.audio, "dispose");
+    engine.dispose();
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
 });

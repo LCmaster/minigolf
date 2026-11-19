@@ -169,5 +169,50 @@ describe("SlingshotInput Unit Tests", () => {
     expect(eventTarget.removeEventListener).toHaveBeenCalledWith("pointermove", expect.any(Function));
     expect(eventTarget.removeEventListener).toHaveBeenCalledWith("pointerup", expect.any(Function));
   });
+
+  it("emits onPowerThreshold ticks when crossing 25%, 50%, 75%, and 100% power tiers and resets on release", () => {
+    camera.position.set(0, 5, 5);
+    camera.lookAt(0, 0.2, 0);
+    camera.updateMatrixWorld();
+
+    const listeners = new Map<string, (ev: any) => void>();
+    const eventTarget = {
+      addEventListener: vi.fn((type: string, cb: (ev: any) => void) => listeners.set(type, cb)),
+      removeEventListener: vi.fn((type: string) => listeners.delete(type)),
+    };
+
+    const input = new SlingshotInput(canvasMock, camera, scene, ballMock, undefined, {
+      eventTarget,
+    });
+    const tiers: number[] = [];
+    (input as any).onPowerThreshold = (tier: number) => tiers.push(tier);
+
+    const pointerdown = canvasMock.addEventListener.mock.calls.find(
+      (c: any[]) => c[0] === "pointerdown"
+    )[1];
+
+    pointerdown({ button: 0, clientX: 400, clientY: 300 });
+    // Drag smoothly down the canvas from 0% to 100% power
+    for (let y = 310; y <= 590; y += 10) {
+      listeners.get("pointermove")!({ clientX: 400, clientY: y });
+    }
+    // Holding at same max power does not duplicate tier 4 tick
+    listeners.get("pointermove")!({ clientX: 400, clientY: 595 });
+    listeners.get("pointerup")!({});
+
+    expect(tiers).toContain(1);
+    expect(tiers).toContain(2);
+    expect(tiers).toContain(3);
+    expect(tiers).toContain(4);
+    expect(tiers.filter((t) => t === 4)).toHaveLength(1);
+
+    // New stroke re-emits tiers cleanly
+    tiers.length = 0;
+    pointerdown({ button: 0, clientX: 400, clientY: 300 });
+    listeners.get("pointermove")!({ clientX: 400, clientY: 590 });
+    expect(tiers.at(-1)).toBe(4);
+
+    input.dispose();
+  });
 });
 

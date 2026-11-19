@@ -14,6 +14,7 @@ export class TilePhysics {
   private readonly rapierWorld: RAPIER.World;
   private readonly rapier: typeof RAPIER;
   private readonly waterHazardColliderHandles: Set<number>;
+  private readonly wallColliderHandles: Set<number> = new Set();
   private weldedFloor: RAPIER.Collider | null = null;
   private terrain: RAPIER.Collider | null = null;
 
@@ -29,6 +30,14 @@ export class TilePhysics {
 
   public get terrainCollider(): RAPIER.Collider | null {
     return this.terrain;
+  }
+
+  public isWallCollider(colliderHandle: number): boolean {
+    return this.wallColliderHandles.has(colliderHandle);
+  }
+
+  public isGroundCollider(colliderHandle: number): boolean {
+    return this.weldedFloor?.handle === colliderHandle || this.terrain?.handle === colliderHandle;
   }
 
   /** Rebuilds left/right/back rail colliders to match the tile's wall flags and gap state. */
@@ -52,6 +61,7 @@ export class TilePhysics {
     // Back wall (Tee / Cup) is created once and only removed when the tile becomes a gap
     if (tile.wallBackCollider) {
       if (tileData.isGap) {
+        this.wallColliderHandles.delete(tile.wallBackCollider.handle);
         this.rapierWorld.removeCollider(tile.wallBackCollider, false);
         tile.wallBackCollider = undefined;
       }
@@ -80,6 +90,9 @@ export class TilePhysics {
 
   /** Removes a tile's wall, water-hazard, and booster-sensor colliders from the physics world. */
   public removeTileColliders(tile: InstantiatedTile): void {
+    for (const col of [tile.wallLCollider, tile.wallRCollider, tile.wallBackCollider]) {
+      if (col) this.wallColliderHandles.delete(col.handle);
+    }
     for (const collider of [
       tile.wallLCollider,
       tile.wallRCollider,
@@ -88,6 +101,9 @@ export class TilePhysics {
     ]) {
       if (collider) this.rapierWorld.removeCollider(collider, false);
     }
+    tile.wallLCollider = undefined;
+    tile.wallRCollider = undefined;
+    tile.wallBackCollider = undefined;
     this.clearWaterColliders(tile);
   }
 
@@ -150,6 +166,7 @@ export class TilePhysics {
       this.rapierWorld.removeCollider(this.terrain, false);
       this.terrain = null;
     }
+    this.wallColliderHandles.clear();
   }
 
   /** Removes `existing` and, when `geometry` is given, creates a fresh trimesh collider for it. */
@@ -158,9 +175,15 @@ export class TilePhysics {
     geometry: THREE.BufferGeometry | undefined,
     worldMatrix: THREE.Matrix4
   ): RAPIER.Collider | undefined {
-    if (existing) this.rapierWorld.removeCollider(existing, false);
+    if (existing) {
+      this.wallColliderHandles.delete(existing.handle);
+      this.rapierWorld.removeCollider(existing, false);
+    }
     if (!geometry) return undefined;
     const desc = createStaticTrimeshColliderDesc(this.rapier, geometry, worldMatrix);
-    return desc ? this.rapierWorld.createCollider(desc) : undefined;
+    if (!desc) return undefined;
+    const col = this.rapierWorld.createCollider(desc);
+    this.wallColliderHandles.add(col.handle);
+    return col;
   }
 }

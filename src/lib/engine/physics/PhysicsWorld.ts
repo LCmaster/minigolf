@@ -65,6 +65,24 @@ export class PhysicsWorld {
     });
   }
 
+  /** Returns `true` when `collider` currently contacts any collider matching `predicate`. */
+  public hasContactWith(
+    collider: RAPIER.Collider | undefined,
+    predicate: (otherHandle: number) => boolean
+  ): boolean {
+    if (!this.isReady || !this.world || !collider) return false;
+    let found = false;
+    this.world.contactsWith(collider, (other) => {
+      if (found || !predicate(other.handle)) return;
+      this.world.contactPair(collider, other, (manifold) => {
+        if (manifold.numContacts() > 0) {
+          found = true;
+        }
+      });
+    });
+    return found;
+  }
+
   public dispose(): void {
     if (this.world) {
       this.world.free();

@@ -62,12 +62,14 @@ export class SlingshotInput {
   private currentDragPoint: THREE.Vector3 = new THREE.Vector3();
   private shotDirection: THREE.Vector3 = new THREE.Vector3();
   private currentRawPower: number = 0;
+  private lastPowerTier: number = 0;
   private lastJitterAngle: number = 0;
 
   private maxDragDistance: number = 2.4; // 2.4m pullback reaches 100% even at default 29° camera pitch
   private maxImpulseForce: number = MAX_IMPULSE_FORCE; // Calibrated for ~5g golf ball (up to ~20m ramp jump-overs)
 
   public onStrokeTaken?: (power: number, impulse: THREE.Vector3) => void;
+  public onPowerThreshold?: (tier: number) => void;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -105,6 +107,7 @@ export class SlingshotInput {
       this.isDragging = false;
       this.isOrbiting = false;
       this.currentRawPower = 0;
+      this.lastPowerTier = 0;
       this.lastJitterAngle = 0;
       this.arrow.hide();
       this.canvas.style.cursor = "default";
@@ -150,6 +153,7 @@ export class SlingshotInput {
     if (this.ball.state === "aiming" && this.isPointerOverBallOrGhost(ev.clientX, ev.clientY)) {
       const ballPos = this.ball.getPosition();
       this.isDragging = true;
+      this.lastPowerTier = 0;
       this.dragStartPoint.copy(ballPos);
       this.currentDragPoint.copy(ballPos);
       this.canvas.style.cursor = "grabbing";
@@ -186,7 +190,16 @@ export class SlingshotInput {
         const curvedPower = computeCurvedPower(power);
         this.lastJitterAngle = computeAimJitterAngle(power, timeSec);
         this.arrow.update(ballPos, this.shotDirection, curvedPower, timeSec, this.lastJitterAngle);
+
+        const tier = power >= 0.99 ? 4 : Math.floor(power * 4);
+        if (tier > 0 && tier !== this.lastPowerTier) {
+          this.lastPowerTier = tier;
+          this.onPowerThreshold?.(tier);
+        } else if (tier === 0) {
+          this.lastPowerTier = 0;
+        }
       } else {
+        this.lastPowerTier = 0;
         this.lastJitterAngle = 0;
         this.arrow.hide();
       }
@@ -263,11 +276,13 @@ export class SlingshotInput {
       const impulse = dir.multiplyScalar(impulseMagnitude);
 
       this.currentRawPower = 0;
+      this.lastPowerTier = 0;
       this.lastJitterAngle = 0;
       this.ball.shoot(impulse);
       this.onStrokeTaken?.(power, impulse);
     } else {
       this.currentRawPower = 0;
+      this.lastPowerTier = 0;
       this.lastJitterAngle = 0;
     }
   };

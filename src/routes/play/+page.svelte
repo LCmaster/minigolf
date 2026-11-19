@@ -45,6 +45,7 @@
     }
 
     engine = new GameEngine(canvas);
+    isMuted = engine.audio.getMuted();
     await engine.init();
     engine.renderPipeline.resize();
 

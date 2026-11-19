@@ -55,6 +55,8 @@ export class CourseManager {
   public spawnPosition: THREE.Vector3 = new THREE.Vector3(0, 1.1, 0);
   public spawnHeading: THREE.Vector3 = new THREE.Vector3(0, 0, -1);
   public showBoundary: boolean = true;
+  public currentPar: number = 3;
+  public currentHoleNumber: number = 1;
   public onHoleChanged?: () => void;
 
   constructor(
@@ -83,6 +85,8 @@ export class CourseManager {
 
   public loadHole(hole: HoleData): void {
     this.clear();
+    this.currentHoleNumber = hole.holeNumber ?? 1;
+    this.currentPar = hole.par ?? 3;
     this.showBoundary = hole.showBoundary ?? true;
     this.spawnHeading.set(0, 0, -1);
     this.splinePath = hole.splinePath ? cloneSplinePath(hole.splinePath) : null;
@@ -277,13 +281,10 @@ export class CourseManager {
     return this.boosterSensors.get(colliderHandle);
   }
 
-  public isBumperCollider(colliderHandle: number): boolean {
-    return this.bumperColliderHandles.has(colliderHandle);
-  }
-
-  public isWaterHazardCollider(colliderHandle: number): boolean {
-    return this.waterHazardColliderHandles.has(colliderHandle);
-  }
+  public isBumperCollider(colliderHandle: number): boolean { return this.bumperColliderHandles.has(colliderHandle); }
+  public isWaterHazardCollider(colliderHandle: number): boolean { return this.waterHazardColliderHandles.has(colliderHandle); }
+  public isGroundCollider(colliderHandle: number): boolean { return this.tilePhysics.isGroundCollider(colliderHandle); }
+  public isWallCollider(colliderHandle: number): boolean { return this.tilePhysics.isWallCollider(colliderHandle); }
 
   public getGoalPosition(): THREE.Vector3 | null {
     return this.goalCup.goalPosition;

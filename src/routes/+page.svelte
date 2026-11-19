@@ -19,6 +19,7 @@
     if (!canvas) return;
     try {
       engine = new GameEngine(canvas);
+      isMuted = engine.audio.getMuted();
       await engine.init();
       engine.courseManager.loadHole(carnivalParkCourse.holes[0]);
       engine.setShowcaseTurntableMode(true);

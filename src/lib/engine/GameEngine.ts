@@ -91,11 +91,15 @@ export class GameEngine {
     this.slingshotInput.onStrokeTaken = (power, impulse) => {
       this.audio.playPutt(power);
       this.emit("strokeTaken", {
-        holeNumber: 1,
+        holeNumber: this.courseManager.currentHoleNumber ?? 1,
         strokeNumber: this.ballController.strokes,
         power,
         impulse: [impulse.x, impulse.y, impulse.z],
       });
+    };
+
+    this.slingshotInput.onPowerThreshold = (tier) => {
+      this.audio.playAimTick(tier);
     };
 
     this.cameraController.onFrameRequested = () => {
@@ -221,7 +225,7 @@ export class GameEngine {
       );
     }
     this.boosterCooldownTimer = 0.35;
-    this.audio.playBumper();
+    this.audio.playBooster();
     booster.visuals?.triggerFlash();
   }
 
@@ -286,6 +290,7 @@ export class GameEngine {
     let pendingBooster: BoosterSensorInfo | null = null;
     let hitBumper = false;
     let hitWaterHazard = false;
+    let hitWall = false;
 
     this.physicsWorld.drainCollisionEvents((h1, h2, started) => {
       if (!started || ballHandle === undefined) return;
@@ -310,6 +315,10 @@ export class GameEngine {
       if (this.courseManager.isBumperCollider(otherHandle)) {
         hitBumper = true;
       }
+
+      if (this.courseManager.isWallCollider(otherHandle)) {
+        hitWall = true;
+      }
     });
 
     if (hitWaterHazard && this.ballController.state !== "in_hole") {
@@ -319,6 +328,9 @@ export class GameEngine {
       this.triggerBooster(pendingBooster);
     } else if (hitBumper) {
       this.audio.playBumper();
+    } else if (hitWall) {
+      const lv = this.ballController.rigidBody ? this.ballController.rigidBody.linvel() : { x: 0, y: 0, z: 0 };
+      this.audio.playWallBounce(Math.hypot(lv.x, lv.y, lv.z));
     }
 
     // Proximity check anchored strictly to inside of cup cavity (never triggers while skimming across top rim at +0.10)
@@ -334,14 +346,16 @@ export class GameEngine {
       const cupRestPos = cupBottomPos
         ? new THREE.Vector3(cupBottomPos.x, cupBottomPos.y + this.ballController.radius, cupBottomPos.z)
         : this.ballController.getPosition().clone();
+      const holeNumber = this.courseManager.currentHoleNumber ?? 1;
+      const par = this.courseManager.currentPar ?? 3;
       this.ballController.sinkAt(cupRestPos);
       this.cameraController.mode = "cup_zoom";
-      this.audio.playCupSink();
+      this.audio.playCupSink(this.ballController.strokes <= par);
       this.emit("cupSink", {
-        holeNumber: 1,
+        holeNumber,
         totalStrokes: this.ballController.strokes,
-        par: 2,
-        scoreRelative: this.ballController.strokes - 2,
+        par,
+        scoreRelative: this.ballController.strokes - par,
       });
     }
 
@@ -355,8 +369,14 @@ export class GameEngine {
     this.cameraController.setTarget(ballPos);
 
     const linvel = this.ballController.rigidBody ? this.ballController.rigidBody.linvel() : { x: 0, y: 0, z: 0 };
+    const horizSpeed = Math.hypot(linvel.x, linvel.z);
     const speed = Math.sqrt(linvel.x * linvel.x + linvel.y * linvel.y + linvel.z * linvel.z);
-    this.audio.updateRolling(speed);
+    const isGrounded =
+      this.ballController.state === "moving" &&
+      this.physicsWorld.hasContactWith(this.ballController.collider, (h) =>
+        this.courseManager.isGroundCollider(h)
+      );
+    this.audio.updateRolling(horizSpeed, isGrounded);
 
     if (this.ballController.state === "moving") {
       this.cameraController.mode = "following";
@@ -464,6 +484,7 @@ export class GameEngine {
 
   public dispose(): void {
     this.stop();
+    this.audio?.dispose();
     this.cameraController?.dispose();
     this.slingshotInput?.dispose();
     this.ballController?.dispose();

@@ -149,4 +149,35 @@ describe("TilePhysics", () => {
     expect(waterHandles.size).toBe(0);
     expect(world.colliders.len()).toBe(0);
   });
+
+  it("identifies ground colliders (welded floor & terrain) and tracks wall collider handles through updates", () => {
+    const { physics } = setup();
+    const tile = makeTile();
+
+    physics.syncWallColliders(tile);
+    physics.rebuildWeldedFloor([tile]);
+    physics.setTerrain(new THREE.BoxGeometry(10, 1, 10));
+
+    const leftWallHandle = tile.wallLCollider!.handle;
+    const rightWallHandle = tile.wallRCollider!.handle;
+    const backWallHandle = tile.wallBackCollider!.handle;
+    const terrainHandle = physics.terrainCollider!.handle;
+
+    expect((physics as any).isWallCollider(leftWallHandle)).toBe(true);
+    expect((physics as any).isWallCollider(rightWallHandle)).toBe(true);
+    expect((physics as any).isWallCollider(backWallHandle)).toBe(true);
+    expect((physics as any).isGroundCollider(terrainHandle)).toBe(true);
+    expect((physics as any).isGroundCollider(leftWallHandle)).toBe(false);
+
+    // Turning off left wall drops its handle while keeping active right/back handles tracked
+    tile.tileData.walls.left = false;
+    physics.syncWallColliders(tile);
+    expect((physics as any).isWallCollider(leftWallHandle)).toBe(false);
+    const activeRightHandle = tile.wallRCollider!.handle;
+    expect((physics as any).isWallCollider(activeRightHandle)).toBe(true);
+
+    physics.removeTileColliders(tile);
+    expect((physics as any).isWallCollider(activeRightHandle)).toBe(false);
+    expect((physics as any).isWallCollider(backWallHandle)).toBe(false);
+  });
 });

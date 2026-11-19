@@ -488,5 +488,47 @@ describe("CourseManager Dynamic Socket Snapping (TDD)", () => {
     expect(cm.isWaterHazardCollider(propWaterHandle)).toBe(false);
     cm.clear();
   });
+
+  it("tracks currentPar and currentHoleNumber from loadHole and exposes ground/wall collider predicates", async () => {
+    const RAPIER = await import("@dimforge/rapier3d-compat");
+    await RAPIER.init();
+
+    const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+    const scene = new THREE.Scene();
+
+    const mockLoader: any = {
+      getPiece: (id: string) => ({
+        metadata: { id, dimensions: [6, 0.6, 6], hasDynamicWalls: true },
+        visualTemplate: new THREE.Group(),
+        ubxFloorGeometry: new THREE.BoxGeometry(5, 0.2, 6),
+        ubxWallLGeometry: new THREE.BoxGeometry(0.4, 0.6, 6),
+        ubxWallRGeometry: new THREE.BoxGeometry(0.4, 0.6, 6),
+        ubxColliderGeometries: [],
+        sockets: [],
+        locators: new Map(),
+      }),
+    };
+
+    const { CourseManager } = await import("./CourseManager");
+    const cm = new CourseManager(scene, world, RAPIER, mockLoader);
+    cm.loadHole({
+      holeNumber: 5,
+      par: 4,
+      teeTileId: "t1",
+      cupTileId: "t1",
+      tiles: [{ instanceId: "t1", kitPieceId: "carnival_straight_6m", walls: { left: true, right: true } }],
+    });
+
+    expect((cm as any).currentHoleNumber).toBe(5);
+    expect((cm as any).currentPar).toBe(4);
+
+    const tile = cm.getTile("t1")!;
+    expect((cm as any).isWallCollider(tile.wallLCollider!.handle)).toBe(true);
+    expect((cm as any).isGroundCollider(tile.wallLCollider!.handle)).toBe(false);
+
+    cm.updateTerrainCollider(new THREE.BoxGeometry(4, 1, 4));
+    expect((cm as any).isGroundCollider(cm.getTerrainCollider()!.handle)).toBe(true);
+    cm.clear();
+  });
 });
 
