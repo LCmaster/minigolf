@@ -118,3 +118,4 @@ describe("planTileSwap", () => {
     expect(byId(next, "s1").isGap).toBe(false);
   });
 });
+

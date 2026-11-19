@@ -214,3 +214,4 @@ describe("TileEditCommands (TDD)", () => {
     expect(tilesMap.size).toBe(countBefore);
   });
 });
+

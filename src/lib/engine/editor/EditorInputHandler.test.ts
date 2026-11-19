@@ -186,3 +186,4 @@ describe("EditorInputHandler (TDD)", () => {
     expect(deps.deleteTile).toHaveBeenCalledWith("t1");
   });
 });
+

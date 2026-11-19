@@ -95,3 +95,4 @@ export function createTileWindmill(
 
   return { visuals, rigidBody, colliders, update, dispose };
 }
+

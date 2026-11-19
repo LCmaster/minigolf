@@ -335,3 +335,4 @@ export class TileEditCommands {
     return { newPos: targetSocket.worldPosition.clone().sub(rotatedInPos), rotationY };
   }
 }
+

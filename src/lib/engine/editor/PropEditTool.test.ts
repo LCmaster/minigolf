@@ -115,3 +115,4 @@ describe("PropEditTool", () => {
     expect(scene.getObjectByName("Editor_SelectionRing")).toBeUndefined();
   });
 });
+

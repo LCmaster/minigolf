@@ -84,3 +84,4 @@ describe("BoosterVisuals", () => {
     expect(disposed).toBeGreaterThan(0);
   });
 });
+

@@ -120,3 +120,4 @@ describe("EditorRaycastPicker (TDD)", () => {
     expect(picker.pickInteractiveTarget(raycaster)).toEqual({ kind: "prop", id: "arch_decor" });
   });
 });
+

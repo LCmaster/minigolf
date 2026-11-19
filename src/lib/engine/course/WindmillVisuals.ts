@@ -86,3 +86,4 @@ export class WindmillVisuals {
     for (const mat of this.disposableMaterials) mat.dispose();
   }
 }
+

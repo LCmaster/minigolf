@@ -65,3 +65,4 @@ describe("Profile, Sign-In, and FirstLoginModal Cartoon Arcade UI (TDD)", () => 
     expect(res.html).toContain("Start Playing!");
   });
 });
+

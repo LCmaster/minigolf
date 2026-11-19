@@ -317,3 +317,4 @@ export class PropEditTool {
     this.ghostGroup.visible = true;
   }
 }
+

@@ -46,3 +46,4 @@ describe("GapOverlayManager", () => {
     expect(scene.getObjectByName("Editor_GapGizmos")).toBeUndefined();
   });
 });
+

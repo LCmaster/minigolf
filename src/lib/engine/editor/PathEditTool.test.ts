@@ -140,3 +140,4 @@ describe("PathEditTool", () => {
     tool.dispose();
   });
 });
+

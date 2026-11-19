@@ -80,3 +80,4 @@ describe("Cartoon Arcade UI Primitives (TDD)", () => {
     expect(bare.html).not.toContain('aria-label="Close');
   });
 });
+
