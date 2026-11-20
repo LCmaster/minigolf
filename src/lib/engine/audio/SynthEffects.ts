@@ -180,3 +180,4 @@ export function synthAimTick(ctx: AudioContext, dest: AudioNode, tier: number): 
     duration: 0.035,
   });
 }
+
